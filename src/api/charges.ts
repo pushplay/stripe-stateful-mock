@@ -187,6 +187,14 @@ namespace charges {
             });
         }
 
+        if (!charge.captured && charge.amount !== refundAmount) {
+            throw new StripeError(400, {
+                message: "You cannot partially refund an uncaptured charge. Instead, capture the charge for an amount less than the original amount",
+                param: "amount",
+                type: "invalid_request_error"
+            });
+        }
+
         const now = new Date();
         const refund: stripe.refunds.IRefund = {
             id: "re_" + generateId(24),
