@@ -1,5 +1,5 @@
 import Stripe = require("stripe");
-import {assertErrorsAreEqual} from "./stripeAssert";
+import {assertErrorPromisesAreEqual} from "./stripeAssert";
 import {port} from "../src";
 
 describe("auth", () => {
@@ -18,6 +18,6 @@ describe("auth", () => {
         const liveClient = new Stripe("foobar");
         const liveResponse = liveClient.charges.create(testChargeParams);
 
-        await assertErrorsAreEqual(localResponse, liveResponse);
+        await assertErrorPromisesAreEqual(localResponse, liveResponse);
     });
 });

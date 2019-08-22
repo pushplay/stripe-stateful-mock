@@ -1,7 +1,7 @@
 import * as stripe from "stripe";
 import log = require("loglevel");
-import utils from "./utils";
 import StripeError from "./StripeError";
+import {generateId} from "./utils";
 
 namespace charges {
     
@@ -60,7 +60,7 @@ namespace charges {
         }
 
         const now = new Date();
-        const chargeId = "ch_" + utils.generateId();
+        const chargeId = "ch_" + generateId();
         const source = getSourceFromToken(params.source as string);
         const charge: stripe.charges.ICharge = existingCharges[chargeId] = {
             id: chargeId,
@@ -70,7 +70,7 @@ namespace charges {
             application: null,
             application_fee: null,
             // application_fee_amount: null,
-            balance_transaction: "txn_" + utils.generateId(24),
+            balance_transaction: "txn_" + generateId(24),
             // billing_details: {
             //     address: {
             //         city: null,
@@ -111,7 +111,7 @@ namespace charges {
             },
             paid: true,
             payment_intent: null,
-            payment_method: "card_" + utils.generateId(24),
+            payment_method: "card_" + generateId(24),
             payment_method_details: {
                 card: {
                     brand: bigBrandToSmallBrandMap[source.brand],
@@ -123,7 +123,7 @@ namespace charges {
                     country: source.country,
                     exp_month: source.exp_month,
                     exp_year: source.exp_year,
-                    fingerprint: utils.generateId(16),
+                    fingerprint: generateId(16),
                     funding: source.funding,
                     last4: source.last4,
                     three_d_secure: null,
@@ -133,7 +133,7 @@ namespace charges {
             },
             receipt_email: null,
             receipt_number: null,
-            receipt_url: `https://pay.stripe.com/receipts/acct_${utils.generateId(16)}/${chargeId}/rcpt_${utils.generateId(32)}`,
+            receipt_url: `https://pay.stripe.com/receipts/acct_${generateId(16)}/${chargeId}/rcpt_${generateId(32)}`,
             refunded: false,
             refunds: {
                 object: "list",
@@ -218,7 +218,7 @@ namespace charges {
     function getSourceFromToken(token: string): stripe.cards.ICard {
         const now = new Date();
         const source: stripe.cards.ICard = {
-            id: "card_" + utils.generateId(24),
+            id: "card_" + generateId(24),
             object: "card",
             address_city: null,
             address_country: null,
@@ -235,7 +235,7 @@ namespace charges {
             dynamic_last4: null,
             exp_month: now.getMonth() + 1,
             exp_year: now.getFullYear() + 1,
-            fingerprint: utils.generateId(16),
+            fingerprint: generateId(16),
             funding: "credit",
             last4: "XXXX",
             metadata: {
