@@ -1,4 +1,5 @@
 import * as stripe from "stripe";
+import log = require("loglevel");
 import utils from "./utils";
 import StripeError from "./StripeError";
 
@@ -36,6 +37,11 @@ namespace charges {
     };
 
     export function create(params: stripe.charges.IChargeCreationOptions): stripe.charges.ICharge {
+        log.debug("create charge", params);
+
+        // Because it actually comes through as a string.
+        params.amount = +params.amount;
+
         if (validCurrencies.indexOf(params.currency) === -1) {
             throw new StripeError(400, {
                 message: `Invalid currency: ${params.currency}. Stripe currently supports these currencies: ${validCurrencies.join(", ")}`,
@@ -56,7 +62,7 @@ namespace charges {
         const now = new Date();
         const chargeId = "ch_" + utils.generateId();
         const source = getSourceFromToken(params.source as string);
-        const charge: stripe.charges.ICharge = {
+        const charge: stripe.charges.ICharge = existingCharges[chargeId] = {
             id: chargeId,
             object: "charge",
             amount: params.amount,
@@ -148,7 +154,50 @@ namespace charges {
             transfer_group: null
         };
 
-        existingCharges[chargeId] = charge;
+        // Chance to modify the stored charge and throw an error.
+        switch (params.source) {
+            case "tok_chargeDeclined":
+                charge.failure_code = "card_declined";
+                charge.failure_message = "Your card was declined.";
+                charge.outcome = {
+                    network_status: "declined_by_network",
+                    reason: "generic_decline",
+                    risk_level: "normal",
+                    // risk_score: 63,
+                    seller_message: "The bank did not return any further details with this decline.",
+                    type: "issuer_declined"
+                };
+                charge.status = "failed";
+                throw new StripeError(402, {
+                    charge: chargeId,
+                    code: "card_declined",
+                    decline_code: "generic_decline",
+                    doc_url: "https://stripe.com/docs/error-codes/card-declined",
+                    message: "Your card was declined.",
+                    type: "card_error"
+                });
+            case "tok_chargeDeclinedInsufficientFunds":
+                charge.failure_code = "card_declined";
+                charge.failure_message = "Your card has insufficient funds.";
+                charge.outcome = {
+                    network_status: "declined_by_network",
+                    reason: "generic_decline",
+                    risk_level: "normal",
+                    // risk_score: 63,
+                    seller_message: "The bank did not return any further details with this decline.",
+                    type: "issuer_declined"
+                };
+                charge.status = "failed";
+                throw new StripeError(402, {
+                    charge: chargeId,
+                    code: "card_declined",
+                    decline_code: "insufficient_funds",
+                    doc_url: "https://stripe.com/docs/error-codes/card-declined",
+                    message: "Your card has insufficient funds.",
+                    type: "card_error"
+                });
+        }
+
         return charge;
     }
 
@@ -236,11 +285,18 @@ namespace charges {
                 source.brand = "Diners Club";
                 source.last4 = "0005";
                 break;
-            case "tok_ca":
-                // CRTC approved.
+            case "tok_ca":      // CRTC approved.
                 source.brand = "Visa";
                 source.last4 = "0000";
                 source.country = "CA";
+                break;
+            case "tok_chargeDeclined":
+                source.brand = "Visa";
+                source.last4 = "0002";
+                break;
+            case "tok_chargeDeclinedInsufficientFunds":
+                source.brand = "Visa";
+                source.last4 = "9995";
                 break;
             default:
                 throw new Error("Unhandled source token");
