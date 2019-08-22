@@ -16,7 +16,7 @@ describe("charge handling", () => {
 
     const chargeTests: ChargeTest[] = [
         {
-            name: "$20.00 Visa",
+            name: "Visa",
             success: true,
             params: {
                 amount: 2000,
@@ -25,16 +25,52 @@ describe("charge handling", () => {
             }
         },
         {
-            name: "$0.50 Mastercard",
+            name: "Visa Debit",
             success: true,
             params: {
-                amount: 50,
+                amount: 2000,
+                currency: "usd",
+                source: "tok_visa_debit"
+            }
+        },
+        {
+            name: "Mastercard",
+            success: true,
+            params: {
+                amount: 5000,
                 currency: "usd",
                 source: "tok_mastercard"
             }
         },
         {
-            name: "$0.05 Visa",
+            name: "Mastercard Debit",
+            success: true,
+            params: {
+                amount: 5000,
+                currency: "usd",
+                source: "tok_mastercard_debit"
+            }
+        },
+        {
+            name: "Mastercard Prepaid",
+            success: true,
+            params: {
+                amount: 5000,
+                currency: "usd",
+                source: "tok_mastercard_prepaid"
+            }
+        },
+        {
+            name: "American Express",
+            success: true,
+            params: {
+                amount: 3500,
+                currency: "usd",
+                source: "tok_amex"
+            }
+        },
+        {
+            name: "Charge too small",
             success: false,
             params: {
                 amount: 5,
@@ -73,5 +109,24 @@ describe("charge handling", () => {
                 await assertErrorsAreEqual(localResponse, liveResponse);
             }
         });
-    })
+    });
+
+    it.skip("is much faster than calling Stripe", async () => {
+        const dateA = Date.now();
+        for (const test of chargeTests) {
+            try {
+                await getLocalStripeClient().charges.create(test.params);
+            } catch (err) {}
+        }
+        const dateB = Date.now();
+        for (const test of chargeTests) {
+            try {
+                await getLiveStripeClient().charges.create(test.params);
+            } catch (err) {}
+        }
+        const dateC = Date.now();
+
+        chai.assert.isBelow(dateB - dateA, dateC - dateB);
+        console.log("milliseconds local=", dateB - dateA, "milliseconds live=", dateC - dateB);
+    }).timeout(120000);
 });

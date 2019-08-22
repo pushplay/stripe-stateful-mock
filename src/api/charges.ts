@@ -269,22 +269,6 @@ namespace charges {
                 source.brand = "American Express";
                 source.last4 = "8431";
                 break;
-            case "tok_discover":
-                source.brand = "Discover";
-                source.last4 = "9424";
-                break;
-            case "tok_diners":
-                source.brand = "Discover";
-                source.last4 = "9424";
-                break;
-            case "tok_jcb":
-                source.brand = "Diners Club";
-                source.last4 = "3237";
-                break;
-            case "tok_unionpay":
-                source.brand = "Diners Club";
-                source.last4 = "0005";
-                break;
             case "tok_ca":      // CRTC approved.
                 source.brand = "Visa";
                 source.last4 = "0000";
