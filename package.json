@@ -1,0 +1,26 @@
+{
+  "name": "stripe-chargerette",
+  "version": "1.0.0",
+  "description": "A half-baked, stateful Stripe mock server",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Giftbit/stripe-chargerette.git"
+  },
+  "keywords": [
+    "stripe",
+    "test"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Giftbit/stripe-chargerette/issues"
+  },
+  "homepage": "https://github.com/Giftbit/stripe-chargerette#readme",
+  "dependencies": {
+    "express": "^4.17.1"
+  }
+}
