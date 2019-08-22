@@ -35,9 +35,9 @@ export async function assertChargePromisesAreBasicallyEqual(actual: Promise<Stri
 }
 
 export function assertChargesAreBasicallyEqual(actual: Stripe.charges.ICharge, expected: Stripe.charges.ICharge): void {
-    chai.assert.match(actual.id, /^ch_/, "actual charge ID is convincing");
+    chai.assert.match(actual.id, /^ch_/, "actual charge ID is formatted correctly");
 
-    const comparableKeys: (keyof Stripe.charges.ICharge)[] = ["object", "amount", "amount_refunded", "application_fee", "captured", "currency", "description", "failure_code", "failure_message", "metadata", "paid", "refunded", "status"];
+    const comparableKeys: (keyof Stripe.charges.ICharge)[] = ["object", "amount", "amount_refunded", "application_fee", "captured", "currency", "description", "failure_code", "failure_message", "metadata", "paid", "receipt_email", "refunded", "status", "transfer_group"];
     for (const key of comparableKeys) {
         chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}'`);
     }

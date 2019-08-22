@@ -1,7 +1,7 @@
 import * as stripe from "stripe";
 import log = require("loglevel");
 import StripeError from "./StripeError";
-import {generateId} from "./utils";
+import {generateId, stringifyMetadata} from "./utils";
 
 namespace charges {
     
@@ -39,9 +39,6 @@ namespace charges {
     export function create(params: stripe.charges.IChargeCreationOptions): stripe.charges.ICharge {
         log.debug("create charge", params);
 
-        // Because it actually comes through as a string.
-        params.amount = +params.amount;
-
         if (validCurrencies.indexOf(params.currency) === -1) {
             throw new StripeError(400, {
                 message: `Invalid currency: ${params.currency}. Stripe currently supports these currencies: ${validCurrencies.join(", ")}`,
@@ -49,7 +46,7 @@ namespace charges {
                 type: "invalid_request_error"
             });
         }
-        if (minChargeAmount[params.currency] && params.amount < minChargeAmount[params.currency]) {
+        if (minChargeAmount[params.currency] && +params.amount < minChargeAmount[params.currency]) {
             throw new StripeError(400, {
                 code: "amount_too_small",
                 doc_url: "https://stripe.com/docs/error-codes/amount-too-small",
@@ -65,7 +62,7 @@ namespace charges {
         const charge: stripe.charges.ICharge = existingCharges[chargeId] = {
             id: chargeId,
             object: "charge",
-            amount: params.amount,
+            amount: +params.amount,
             amount_refunded: 0,
             application: null,
             application_fee: null,
@@ -84,11 +81,11 @@ namespace charges {
             //     name: null,
             //     phone: null
             // },
-            captured: true,
+            captured: params.capture as any !== "false",
             created: (now.getTime() / 1000) | 0,
             currency: params.currency,
             customer: null,
-            description: null,
+            description: params.description || null,
             destination: null,
             dispute: null,
             failure_code: null,
@@ -97,8 +94,7 @@ namespace charges {
             },
             invoice: null,
             livemode: false,
-            metadata: {
-            },
+            metadata: stringifyMetadata(params.metadata),
             on_behalf_of: null,
             order: null,
             outcome: {
@@ -131,7 +127,7 @@ namespace charges {
                 },
                 type: "card"
             },
-            receipt_email: null,
+            receipt_email: params.receipt_email || null,
             receipt_number: null,
             receipt_url: `https://pay.stripe.com/receipts/acct_${generateId(16)}/${chargeId}/rcpt_${generateId(32)}`,
             refunded: false,
@@ -151,7 +147,7 @@ namespace charges {
             // statement_descriptor_suffix: null,
             status: "succeeded",
             // transfer_data: null,
-            transfer_group: null
+            transfer_group: params.transfer_group || null
         };
 
         // Chance to modify the stored charge and throw an error.

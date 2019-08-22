@@ -71,6 +71,40 @@ describe("charge handling", () => {
             }
         },
         {
+            name: "Metadata",
+            success: true,
+            params: {
+                amount: 8888,
+                currency: "usd",
+                source: "tok_visa",
+                metadata: {
+                    selfReferential: "yes",
+                    testNumberHandling: 420
+                }
+            }
+        },
+        {
+            name: "Pending",
+            success: true,
+            params: {
+                amount: 3500,
+                currency: "usd",
+                source: "tok_visa",
+                capture: false
+            }
+        },
+        {
+            name: "Misc additional params",
+            success: true,
+            params: {
+                amount: 3500,
+                currency: "usd",
+                source: "tok_visa",
+                description: "this is a description",
+                receipt_email: "foobar@example.com"
+            }
+        },
+        {
             name: "Charge too small",
             success: false,
             params: {
