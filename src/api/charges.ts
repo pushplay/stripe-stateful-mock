@@ -113,10 +113,10 @@ namespace charges {
             throw new StripeError(404, {
                 code: "resource_missing",
                 doc_url: "https://stripe.com/docs/error-codes/resource-missing",
-                message: "No such charge: ch_11F7tEJ2eZvKYlo2CIJa4oCCQ",
+                message: `No such charge: ${chargeId}`,
                 param: "id",
                 type: "invalid_request_error"
-            })
+            });
         }
         return charge;
     }
@@ -142,20 +142,89 @@ namespace charges {
                 param: "amount",
                 type: "invalid_request_error"
             });
-        } else if (minChargeAmount[charge.currency] && +params.amount < minChargeAmount[charge.currency]) {
+        }
+        if (minChargeAmount[charge.currency] && +params.amount < minChargeAmount[charge.currency]) {
             throw new StripeError(400, {
                 code: "amount_too_small",
                 doc_url: "https://stripe.com/docs/error-codes/amount-too-small",
                 message: "Amount must be at least 50 cents",
                 type: "invalid_request_error"
             });
-        } else if (captureAmount < charge.amount) {
-            refundCharge(charge.amount - captureAmount, charge, {});
         }
 
-        charge.captured = true;
+        if (captureAmount < charge.amount) {
+            charge.captured = true;
+            createRefund({
+                amount: charge.amount - captureAmount,
+                charge: charge.id
+            });
+        } else {
+            charge.captured = true;
+        }
 
         return charge;
+    }
+
+    export function createRefund(params: stripe.refunds.IRefundCreationOptionsWithCharge): stripe.refunds.IRefund {
+        const charge = retrieve(params.charge);
+
+        let refundAmount = params.hasOwnProperty("amount") ? params.amount : charge.amount;
+        if (refundAmount < 1) {
+            throw new StripeError(400, {
+                code: "parameter_invalid_integer",
+                doc_url: "https://stripe.com/docs/error-codes/parameter-invalid-integer",
+                message: "Invalid positive integer",
+                param: "amount",
+                type: "invalid_request_error"
+            });
+        }
+        if (refundAmount > charge.amount - charge.amount_refunded) {
+            throw new StripeError(400, {
+                code: "amount_too_large",
+                doc_url: "https://stripe.com/docs/error-codes/amount-too-large",
+                message: "Amount must be no more than $999,999.99",
+                type: "invalid_request_error"
+            });
+        }
+
+        const now = new Date();
+        const refund: stripe.refunds.IRefund = {
+            id: "re_" + generateId(24),
+            object: "refund",
+            amount: refundAmount,
+            balance_transaction: "txn_" + generateId(24),
+            charge: charge.id,
+            created: (now.getTime() / 1000) | 0,
+            currency: charge.currency,
+            description: "",    // not in live API
+            metadata: stringifyMetadata(params.metadata),
+            reason: null,
+            receipt_number: null,
+            // source_transfer_reversal: null,
+            status: "succeeded",
+            // transfer_reversal: null
+        };
+        charge.refunds.data.unshift(refund);
+        charge.refunds.total_count++;
+        charge.amount_refunded += refundAmount;
+        return refund;
+    }
+
+    export function retrieveRefund(refundId: string): stripe.refunds.IRefund {
+        for (const chargeId in existingCharges) {
+            const refund = existingCharges[chargeId].refunds.data.find(refund => refund.id === refundId);
+            if (refund) {
+                return refund;
+            }
+        }
+
+        throw new StripeError(404, {
+            code: "resource_missing",
+            doc_url: "https://stripe.com/docs/error-codes/resource-missing",
+            message: `No such refund: ${refundId}`,
+            param: "id",
+            type: "invalid_request_error"
+        });
     }
 
     function getSourceFromToken(token: string): stripe.cards.ICard {
@@ -325,28 +394,6 @@ namespace charges {
             // transfer_data: null,
             transfer_group: params.transfer_group || null
         };
-    }
-
-    function refundCharge(amount: number, charge: stripe.charges.ICharge, params: {metadata?: stripe.IOptionsMetadata}): void {
-        const now = new Date();
-        charge.amount_refunded += amount;
-        charge.refunds.data.push({
-            id: "re_" + generateId(24),
-            object: "refund",
-            amount: amount,
-            balance_transaction: "txn_" + generateId(24),
-            charge: charge.id,
-            created: (now.getTime() / 1000) | 0,
-            currency: charge.currency,
-            description: "",    // not in live API
-            metadata: stringifyMetadata(params.metadata),
-            reason: null,
-            receipt_number: null,
-            // source_transfer_reversal: null,
-            status: "succeeded",
-            // transfer_reversal: null
-        });
-        charge.refunds.total_count++;
     }
 }
 

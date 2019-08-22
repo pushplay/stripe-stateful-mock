@@ -24,4 +24,14 @@ routes.post('/v1/charges/:id/capture', (req, res) => {
     return res.status(200).json(charge);
 });
 
+routes.post('/v1/refunds', (req, res) => {
+    const refund = charges.createRefund(req.body);
+    return res.status(200).json(refund);
+});
+
+routes.get('/v1/refunds/:id', (req, res) => {
+    const refund = charges.retrieveRefund(req.params.id);
+    return res.status(200).json(refund);
+});
+
 export {routes};

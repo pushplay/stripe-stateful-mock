@@ -1,6 +1,5 @@
 import Stripe = require("stripe");
 import chai = require("chai");
-import log = require("loglevel");
 
 export async function assertErrorPromisesAreEqual(actual: () => Promise<any>, expected: () => Promise<any>): Promise<void> {
     let actualError: any;

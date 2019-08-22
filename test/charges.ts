@@ -267,6 +267,7 @@ describe("charges", () => {
 
             const localCapture = await getLocalStripeClient().charges.capture(localCharge.id);
             chai.assert.isTrue(localCapture.captured);
+            chai.assert.lengthOf(localCapture.refunds.data, 0);
 
             const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
             chai.assert.isFalse(liveCharge.captured);
@@ -290,6 +291,7 @@ describe("charges", () => {
 
             const localCapture = await getLocalStripeClient().charges.capture(localCharge.id, {amount: 7200});
             chai.assert.isTrue(localCapture.captured);
+            chai.assert.lengthOf(localCapture.refunds.data, 0);
 
             const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
             chai.assert.isFalse(liveCharge.captured);
@@ -313,6 +315,10 @@ describe("charges", () => {
 
             const localCapture = await getLocalStripeClient().charges.capture(localCharge.id, {amount: 3200});
             chai.assert.isTrue(localCapture.captured);
+            chai.assert.lengthOf(localCapture.refunds.data, 1);
+
+            const localRefund = await getLocalStripeClient().refunds.retrieve(localCapture.refunds.data[0].id);
+            chai.assert.deepEqual(localRefund, localCapture.refunds.data[0]);
 
             const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
             chai.assert.isFalse(liveCharge.captured);
@@ -358,6 +364,52 @@ describe("charges", () => {
                 () => getLocalStripeClient().charges.capture(localCharge.id, {amount: 12}),
                 () => getLiveStripeClient().charges.capture(liveCharge.id, {amount: 12})
             );
+        });
+    });
+
+    describe("refund", () => {
+        it("can refund a whole charge", async () => {
+            const chargeParams: stripe.charges.IChargeCreationOptions = {
+                amount: 4300,
+                currency: "usd",
+                source: "tok_visa"
+            };
+            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
+            await getLocalStripeClient().refunds.create({
+                charge: localCharge.id
+            });
+            const localRefundedCharge = await getLocalStripeClient().charges.retrieve(localCharge.id);
+
+            const liveCharge = await getLocalStripeClient().charges.create(chargeParams);
+            await getLocalStripeClient().refunds.create({
+                charge: liveCharge.id
+            });
+            const liveRefundedCharge = await getLocalStripeClient().charges.retrieve(liveCharge.id);
+
+            assertChargesAreBasicallyEqual(localRefundedCharge, liveRefundedCharge);
+        });
+
+        it("can partial refund a charge", async () => {
+            const chargeParams: stripe.charges.IChargeCreationOptions = {
+                amount: 4300,
+                currency: "usd",
+                source: "tok_visa"
+            };
+            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
+            await getLocalStripeClient().refunds.create({
+                charge: localCharge.id,
+                amount: 1200
+            });
+            const localRefundedCharge = await getLocalStripeClient().charges.retrieve(localCharge.id);
+
+            const liveCharge = await getLocalStripeClient().charges.create(chargeParams);
+            await getLocalStripeClient().refunds.create({
+                charge: liveCharge.id,
+                amount: 1200
+            });
+            const liveRefundedCharge = await getLocalStripeClient().charges.retrieve(liveCharge.id);
+
+            assertChargesAreBasicallyEqual(localRefundedCharge, liveRefundedCharge);
         });
     });
 });
