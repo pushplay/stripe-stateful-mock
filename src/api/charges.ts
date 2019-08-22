@@ -133,7 +133,7 @@ namespace charges {
             });
         }
 
-        let captureAmount = params.hasOwnProperty("amount") ? params.amount : charge.amount;
+        let captureAmount = params.hasOwnProperty("amount") ? +params.amount : charge.amount;
         if (captureAmount < 1) {
             throw new StripeError(400, {
                 code: "parameter_invalid_integer",
@@ -168,7 +168,7 @@ namespace charges {
     export function createRefund(params: stripe.refunds.IRefundCreationOptionsWithCharge): stripe.refunds.IRefund {
         const charge = retrieve(params.charge);
 
-        let refundAmount = params.hasOwnProperty("amount") ? params.amount : charge.amount;
+        let refundAmount = params.hasOwnProperty("amount") ? +params.amount : charge.amount;
         if (refundAmount < 1) {
             throw new StripeError(400, {
                 code: "parameter_invalid_integer",

@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "clean": "rimraf ./dist",
-    "run": "node dist/index.js",
+    "run": "LOG_LEVEL=info node dist/index.js",
     "test": "LOG_LEVEL=silent mocha --recursive --timeout 5000 --require ts-node/register --exit \"test/**/*.ts\"",
     "test:debug": "LOG_LEVEL=trace mocha --recursive --timeout 5000 --require ts-node/register --exit \"test/**/*.ts\""
   },
