@@ -13,11 +13,9 @@ describe("auth", () => {
     it("matches on bad API key", async () => {
         const localClient = new Stripe("foobar");
         localClient.setHost("localhost", port, "http");
-        const localResponse = localClient.charges.create(testChargeParams);
 
         const liveClient = new Stripe("foobar");
-        const liveResponse = liveClient.charges.create(testChargeParams);
 
-        await assertErrorPromisesAreEqual(localResponse, liveResponse);
+        await assertErrorPromisesAreEqual(() => localClient.charges.create(testChargeParams), () => liveClient.charges.create(testChargeParams));
     });
 });

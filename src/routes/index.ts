@@ -19,4 +19,9 @@ routes.get('/v1/charges/:id', (req, res) => {
     return res.status(200).json(charge);
 });
 
+routes.post('/v1/charges/:id/capture', (req, res) => {
+    const charge = charges.capture(req.params.id, req.body);
+    return res.status(200).json(charge);
+});
+
 export {routes};
