@@ -142,7 +142,7 @@ namespace charges {
                     throw new StripeError(402, {
                         charge: charge.id,
                         code: "expired_card",
-                        doc_url: "https://stripe.com/docs/error-codes/incorrect-cvc",
+                        doc_url: "https://stripe.com/docs/error-codes/expired-card",
                         message: "Your card has expired.",
                         param: "exp_month",
                         type: "card_error"

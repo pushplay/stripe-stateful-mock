@@ -131,6 +131,24 @@ describe("charges", () => {
                 currency: "usd",
                 source: "tok_chargeDeclinedInsufficientFunds"
             }
+        },
+        {
+            name: "incorrect cvc",
+            success: false,
+            params: {
+                amount: 5000,
+                currency: "usd",
+                source: "tok_chargeDeclinedIncorrectCvc"
+            }
+        },
+        {
+            name: "an expired card",
+            success: false,
+            params: {
+                amount: 5000,
+                currency: "usd",
+                source: "tok_chargeDeclinedExpiredCard"
+            }
         }
     ];
 
