@@ -31,7 +31,7 @@ export function idempotencyRoute(req: express.Request, res: express.Response, ne
             });
         }
 
-        log.info("replaying idempotent request", storedRequest);
+        log.debug("replaying idempotent request", storedRequest);
         res.status(storedRequest.responseCode)
             .set("original-request", storedRequest.requestId)
             .set("request-id", "req_" + generateId(14))
