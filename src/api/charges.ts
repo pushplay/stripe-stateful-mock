@@ -39,6 +39,13 @@ namespace charges {
     export function create(params: stripe.charges.IChargeCreationOptions): stripe.charges.ICharge {
         log.debug("create charge", params);
 
+        if (params.source === "tok_500") {
+            // It's rarely seen but this is what Stripe's 500s look like.
+            throw new StripeError(500, {
+                message: "An unknown error occurred",
+                type: "api_error"
+            });
+        }
         if (validCurrencies.indexOf(params.currency) === -1) {
             throw new StripeError(400, {
                 message: `Invalid currency: ${params.currency}. Stripe currently supports these currencies: ${validCurrencies.join(", ")}`,

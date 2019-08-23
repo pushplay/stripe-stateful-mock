@@ -170,87 +170,131 @@ describe("charges", () => {
         });
     });
 
-    it("replays idempotent successes", async () => {
-        const idempotencyKey = generateId();
-        const originalCharge = await getLocalStripeClient().charges.create({
-            amount: 3300,
-            currency: "usd",
-            source: "tok_visa"
-        }, {
-            idempotency_key: idempotencyKey
-        });
-        const repeatCharge = await getLocalStripeClient().charges.create({
-            amount: 3300,
-            currency: "usd",
-            source: "tok_visa"
-        }, {
-            idempotency_key: idempotencyKey
-        });
+    describe("bonus secret tokens!", () => {
+        describe("tok_500", () => {
+            it("throws a 500 error", async () => {
+                let error: any;
+                try {
+                    await getLocalStripeClient().charges.create({
+                        amount: 5000,
+                        currency: "usd",
+                        source: "tok_500"
+                    });
+                } catch (err) {
+                    error = err;
+                }
 
-        chai.assert.deepEqual(repeatCharge, originalCharge);
+                chai.assert.isDefined(error);
+                chai.assert.equal(error.statusCode, 500);
+                chai.assert.equal(error.rawType, "api_error");
+                chai.assert.equal(error.type, "StripeAPIError");
+            });
+        });
     });
 
-    it("replays idempotent errors", async () => {
-        const idempotencyKey = generateId();
-        let originalError: any;
-        try {
-            await getLocalStripeClient().charges.create({
+    describe("idempotency", () => {
+        it("replays idempotent successes", async () => {
+            const idempotencyKey = generateId();
+            const params: stripe.charges.IChargeCreationOptions = {
+                amount: 50000,
+                currency: "usd",
+                source: "tok_visa"
+            };
+            const originalCharge = await getLocalStripeClient().charges.create(params, {idempotency_key: idempotencyKey});
+            const repeatCharge = await getLocalStripeClient().charges.create(params, {idempotency_key: idempotencyKey});
+
+            chai.assert.deepEqual(repeatCharge, originalCharge);
+        });
+
+        it("replays idempotent errors", async () => {
+            const idempotencyKey = generateId();
+            const params: stripe.charges.IChargeCreationOptions = {
                 amount: 5,
                 currency: "usd",
                 source: "tok_visa"
-            }, {
-                idempotency_key: idempotencyKey
-            });
-        } catch (err) {
-            originalError = err;
-        }
-        chai.assert.isDefined(originalError);
+            };
 
-        let repeatError: any;
-        try {
-            await getLocalStripeClient().charges.create({
-                amount: 5,
-                currency: "usd",
-                source: "tok_visa"
-            }, {
-                idempotency_key: idempotencyKey
-            });
-        } catch (err) {
-            repeatError = err;
-        }
-        chai.assert.isDefined(repeatError);
+            let originalError: any;
+            try {
+                await getLocalStripeClient().charges.create(params, {idempotency_key: idempotencyKey});
+            } catch (err) {
+                originalError = err;
+            }
+            chai.assert.isDefined(originalError);
 
-        assertErrorsAreEqual(repeatError, originalError);
-        chai.assert.equal(repeatError.headers["original-request"], originalError.headers["request-id"]);
-    });
+            let repeatError: any;
+            try {
+                await getLocalStripeClient().charges.create(params, {idempotency_key: idempotencyKey});
+            } catch (err) {
+                repeatError = err;
+            }
+            chai.assert.isDefined(repeatError);
 
-    it("sends the right error on mismatched idempotent bodies", async () => {
-        const idempotencyKey = generateId();
-        const originalCharge = await getLocalStripeClient().charges.create({
-            amount: 1000,
-            currency: "usd",
-            source: "tok_visa"
-        }, {
-            idempotency_key: idempotencyKey
+            assertErrorsAreEqual(repeatError, originalError);
+            chai.assert.equal(repeatError.headers["original-request"], originalError.headers["request-id"]);
         });
 
-        let repeatError: any;
-        try {
-            await getLocalStripeClient().charges.create({
-                amount: 2000,
+        it("replays 500s (yes Stripe really does that)", async () => {
+            const params: stripe.charges.IChargeCreationOptions = {
+                amount: 5,
+                currency: "usd",
+                source: "tok_500"
+            };
+            const idempotencyKey = generateId();
+
+            let originalError: any;
+            try {
+                await getLocalStripeClient().charges.create(params, {
+                    idempotency_key: idempotencyKey
+                });
+            } catch (err) {
+                originalError = err;
+            }
+            chai.assert.isDefined(originalError);
+            chai.assert.equal(originalError.type, "StripeAPIError");
+
+            let repeatError: any;
+            try {
+                await getLocalStripeClient().charges.create(params, {
+                    idempotency_key: idempotencyKey
+                });
+            } catch (err) {
+                repeatError = err;
+            }
+            chai.assert.isDefined(repeatError);
+
+            assertErrorsAreEqual(repeatError, originalError);
+            chai.assert.equal(repeatError.headers["original-request"], originalError.headers["request-id"]);
+        });
+
+        it("sends the right error on mismatched idempotent bodies", async () => {
+            const idempotencyKey = generateId();
+            const originalCharge = await getLocalStripeClient().charges.create({
+                amount: 1000,
                 currency: "usd",
                 source: "tok_visa"
             }, {
                 idempotency_key: idempotencyKey
             });
-        } catch (err) {
-            repeatError = err;
-        }
 
-        chai.assert.isDefined(repeatError);
-        chai.assert.equal(repeatError.statusCode, 400);
-        chai.assert.equal(repeatError.rawType, "idempotency_error");
-        chai.assert.equal(repeatError.type, "StripeIdempotencyError");
+            let repeatError: any;
+            try {
+                await getLocalStripeClient().charges.create({
+                    amount: 2000,
+                    currency: "usd",
+                    source: "tok_visa"
+                }, {
+                    idempotency_key: idempotencyKey
+                });
+            } catch (err) {
+                repeatError = err;
+            }
+
+            chai.assert.isDefined(repeatError);
+            chai.assert.equal(repeatError.statusCode, 400);
+            chai.assert.equal(repeatError.rawType, "idempotency_error");
+            chai.assert.equal(repeatError.type, "StripeIdempotencyError");
+        });
     });
 
     it.skip("is much faster than calling Stripe", async () => {
