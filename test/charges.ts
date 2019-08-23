@@ -1,4 +1,4 @@
-import stripe from "stripe";
+import stripe, {charges} from "stripe";
 import chai = require("chai");
 import {getLiveStripeClient, getLocalStripeClient} from "./stripeUtils";
 import {
@@ -18,7 +18,7 @@ describe("charges", () => {
 
     const chargeTests: ChargeTest[] = [
         {
-            name: "Visa",
+            name: "tok_visa",
             success: true,
             params: {
                 amount: 2000,
@@ -27,7 +27,7 @@ describe("charges", () => {
             }
         },
         {
-            name: "Visa Debit",
+            name: "tok_visa_debit",
             success: true,
             params: {
                 amount: 2000,
@@ -36,7 +36,7 @@ describe("charges", () => {
             }
         },
         {
-            name: "Mastercard",
+            name: "tok_mastercard",
             success: true,
             params: {
                 amount: 5000,
@@ -45,7 +45,7 @@ describe("charges", () => {
             }
         },
         {
-            name: "Mastercard Debit",
+            name: "tok_mastercard_debit",
             success: true,
             params: {
                 amount: 5000,
@@ -54,7 +54,7 @@ describe("charges", () => {
             }
         },
         {
-            name: "Mastercard Prepaid",
+            name: "tok_mastercard_prepaid",
             success: true,
             params: {
                 amount: 5000,
@@ -63,7 +63,7 @@ describe("charges", () => {
             }
         },
         {
-            name: "American Express",
+            name: "tok_amex",
             success: true,
             params: {
                 amount: 3500,
@@ -106,7 +106,7 @@ describe("charges", () => {
             }
         },
         {
-            name: "a charge too small",
+            name: "checking min transaction amount",
             success: false,
             params: {
                 amount: 5,
@@ -115,7 +115,7 @@ describe("charges", () => {
             }
         },
         {
-            name: "generic charge declined",
+            name: "tok_chargeDeclined",
             success: false,
             params: {
                 amount: 5000,
@@ -124,7 +124,7 @@ describe("charges", () => {
             }
         },
         {
-            name: "insufficient funds",
+            name: "tok_chargeDeclinedInsufficientFunds",
             success: false,
             params: {
                 amount: 5000,
@@ -133,7 +133,7 @@ describe("charges", () => {
             }
         },
         {
-            name: "incorrect cvc",
+            name: "tok_chargeDeclinedIncorrectCvc",
             success: false,
             params: {
                 amount: 5000,
@@ -142,7 +142,7 @@ describe("charges", () => {
             }
         },
         {
-            name: "an expired card",
+            name: "tok_chargeDeclinedExpiredCard",
             success: false,
             params: {
                 amount: 5000,
@@ -153,7 +153,7 @@ describe("charges", () => {
     ];
 
     chargeTests.forEach(test => {
-        it(`${test.success ? "creates" : "can't create"} a charge with ${test.name}`, async () => {
+        it(`supports ${test.name}`, async () => {
             if (test.success) {
                 const localCharge = await getLocalStripeClient().charges.create(test.params);
                 const liveCharge = await getLiveStripeClient().charges.create(test.params);
@@ -188,6 +188,98 @@ describe("charges", () => {
                 chai.assert.equal(error.statusCode, 500);
                 chai.assert.equal(error.rawType, "api_error");
                 chai.assert.equal(error.type, "StripeAPIError");
+            });
+        });
+
+        describe("source token chains", async () => {
+            it("supports test case tok_chargeDeclinedInsufficientFunds|tok_visa", async () => {
+                const chargeParams: stripe.charges.IChargeCreationOptions = {
+                    amount: 5000,
+                    currency: "usd",
+                    source: "tok_chargeDeclinedInsufficientFunds|tok_visa"
+                };
+
+                let nsfError: any;
+                try {
+                    await getLocalStripeClient().charges.create(chargeParams);
+                } catch (err) {
+                    nsfError = err;
+                }
+                chai.assert.isDefined(nsfError);
+                chai.assert.equal(nsfError.type, "StripeCardError");
+
+                const charge = await getLocalStripeClient().charges.create(chargeParams);
+                chai.assert.equal(charge.amount, chargeParams.amount);
+            });
+
+            it("supports test case tok_500|tok_500|tok_visa", async () => {
+                const chargeParams: stripe.charges.IChargeCreationOptions = {
+                    amount: 5000,
+                    currency: "usd",
+                    source: "tok_500|tok_500|tok_visa"
+                };
+
+                let error1: any;
+                try {
+                    await getLocalStripeClient().charges.create(chargeParams);
+                } catch (err) {
+                    error1 = err;
+                }
+                chai.assert.isDefined(error1);
+                chai.assert.equal(error1.statusCode, 500);
+                chai.assert.equal(error1.type, "StripeAPIError");
+
+                let error2: any;
+                try {
+                    await getLocalStripeClient().charges.create(chargeParams);
+                } catch (err) {
+                    error2 = err;
+                }
+                chai.assert.isDefined(error2);
+                chai.assert.equal(error2.statusCode, 500);
+                chai.assert.equal(error2.type, "StripeAPIError");
+
+                const charge = await getLocalStripeClient().charges.create(chargeParams);
+                chai.assert.equal(charge.amount, chargeParams.amount);
+            });
+
+            it("does not confuse 2 chains that are not identical", async () => {
+                const chargeParams1: stripe.charges.IChargeCreationOptions = {
+                    amount: 5000,
+                    currency: "usd",
+                    source: `tok_500|tok_visa|${generateId(8)}`
+                };
+                const chargeParams2: stripe.charges.IChargeCreationOptions = {
+                    amount: 5000,
+                    currency: "usd",
+                    source: `tok_500|tok_visa|${generateId(8)}`
+                };
+
+                let error1: any;
+                try {
+                    await getLocalStripeClient().charges.create(chargeParams1);
+                } catch (err) {
+                    error1 = err;
+                }
+                chai.assert.isDefined(error1);
+                chai.assert.equal(error1.statusCode, 500);
+                chai.assert.equal(error1.type, "StripeAPIError");
+
+                let error2: any;
+                try {
+                    await getLocalStripeClient().charges.create(chargeParams2);
+                } catch (err) {
+                    error2 = err;
+                }
+                chai.assert.isDefined(error2);
+                chai.assert.equal(error2.statusCode, 500);
+                chai.assert.equal(error2.type, "StripeAPIError");
+
+                const charge1 = await getLocalStripeClient().charges.create(chargeParams1);
+                chai.assert.equal(charge1.amount, chargeParams1.amount);
+
+                const charge2 = await getLocalStripeClient().charges.create(chargeParams2);
+                chai.assert.equal(charge2.amount, chargeParams2.amount);
             });
         });
     });
@@ -236,7 +328,7 @@ describe("charges", () => {
 
         it("replays 500s (yes Stripe really does that)", async () => {
             const params: stripe.charges.IChargeCreationOptions = {
-                amount: 5,
+                amount: 5,          // This amount is too small but tok_500 takes precedence.
                 currency: "usd",
                 source: "tok_500"
             };
@@ -297,7 +389,7 @@ describe("charges", () => {
         });
     });
 
-    it.skip("is much faster than calling Stripe", async () => {
+    it.skip("is much faster than calling Stripe (not usually worth running)", async () => {
         const dateA = Date.now();
         for (const test of chargeTests) {
             try {

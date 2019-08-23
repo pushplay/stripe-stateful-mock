@@ -2,6 +2,7 @@ import * as stripe from "stripe";
 import log = require("loglevel");
 import StripeError from "./StripeError";
 import {generateId, stringifyMetadata} from "./utils";
+import {getEffectiveSourceTokenFromChain, isSourceTokenChain} from "./sourceTokenChains";
 
 namespace charges {
     
@@ -65,11 +66,25 @@ namespace charges {
 
         let charge: stripe.charges.ICharge;
         if (typeof params.source === "string") {
-            const source = getCardFromSource(params.source);
+            let sourceToken = params.source;
+            if (isSourceTokenChain(sourceToken)) {
+                sourceToken = getEffectiveSourceTokenFromChain(sourceToken);
+            }
+
+            if (sourceToken === "tok_500") {
+                // It's rarely seen but this is what Stripe's 500s look like.
+                throw new StripeError(500, {
+                    message: "An unknown error occurred",
+                    type: "api_error"
+                });
+            }
+
+            const source = getCardFromSource(sourceToken);
             charge = getChargeFromCard(params, source);
+            existingCharges[charge.id] = charge;
 
             // Chance to modify the stored charge and throw an error.
-            switch (params.source) {
+            switch (sourceToken) {
                 case "tok_chargeDeclined":
                     charge.failure_code = "card_declined";
                     charge.failure_message = "Your card was declined.";
@@ -166,7 +181,6 @@ namespace charges {
             });
         }
 
-        existingCharges[charge.id] = charge;
         return charge;
     }
 

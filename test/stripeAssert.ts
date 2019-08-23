@@ -21,7 +21,7 @@ export async function assertErrorThunksAreEqual(actual: () => Promise<any>, expe
     assertErrorsAreEqual(actualError, expectedError);
 }
 
-const comparableErrorKeys: (keyof Stripe.errors.StripeError)[] = ["rawType", "code", "type"];
+const comparableErrorKeys = ["code", "rawType", "statusCode", "type"];
 const comparableRawErrorKeys = ["decline_code", "doc_url", "param"];
 export function assertErrorsAreEqual(actual: any, expected: any): void {
     for (const key of comparableErrorKeys) {
