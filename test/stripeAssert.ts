@@ -21,10 +21,14 @@ export async function assertErrorThunksAreEqual(actual: () => Promise<any>, expe
     assertErrorsAreEqual(actualError, expectedError);
 }
 
+const comparableErrorKeys: (keyof Stripe.errors.StripeError)[] = ["rawType", "code", "type"];
+const comparableRawErrorKeys = ["decline_code", "doc_url", "param"];
 export function assertErrorsAreEqual(actual: any, expected: any): void {
-    const comparableKeys: (keyof Stripe.errors.StripeError)[] = ["rawType", "code", "type"];
-    for (const key of comparableKeys) {
+    for (const key of comparableErrorKeys) {
         chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}'`);
+    }
+    for (const key of comparableRawErrorKeys) {
+        chai.assert.deepEqual(actual.raw[key], expected.raw[key], `comparing key 'raw.${key}'`);
     }
 }
 

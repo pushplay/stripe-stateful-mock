@@ -368,7 +368,7 @@ describe("charges", () => {
 
         it("can't capture a non-existent charge", async () => {
             const chargeId = generateId();
-            assertErrorThunksAreEqual(
+            await assertErrorThunksAreEqual(
                 () => getLocalStripeClient().charges.capture(chargeId),
                 () => getLiveStripeClient().charges.capture(chargeId)
             );
