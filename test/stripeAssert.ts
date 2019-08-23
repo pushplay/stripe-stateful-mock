@@ -33,19 +33,19 @@ export function assertChargesAreBasicallyEqual(actual: Stripe.charges.ICharge, e
     chai.assert.match(actual.id, /^ch_/, `actual charge ID is formatted correctly ${message}`);
 
     for (const key of chargeComparableKeys) {
-        chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key} ${message}'`);
+        chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}' ${message || ""}`);
     }
     chai.assert.equal(actual.refunds.total_count, expected.refunds.total_count, message);
     chai.assert.lengthOf(actual.refunds.data, actual.refunds.total_count, message);
 
     for (let refundIx = 0; refundIx < expected.refunds.total_count; refundIx++) {
-        assertRefundsAreBasicallyEqual(actual.refunds.data[refundIx], expected.refunds.data[refundIx], `of refund ${refundIx} ${message}`);
+        assertRefundsAreBasicallyEqual(actual.refunds.data[refundIx], expected.refunds.data[refundIx], `of refund ${refundIx} ${message || ""}`);
     }
 }
 
 const refundComparableKeys: (keyof Stripe.refunds.IRefund)[] = ["object", "amount", "currency", "metadata", "reason", "status"];
 export function assertRefundsAreBasicallyEqual(actual: Stripe.refunds.IRefund, expected: Stripe.refunds.IRefund, message?: string): void {
     for (const key of refundComparableKeys) {
-        chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}' of refund ${message}`);
+        chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}' ${message || ""}`);
     }
 }

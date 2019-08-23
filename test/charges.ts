@@ -72,7 +72,7 @@ describe("charges", () => {
             }
         },
         {
-            name: "Metadata",
+            name: "metadata",
             success: true,
             params: {
                 amount: 8888,
@@ -85,7 +85,7 @@ describe("charges", () => {
             }
         },
         {
-            name: "Pending",
+            name: "capture=false",
             success: true,
             params: {
                 amount: 3500,
@@ -95,7 +95,7 @@ describe("charges", () => {
             }
         },
         {
-            name: "Misc additional params",
+            name: "misc additional params",
             success: true,
             params: {
                 amount: 3500,
@@ -106,7 +106,7 @@ describe("charges", () => {
             }
         },
         {
-            name: "Charge too small",
+            name: "a charge too small",
             success: false,
             params: {
                 amount: 5,
@@ -115,7 +115,7 @@ describe("charges", () => {
             }
         },
         {
-            name: "Generic card declined",
+            name: "generic charge declined",
             success: false,
             params: {
                 amount: 5000,
@@ -124,7 +124,7 @@ describe("charges", () => {
             }
         },
         {
-            name: "Insufficient funds",
+            name: "insufficient funds",
             success: false,
             params: {
                 amount: 5000,
@@ -135,7 +135,7 @@ describe("charges", () => {
     ];
 
     chargeTests.forEach(test => {
-        it(`matches on ${test.name}`, async () => {
+        it(`${test.success ? "creates" : "can't create"} a charge with ${test.name}`, async () => {
             if (test.success) {
                 const localCharge = await getLocalStripeClient().charges.create(test.params);
                 const liveCharge = await getLiveStripeClient().charges.create(test.params);
@@ -343,7 +343,7 @@ describe("charges", () => {
             const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
             await getLiveStripeClient().charges.capture(liveCharge.id, {amount: 3200});
 
-            assertErrorThunksAreEqual(
+            await assertErrorThunksAreEqual(
                 () => getLocalStripeClient().charges.capture(localCharge.id, {amount: 3200}),
                 () => getLiveStripeClient().charges.capture(liveCharge.id, {amount: 3200})
             );
@@ -360,7 +360,7 @@ describe("charges", () => {
 
             const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
 
-            assertErrorThunksAreEqual(
+            await assertErrorThunksAreEqual(
                 () => getLocalStripeClient().charges.capture(localCharge.id, {amount: 12}),
                 () => getLiveStripeClient().charges.capture(liveCharge.id, {amount: 12})
             );
@@ -397,7 +397,7 @@ describe("charges", () => {
             assertRefundsAreBasicallyEqual(localVoid, liveVoid);
         });
 
-        it("fully voids manually entered amount", async () => {
+        it("fully voids manually entered amount with metadata", async () => {
             const chargeParams: stripe.charges.IChargeCreationOptions = {
                 amount: 7200,
                 currency: "usd",
@@ -407,12 +407,24 @@ describe("charges", () => {
             const localCharge = await getLocalStripeClient().charges.create(chargeParams);
             chai.assert.isFalse(localCharge.captured);
 
-            const localVoid = await getLocalStripeClient().refunds.create({charge: localCharge.id, amount: 7200});
+            const localVoid = await getLocalStripeClient().refunds.create({
+                charge: localCharge.id,
+                amount: 7200,
+                metadata: {
+                    extra: "info"
+                }
+            });
 
             const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
             chai.assert.isFalse(liveCharge.captured);
 
-            const liveVoid = await getLiveStripeClient().refunds.create({charge: liveCharge.id, amount: 7200});
+            const liveVoid = await getLiveStripeClient().refunds.create({
+                charge: liveCharge.id,
+                amount: 7200,
+                metadata: {
+                    extra: "info"
+                }
+            });
 
             assertChargesAreBasicallyEqual(localCharge, liveCharge);
             assertRefundsAreBasicallyEqual(localVoid, liveVoid);
@@ -431,9 +443,9 @@ describe("charges", () => {
             const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
             chai.assert.isFalse(liveCharge.captured);
 
-            assertErrorThunksAreEqual(
-                () => getLocalStripeClient().refunds.create({charge: localCharge.id, amount: 7200}),
-                () => getLiveStripeClient().refunds.create({charge: liveCharge.id, amount: 7200})
+            await assertErrorThunksAreEqual(
+                () => getLocalStripeClient().refunds.create({charge: localCharge.id, amount: 1200}),
+                () => getLiveStripeClient().refunds.create({charge: liveCharge.id, amount: 1200})
             );
         });
     });
@@ -451,17 +463,17 @@ describe("charges", () => {
             });
             const localRefundedCharge = await getLocalStripeClient().charges.retrieve(localCharge.id);
 
-            const liveCharge = await getLocalStripeClient().charges.create(chargeParams);
-            const liveRefund = await getLocalStripeClient().refunds.create({
+            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
+            const liveRefund = await getLiveStripeClient().refunds.create({
                 charge: liveCharge.id
             });
-            const liveRefundedCharge = await getLocalStripeClient().charges.retrieve(liveCharge.id);
+            const liveRefundedCharge = await getLiveStripeClient().charges.retrieve(liveCharge.id);
 
             assertRefundsAreBasicallyEqual(localRefund, liveRefund);
             assertChargesAreBasicallyEqual(localRefundedCharge, liveRefundedCharge);
         });
 
-        it("can partial refund a charge", async () => {
+        it("can partial refund a charge with metadata", async () => {
             const chargeParams: stripe.charges.IChargeCreationOptions = {
                 amount: 4300,
                 currency: "usd",
@@ -470,16 +482,22 @@ describe("charges", () => {
             const localCharge = await getLocalStripeClient().charges.create(chargeParams);
             const localRefund = await getLocalStripeClient().refunds.create({
                 charge: localCharge.id,
-                amount: 1200
+                amount: 1200,
+                metadata: {
+                    extra: "info"
+                }
             });
             const localRefundedCharge = await getLocalStripeClient().charges.retrieve(localCharge.id);
 
-            const liveCharge = await getLocalStripeClient().charges.create(chargeParams);
-            const liveRefund = await getLocalStripeClient().refunds.create({
+            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
+            const liveRefund = await getLiveStripeClient().refunds.create({
                 charge: liveCharge.id,
-                amount: 1200
+                amount: 1200,
+                metadata: {
+                    extra: "info"
+                }
             });
-            const liveRefundedCharge = await getLocalStripeClient().charges.retrieve(liveCharge.id);
+            const liveRefundedCharge = await getLiveStripeClient().charges.retrieve(liveCharge.id);
 
             assertRefundsAreBasicallyEqual(localRefund, liveRefund);
             assertChargesAreBasicallyEqual(localRefundedCharge, liveRefundedCharge);
@@ -487,10 +505,53 @@ describe("charges", () => {
 
         it("can't refund a non-existent charge", async () => {
             const chargeId = generateId();
-            assertErrorThunksAreEqual(
+            await assertErrorThunksAreEqual(
                 () => getLocalStripeClient().refunds.create({charge: chargeId}),
                 () => getLiveStripeClient().refunds.create({charge: chargeId})
             );
+        });
+    });
+
+    describe("update", () => {
+        it("can update metadata", async () => {
+            const chargeParams: stripe.charges.IChargeCreationOptions = {
+                amount: 4300,
+                currency: "usd",
+                source: "tok_visa",
+                metadata: {
+                    a: "alpha"
+                }
+            };
+
+            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
+            const localUpdatedCharge = await getLocalStripeClient().charges.update(localCharge.id, {metadata: {a: "aardvark", b: "boa"}});
+
+            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
+            const liveUpdatedCharge = await getLiveStripeClient().charges.update(liveCharge.id, {metadata: {a: "aardvark", b: "boa"}});
+
+            assertChargesAreBasicallyEqual(localUpdatedCharge, liveUpdatedCharge);
+        });
+
+        it("can update misc params", async () => {
+            const chargeParams: stripe.charges.IChargeCreationOptions = {
+                amount: 4300,
+                currency: "usd",
+                source: "tok_visa"
+            };
+
+            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
+            const localUpdatedCharge = await getLocalStripeClient().charges.update(localCharge.id, {
+                receipt_email: "receipt@example.com",
+                description: "a new description"
+            });
+
+            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
+            const liveUpdatedCharge = await getLiveStripeClient().charges.update(liveCharge.id, {
+                receipt_email: "receipt@example.com",
+                description: "a new description"
+            });
+
+            assertChargesAreBasicallyEqual(localUpdatedCharge, liveUpdatedCharge);
         });
     });
 });

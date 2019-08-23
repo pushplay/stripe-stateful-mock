@@ -121,6 +121,28 @@ namespace charges {
         return charge;
     }
 
+    export function update(chargeId: string, params: stripe.charges.IChargeUpdateOptions): stripe.charges.ICharge {
+        const charge = retrieve(chargeId);
+
+        if (params.hasOwnProperty("description")) {
+            charge.description = params.description;
+        }
+        if (params.hasOwnProperty("fraud_details")) {
+            charge.fraud_details = params.fraud_details;
+        }
+        if (params.hasOwnProperty("metadata")) {
+            charge.metadata = stringifyMetadata(params.metadata);
+        }
+        if (params.hasOwnProperty("receipt_email")) {
+            charge.receipt_email = params.receipt_email;
+        }
+        if (params.hasOwnProperty("shipping")) {
+            charge.shipping = params.shipping;
+        }
+
+        return charge;
+    }
+
     export function capture(chargeId: string, params: stripe.charges.IChargeCaptureOptions): stripe.charges.ICharge {
         const charge = retrieve(chargeId);
 
@@ -215,6 +237,7 @@ namespace charges {
         charge.refunds.data.unshift(refund);
         charge.refunds.total_count++;
         charge.amount_refunded += refundAmount;
+        charge.refunded = charge.amount_refunded === charge.amount;
         return refund;
     }
 
