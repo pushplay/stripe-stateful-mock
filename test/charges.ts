@@ -106,6 +106,15 @@ describe("charges", () => {
             }
         },
         {
+            name: "upper case currency",
+            success: true,
+            params: {
+                amount: 3500,
+                currency: "USD",
+                source: "tok_visa"
+            }
+        },
+        {
             name: "checking min transaction amount",
             success: false,
             params: {

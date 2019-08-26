@@ -47,14 +47,14 @@ namespace charges {
                 type: "api_error"
             });
         }
-        if (validCurrencies.indexOf(params.currency) === -1) {
+        if (validCurrencies.indexOf(params.currency.toLowerCase()) === -1) {
             throw new StripeError(400, {
                 message: `Invalid currency: ${params.currency}. Stripe currently supports these currencies: ${validCurrencies.join(", ")}`,
                 param: "currency",
                 type: "invalid_request_error"
             });
         }
-        if (minChargeAmount[params.currency] && +params.amount < minChargeAmount[params.currency]) {
+        if (minChargeAmount[params.currency.toLowerCase()] && +params.amount < minChargeAmount[params.currency.toLowerCase()]) {
             throw new StripeError(400, {
                 code: "amount_too_small",
                 doc_url: "https://stripe.com/docs/error-codes/amount-too-small",
@@ -251,7 +251,7 @@ namespace charges {
                 type: "invalid_request_error"
             });
         }
-        if (minChargeAmount[charge.currency] && +params.amount < minChargeAmount[charge.currency]) {
+        if (minChargeAmount[charge.currency.toLowerCase()] && +params.amount < minChargeAmount[charge.currency.toLowerCase()]) {
             throw new StripeError(400, {
                 code: "amount_too_small",
                 doc_url: "https://stripe.com/docs/error-codes/amount-too-small",
@@ -311,7 +311,7 @@ namespace charges {
             balance_transaction: "txn_" + generateId(24),
             charge: charge.id,
             created: (now.getTime() / 1000) | 0,
-            currency: charge.currency,
+            currency: charge.currency.toLowerCase(),
             description: "",    // not in live API
             metadata: stringifyMetadata(params.metadata),
             reason: null,
@@ -453,7 +453,7 @@ namespace charges {
             // },
             captured: params.capture as any !== "false",
             created: (now.getTime() / 1000) | 0,
-            currency: params.currency,
+            currency: params.currency.toLowerCase(),
             customer: null,
             description: params.description || null,
             destination: null,
