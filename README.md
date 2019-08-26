@@ -1,8 +1,25 @@
-# stripe-chargerette
+# stripe-stateful-mock
 
 Simulates a stateful Stripe server for local unit testing.  Makes Stripe calls 50-100x faster.  Supports charge, capture and refund with the most common [test tokens](https://stripe.com/docs/testing).  Also supports idempotency.
 
-Correctness of this test server is not guaranteed!  Set up unit testing to work against either the Stripe server with a test account or this unit test server with a flag to switch between them.  Test against the Stripe server occasionally to ensure correctness on the fine details.
+Correctness of this test server is not guaranteed!  Set up unit testing to work against either the Stripe server with a test account or this unit test server with a flag to switch between them.  Test against the official Stripe server occasionally to ensure correctness on the fine details.
+
+## Usage
+
+`node stripe-stateful-mock`
+
+Starts an HTTP server (default port is 8000).  This can be connected to with any Stripe client.  For example in JavaScript...
+
+```javascript
+const Stripe = require("stripe");
+let client = new Stripe("sk_test_foobar");
+client.setHost("localhost", 8000, "http");
+```
+
+The server supports the following settings through environment variables:
+
+- `LOG_LEVEL` sets the log output verbosity.  Values are: `silent`, `error`, `warn`, `info`, `debug`.
+- `PORT` the port to start the server on.  Defaults to 8000.
 
 ## Bonus features
 

@@ -1,5 +1,5 @@
 {
-  "name": "stripe-chargerette",
+  "name": "stripe-stateful-mock",
   "version": "1.0.0",
   "description": "A half-baked, stateful Stripe mock server",
   "main": "dist/index.js",
@@ -15,8 +15,10 @@
     "url": "git+https://github.com/Giftbit/stripe-chargerette.git"
   },
   "keywords": [
+    "mock",
     "stripe",
-    "test"
+    "test",
+    "unittest"
   ],
   "author": "",
   "license": "MIT",
