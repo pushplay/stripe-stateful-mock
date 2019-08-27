@@ -53,3 +53,28 @@ export function assertRefundsAreBasicallyEqual(actual: Stripe.refunds.IRefund, e
         chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}' ${message || ""}`);
     }
 }
+
+const customerKeys: (keyof Stripe.customers.ICustomer)[] = ["object", "account_balance", "address", "currency", "delinquent", "description", "discount", "email", "invoice_settings", "livemode", "metadata", "name", "phone", "shipping"];
+export function assertCustomersAreBasicallyEqual(actual: Stripe.customers.ICustomer, expected: Stripe.customers.ICustomer, message?: string): void {
+    for (const key of customerKeys) {
+        chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}' ${message || ""}`);
+    }
+    chai.assert.equal(!!actual.default_source, !!expected.default_source, `both have default_source set or unset ${message}`);
+    chai.assert.equal(actual.sources.total_count, expected.sources.total_count, message);
+    chai.assert.lengthOf(actual.sources.data, actual.sources.total_count, message);
+
+    for (let sourceIx = 0; sourceIx < expected.sources.total_count; sourceIx++) {
+        chai.assert.equal(actual.sources.data[sourceIx].object, "card", "only card checking is supported");
+        chai.assert.equal(expected.sources.data[sourceIx].object, "card", "only card checking is supported");
+        chai.assert.equal((actual.sources.data[sourceIx] as Stripe.cards.ICard).customer, actual.id);
+        chai.assert.equal((expected.sources.data[sourceIx] as Stripe.cards.ICard).customer, expected.id);
+        assertCardsAreBasicallyEqual(actual.sources.data[sourceIx] as Stripe.cards.ICard, expected.sources.data[sourceIx] as Stripe.cards.ICard, `of refund ${sourceIx} ${message || ""}`);
+    }
+}
+
+const cardKeys: (keyof Stripe.cards.ICard)[] = ["object", "address_city", "address_country", "address_line1", "address_line1_check", "address_line2", "address_state", "address_zip", "address_zip_check", "brand", "country", "cvc_check", "dynamic_last4", "exp_month", "exp_year", "funding", "last4", "metadata", "name", "tokenization_method"];
+export function assertCardsAreBasicallyEqual(actual: Stripe.cards.ICard, expected: Stripe.cards.ICard, message?: string): void {
+    for (const key of cardKeys) {
+        chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}' ${message || ""}`);
+    }
+}

@@ -22,14 +22,14 @@ namespace customers {
         
         const customerId = (params as any).id || `cus_${generateId(14)}`;
         const now = new Date();
-        const customer: stripe.customers.ICustomer = existingCustomers[customerId] = {
+        const customer: stripe.customers.ICustomer = {
             id: customerId,
             object: "customer",
             account_balance: params.account_balance || 0,
             address: params.address || null,
             // balance: params.balance || 0,
             created: (now.getTime() / 1000) | 0,
-            currency: "usd",
+            currency: null,
             default_source: null,
             delinquent: false,
             description: params.description || null,
@@ -120,6 +120,8 @@ namespace customers {
         } else if (params.source) {
             throw new Error("Card create options on create customer aren't supported.")
         }
+
+        existingCustomers[customerId] = customer;
         
         return customer;
     }

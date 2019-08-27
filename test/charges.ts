@@ -8,15 +8,13 @@ import {
 } from "./stripeAssert";
 import {generateId} from "../src/api/utils";
 
-interface ChargeTest {
-    name: string;
-    success: boolean,
-    params: stripe.charges.IChargeCreationOptions;
-}
-
 describe("charges", () => {
 
-    const chargeTests: ChargeTest[] = [
+    const chargeTests: {
+        name: string;
+        success: boolean,
+        params: stripe.charges.IChargeCreationOptions;
+    }[] = [
         {
             name: "tok_visa",
             success: true,

@@ -1,64 +1,128 @@
 import * as chai from "chai";
 import * as stripe from "stripe";
-import {getLocalStripeClient} from "./stripeUtils";
+import {getLiveStripeClient, getLocalStripeClient} from "./stripeUtils";
 import {generateId} from "../src/api/utils";
+import {
+    assertChargesAreBasicallyEqual,
+    assertCustomersAreBasicallyEqual,
+    assertErrorThunksAreEqual
+} from "./stripeAssert";
 
-describe.only("customers", () => {
+describe("customers", () => {
 
-    it("can create a customer with a specific ID", async () => {
-        const customerId = `cus_${generateId()}`;
-        const customer = await getLocalStripeClient().customers.create({
-            id: customerId
-        } as any);
+    const customerTests: {
+        name: string;
+        success: boolean;
+        params: stripe.customers.ICustomerCreationOptions;
+        charge?: {
+            success: boolean;
+            params: stripe.charges.IChargeCreationOptions;
+        };
+    }[] = [
+        {
+            name: "basic creation with no params",
+            success: true,
+            params: {}
+        },
+        {
+            name: "creating with a specific ID",    // undocumented feature
+            success: true,
+            params: {
+                id: `cus_${generateId()}`
+            } as any
+        },
+        {
+            name: "creating and charging a source",
+            success: true,
+            params: {
+                source: "tok_visa"
+            },
+            charge: {
+                success: true,
+                params: {
+                    currency: "usd",
+                    amount: 8675309
+                }
+            }
+        },
+        {
+            name: "tok_chargeDeclined",
+            success: false,
+            params: {
+                source: "tok_chargeDeclined"
+            }
+        },
+        {
+            name: "tok_chargeDeclinedInsufficientFunds",
+            success: false,
+            params: {
+                source: "tok_chargeDeclinedInsufficientFunds"
+            }
+        },
+        {
+            name: "tok_chargeDeclinedIncorrectCvc",
+            success: false,
+            params: {
+                source: "tok_chargeDeclinedIncorrectCvc"
+            }
+        },
+        {
+            name: "tok_chargeDeclinedExpiredCard",
+            success: false,
+            params: {
+                source: "tok_chargeDeclinedExpiredCard"
+            }
+        },
+        {
+            name: "tok_chargeCustomerFail",
+            success: true,
+            params: {
+                source: "tok_chargeCustomerFail"
+            },
+            charge: {
+                success: false,
+                params: {
+                    currency: "usd",
+                    amount: 8675309
+                }
+            }
+        }
+    ];
 
-        chai.assert.isDefined(customer);
-        chai.assert.equal(customer.id, customerId);
+    customerTests.forEach(test => {
+        it(`supports ${test.name}`, async () => {
+            if (test.success) {
+                const localCustomer = await getLocalStripeClient().customers.create(test.params);
+                const liveCustomer = await getLiveStripeClient().customers.create(test.params);
+                assertCustomersAreBasicallyEqual(localCustomer, liveCustomer);
 
-        const customerGet = await getLocalStripeClient().customers.retrieve(customerId);
-        chai.assert.deepEqual(customerGet, customer);
-    });
+                const getLocalCustomer = await getLocalStripeClient().customers.retrieve(localCustomer.id);
+                chai.assert.deepEqual(getLocalCustomer, localCustomer);
 
-    it.only("can create a customer with a source token and then charge it", async () => {
-        const customer = await getLocalStripeClient().customers.create({
-            source: "tok_visa"
+                if (test.charge) {
+                    if (test.charge.success) {
+                        const localCharge = await getLocalStripeClient().charges.create({
+                            ...test.charge.params,
+                            customer: localCustomer.id
+                        });
+                        const liveCharge = await getLiveStripeClient().charges.create({
+                            ...test.charge.params,
+                            customer: liveCustomer.id
+                        });
+                        assertChargesAreBasicallyEqual(localCharge, liveCharge);
+                    } else {
+                        await assertErrorThunksAreEqual(
+                            () => getLocalStripeClient().charges.create(test.charge.params),
+                            () => getLiveStripeClient().charges.create(test.charge.params)
+                        );
+                    }
+                }
+            } else {
+                await assertErrorThunksAreEqual(
+                    () => getLocalStripeClient().customers.create(test.params),
+                    () => getLiveStripeClient().customers.create(test.params)
+                );
+            }
         });
-
-        chai.assert.isDefined(customer);
-        chai.assert.lengthOf(customer.sources.data, 1);
-        chai.assert.equal(customer.sources.total_count, customer.sources.data.length);
-        chai.assert.equal(customer.sources.data[0].id, customer.default_source);
-        chai.assert.equal(customer.sources.data[0].customer, customer.id);
-        chai.assert.equal((customer.sources.data[0] as stripe.cards.ICard).brand, "Visa");
-        chai.assert.equal((customer.sources.data[0] as stripe.cards.ICard).last4, "4242");
-
-        const charge = await getLocalStripeClient().charges.create({
-            customer: customer.id,
-            currency: "usd",
-            amount: 3200
-        });
-        chai.assert.equal(charge.amount, 3200);
-        chai.assert.deepEqual(charge.source, customer.sources.data[0] as stripe.cards.ICard);
-    });
-
-    it("can create a customer with source token tok_chargeCustomerFail and then fail to charge it", async () => {
-        const customer = await getLocalStripeClient().customers.create({
-            source: "tok_chargeCustomerFail"
-        });
-
-        chai.assert.isDefined(customer);
-        chai.assert.lengthOf(customer.sources.data, 1);
-        chai.assert.equal(customer.sources.total_count, customer.sources.data.length);
-        chai.assert.equal(customer.sources.data[0].id, customer.default_source);
-        chai.assert.equal(customer.sources.data[0].customer, customer.id);
-        chai.assert.equal((customer.sources.data[0] as stripe.cards.ICard).brand, "Visa");
-        chai.assert.equal((customer.sources.data[0] as stripe.cards.ICard).last4, "4242");
-
-        const charge = await getLocalStripeClient().charges.create({
-            customer: customer.id,
-            currency: "usd",
-            amount: 3200
-        });
-        chai.assert.equal(charge.amount, 3200);
-        chai.assert.deepEqual(charge.source, customer.sources.data[0] as stripe.cards.ICard);
     });
 });
