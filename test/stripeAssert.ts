@@ -32,7 +32,7 @@ export function assertErrorsAreEqual(actual: any, expected: any): void {
     }
 }
 
-const chargeComparableKeys: (keyof Stripe.charges.ICharge)[] = ["object", "amount", "amount_refunded", "application_fee", "captured", "currency", "description", "failure_code", "failure_message", "metadata", "paid", "receipt_email", "refunded", "status", "transfer_group"];
+const chargeComparableKeys: (keyof Stripe.charges.ICharge)[] = ["object", "amount", "amount_refunded", "application_fee", "application_fee_amount", "billing_details", "captured", "currency", "description", "failure_code", "failure_message", "metadata", "paid", "receipt_email", "refunded", "statement_descriptor", "statement_descriptor_suffix", "status", "transfer_group"];
 export function assertChargesAreBasicallyEqual(actual: Stripe.charges.ICharge, expected: Stripe.charges.ICharge, message?: string): void {
     chai.assert.match(actual.id, /^ch_/, `actual charge ID is formatted correctly ${message}`);
 
@@ -47,14 +47,14 @@ export function assertChargesAreBasicallyEqual(actual: Stripe.charges.ICharge, e
     }
 }
 
-const refundComparableKeys: (keyof Stripe.refunds.IRefund)[] = ["object", "amount", "currency", "metadata", "reason", "status"];
+const refundComparableKeys: (keyof Stripe.refunds.IRefund)[] = ["object", "amount", "currency", "description", "metadata", "reason", "status"];
 export function assertRefundsAreBasicallyEqual(actual: Stripe.refunds.IRefund, expected: Stripe.refunds.IRefund, message?: string): void {
     for (const key of refundComparableKeys) {
         chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}' ${message || ""}`);
     }
 }
 
-const customerKeys: (keyof Stripe.customers.ICustomer)[] = ["object", "account_balance", "address", "currency", "delinquent", "description", "discount", "email", "invoice_settings", "livemode", "metadata", "name", "phone", "shipping"];
+const customerKeys: (keyof Stripe.customers.ICustomer)[] = ["object", "account_balance", "address", "balance", "currency", "delinquent", "description", "discount", "email", "invoice_settings", "livemode", "metadata", "name", "phone", "preferred_locales", "shipping"];
 export function assertCustomersAreBasicallyEqual(actual: Stripe.customers.ICustomer, expected: Stripe.customers.ICustomer, message?: string): void {
     for (const key of customerKeys) {
         chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}' ${message || ""}`);

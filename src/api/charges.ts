@@ -246,13 +246,12 @@ namespace charges {
             charge: charge.id,
             created: (now.getTime() / 1000) | 0,
             currency: charge.currency.toLowerCase(),
-            description: "",    // not in live API
             metadata: stringifyMetadata(params.metadata),
             reason: null,
             receipt_number: null,
-            // source_transfer_reversal: null,
+            source_transfer_reversal: null,
             status: "succeeded",
-            // transfer_reversal: null
+            transfer_reversal: null
         };
         charge.refunds.data.unshift(refund);
         charge.refunds.total_count++;
@@ -288,21 +287,21 @@ namespace charges {
             amount_refunded: 0,
             application: null,
             application_fee: null,
-            // application_fee_amount: null,
+            application_fee_amount: null,
             balance_transaction: "txn_" + generateId(24),
-            // billing_details: {
-            //     address: {
-            //         city: null,
-            //         country: null,
-            //         line1: null,
-            //         line2: null,
-            //         postal_code: null,
-            //         state: null
-            //     },
-            //     email: null,
-            //     name: null,
-            //     phone: null
-            // },
+            billing_details: {
+                address: {
+                    city: null,
+                    country: null,
+                    line1: null,
+                    line2: null,
+                    postal_code: null,
+                    state: null
+                },
+                email: null,
+                name: null,
+                phone: null
+            },
             captured: params.capture as any !== "false",
             created: (now.getTime() / 1000) | 0,
             currency: params.currency.toLowerCase(),
@@ -323,7 +322,7 @@ namespace charges {
                 network_status: "approved_by_network",
                 reason: null,
                 risk_level: "normal",
-                //risk_score: 5,  // This is in the response I get from Stripe but not the type def.
+                risk_score: 5,
                 seller_message: "Payment complete.",
                 type: "authorized"
             },
@@ -365,10 +364,10 @@ namespace charges {
             shipping: null,
             source: source,
             source_transfer: null,
-            statement_descriptor: null,
-            // statement_descriptor_suffix: null,
+            statement_descriptor: params.statement_descriptor || null,
+            statement_descriptor_suffix: params.statement_descriptor_suffix || null,
             status: "succeeded",
-            // transfer_data: null,
+            transfer_data: null,
             transfer_group: params.transfer_group || null
         };
     }

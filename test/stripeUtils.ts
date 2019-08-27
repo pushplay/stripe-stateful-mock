@@ -8,6 +8,7 @@ export function getLiveStripeClient(): Stripe {
     if (!liveClient) {
         require("dotenv-safe").config();
         liveClient = new Stripe(process.env["STRIPE_TEST_SECRET_KEY"]);
+        liveClient.setApiVersion("2019-08-14");
     }
     return liveClient;
 }

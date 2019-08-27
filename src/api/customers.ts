@@ -27,7 +27,7 @@ namespace customers {
             object: "customer",
             account_balance: params.account_balance || 0,
             address: params.address || null,
-            // balance: params.balance || 0,
+            balance: params.balance || 0,
             created: (now.getTime() / 1000) | 0,
             currency: null,
             default_source: null,
@@ -35,7 +35,7 @@ namespace customers {
             description: params.description || null,
             discount: null,
             email: params.email || null,
-            // invoice_prefix: "8BAA47A",
+            invoice_prefix: params.invoice_prefix || generateId(7),
             invoice_settings: {
                 custom_fields: null,
                 default_payment_method: null,
@@ -45,7 +45,7 @@ namespace customers {
             metadata: stringifyMetadata(params.metadata),
             name: null,
             phone: null,
-            // preferred_locales: [],
+            preferred_locales: params.preferred_locales || [],
             shipping: params.shipping || null,
             sources: {
                 object: "list",
@@ -61,16 +61,16 @@ namespace customers {
                 total_count: 0,
                 url: `/v1/customers/${customerId}/subscriptions`
             } as any,
-            // tax_exempt: "none",
-            // tax_ids: {
-            //     object: "list",
-            //     data: [],
-            //     has_more: false,
-            //     total_count: 0,
-            //     url: "/v1/customers/cus_FhFu67G2pEu5wW/tax_ids"
-            // },
-            // tax_info: null,
-            // tax_info_verification: null
+            tax_exempt: params.tax_exempt || "none",
+            tax_ids: {
+                object: "list",
+                data: [],
+                has_more: false,
+                total_count: 0,
+                url: "/v1/customers/cus_FhFu67G2pEu5wW/tax_ids"
+            },
+            tax_info: null,
+            tax_info_verification: null
         };
 
         if (typeof params.source === "string") {
