@@ -3,12 +3,14 @@ import log = require("loglevel");
 import StripeError from "./StripeError";
 import {generateId, stringifyMetadata} from "./utils";
 import {getEffectiveSourceTokenFromChain, isSourceTokenChain} from "./sourceTokenChains";
+import cards from "./cards";
+import customers from "./customers";
 
 namespace charges {
     
     const existingCharges: {[id: string]: stripe.charges.ICharge} = {};
 
-    const validCurrencies = ["usd", " aed", " afn", " all", " amd", " ang", " aoa", " ars", " aud", " awg", " azn", " bam", " bbd", " bdt", " bgn", " bif", " bmd", " bnd", " bob", " brl", " bsd", " bwp", " bzd", " cad", " cdf", " chf", " clp", " cny", " cop", " crc", " cve", " czk", " djf", " dkk", " dop", " dzd", " egp", " etb", " eur", " fjd", " fkp", " gbp", " gel", " gip", " gmd", " gnf", " gtq", " gyd", " hkd", " hnl", " hrk", " htg", " huf", " idr", " ils", " inr", " isk", " jmd", " jpy", " kes", " kgs", " khr", " kmf", " krw", " kyd", " kzt", " lak", " lbp", " lkr", " lrd", " lsl", " mad", " mdl", " mga", " mkd", " mmk", " mnt", " mop", " mro", " mur", " mvr", " mwk", " mxn", " myr", " mzn", " nad", " ngn", " nio", " nok", " npr", " nzd", " pab", " pen", " pgk", " php", " pkr", " pln", " pyg", " qar", " ron", " rsd", " rub", " rwf", " sar", " sbd", " scr", " sek", " sgd", " shp", " sll", " sos", " srd", " std", " szl", " thb", " tjs", " top", " try", " ttd", " twd", " tzs", " uah", " ugx", " uyu", " uzs", " vnd", " vuv", " wst", " xaf", " xcd", " xof", " xpf", " yer", " zar", " zmw", " eek", " lvl", " svc", " vef"];
+    const validCurrencies = ["usd", "aed", "afn", "all", "amd", "ang", "aoa", "ars", "aud", "awg", "azn", "bam", "bbd", "bdt", "bgn", "bif", "bmd", "bnd", "bob", "brl", "bsd", "bwp", "bzd", "cad", "cdf", "chf", "clp", "cny", "cop", "crc", "cve", "czk", "djf", "dkk", "dop", "dzd", "egp", "etb", "eur", "fjd", "fkp", "gbp", "gel", "gip", "gmd", "gnf", "gtq", "gyd", "hkd", "hnl", "hrk", "htg", "huf", "idr", "ils", "inr", "isk", "jmd", "jpy", "kes", "kgs", "khr", "kmf", "krw", "kyd", "kzt", "lak", "lbp", "lkr", "lrd", "lsl", "mad", "mdl", "mga", "mkd", "mmk", "mnt", "mop", "mro", "mur", "mvr", "mwk", "mxn", "myr", "mzn", "nad", "ngn", "nio", "nok", "npr", "nzd", "pab", "pen", "pgk", "php", "pkr", "pln", "pyg", "qar", "ron", "rsd", "rub", "rwf", "sar", "sbd", "scr", "sek", "sgd", "shp", "sll", "sos", "srd", "std", "szl", "thb", "tjs", "top", "try", "ttd", "twd", "tzs", "uah", "ugx", "uyu", "uzs", "vnd", "vuv", "wst", "xaf", "xcd", "xof", "xpf", "yer", "zar", "zmw", "eek", "lvl", "svc", "vef"];
 
     const minChargeAmount: { [code: string]: number } = {
         usd: 50,
@@ -49,7 +51,7 @@ namespace charges {
         }
         if (validCurrencies.indexOf(params.currency.toLowerCase()) === -1) {
             throw new StripeError(400, {
-                message: `Invalid currency: ${params.currency}. Stripe currently supports these currencies: ${validCurrencies.join(", ")}`,
+                message: `Invalid currency: ${params.currency.toLowerCase()}. Stripe currently supports these currencies: ${validCurrencies.join(", ")}`,
                 param: "currency",
                 type: "invalid_request_error"
             });
@@ -79,99 +81,31 @@ namespace charges {
                 });
             }
 
-            const source = getCardFromSource(sourceToken);
-            charge = getChargeFromCard(params, source);
+            const card = cards.createFromSource(sourceToken);
+            charge = getChargeFromCard(params, card);
             existingCharges[charge.id] = charge;
-
-            // Chance to modify the stored charge and throw an error.
-            switch (sourceToken) {
-                case "tok_chargeDeclined":
-                    charge.failure_code = "card_declined";
-                    charge.failure_message = "Your card was declined.";
-                    charge.outcome = {
-                        network_status: "declined_by_network",
-                        reason: "generic_decline",
-                        risk_level: "normal",
-                        // risk_score: 63,
-                        seller_message: "The bank did not return any further details with this decline.",
-                        type: "issuer_declined"
-                    };
-                    charge.paid = false;
-                    charge.status = "failed";
-                    throw new StripeError(402, {
-                        charge: charge.id,
-                        code: "card_declined",
-                        decline_code: "generic_decline",
-                        doc_url: "https://stripe.com/docs/error-codes/card-declined",
-                        message: "Your card was declined.",
-                        type: "card_error"
-                    });
-                case "tok_chargeDeclinedInsufficientFunds":
-                    charge.failure_code = "card_declined";
-                    charge.failure_message = "Your card has insufficient funds.";
-                    charge.outcome = {
-                        network_status: "declined_by_network",
-                        reason: "generic_decline",
-                        risk_level: "normal",
-                        // risk_score: 63,
-                        seller_message: "The bank did not return any further details with this decline.",
-                        type: "issuer_declined"
-                    };
-                    charge.paid = false;
-                    charge.status = "failed";
-                    throw new StripeError(402, {
-                        charge: charge.id,
-                        code: "card_declined",
-                        decline_code: "insufficient_funds",
-                        doc_url: "https://stripe.com/docs/error-codes/card-declined",
-                        message: "Your card has insufficient funds.",
-                        type: "card_error"
-                    });
-                case "tok_chargeDeclinedIncorrectCvc":
-                    charge.failure_code = "incorrect_cvc";
-                    charge.failure_message = "Your card's security code is incorrect.";
-                    charge.outcome = {
-                        network_status: "declined_by_network",
-                        reason: "incorrect_cvc",
-                        risk_level: "normal",
-                        // risk_score: 63,
-                        seller_message: "The bank returned the decline code `incorrect_cvc`.",
-                        type: "issuer_declined"
-                    };
-                    charge.paid = false;
-                    charge.status = "failed";
-                    throw new StripeError(402, {
-                        charge: charge.id,
-                        code: "incorrect_cvc",
-                        doc_url: "https://stripe.com/docs/error-codes/incorrect-cvc",
-                        message: "Your card's security code is incorrect.",
-                        param: "cvc",
-                        type: "card_error"
-                    });
-                case "tok_chargeDeclinedExpiredCard":
-                    charge.failure_code = "expired_card";
-                    charge.failure_message = "Your card has expired.";
-                    charge.outcome = {
-                        network_status: "declined_by_network",
-                        reason: "expired_card",
-                        risk_level: "normal",
-                        // risk_score: 63,
-                        seller_message: "The bank returned the decline code `expired_card`.",
-                        type: "issuer_declined"
-                    };
-                    charge.paid = false;
-                    charge.status = "failed";
-                    throw new StripeError(402, {
-                        charge: charge.id,
-                        code: "expired_card",
-                        doc_url: "https://stripe.com/docs/error-codes/expired-card",
-                        message: "Your card has expired.",
-                        param: "exp_month",
-                        type: "card_error"
-                    });
-            }
+            handleSpecialChargeTokens(charge, sourceToken);
         } else if (typeof params.customer === "string") {
-            throw new Error("Charging by customer isn't supported yet.");
+            const customer = customers.retrieve(params.customer, "customer");
+            if (!customer.default_source) {
+                throw new StripeError(500, {
+                    code: "missing",
+                    doc_url: "https://stripe.com/docs/error-codes/missing",
+                    message: "Cannot charge a customer that has no active card",
+                    param: "card",
+                    type: "card_error"
+                });
+            }
+
+            if (typeof customer.default_source === "string") {
+                const card = customers.retrieveCard(customer.id, customer.default_source);
+                const cardExtra = cards.getCardExtra(card.id);
+                charge = getChargeFromCard(params, card);
+                existingCharges[charge.id] = charge;
+                handleSpecialChargeTokens(charge, cardExtra.sourceToken);
+            } else {
+                throw new Error("Customer default_source type not handled.");
+            }
         } else {
             throw new StripeError(400, {
                 code: "parameter_missing",
@@ -184,14 +118,14 @@ namespace charges {
         return charge;
     }
 
-    export function retrieve(chargeId: string): stripe.charges.ICharge {
+    export function retrieve(chargeId: string, param: string): stripe.charges.ICharge {
         const charge = existingCharges[chargeId];
         if (!charge) {
             throw new StripeError(404, {
                 code: "resource_missing",
                 doc_url: "https://stripe.com/docs/error-codes/resource-missing",
                 message: `No such charge: ${chargeId}`,
-                param: "id",
+                param: param,
                 type: "invalid_request_error"
             });
         }
@@ -199,7 +133,7 @@ namespace charges {
     }
 
     export function update(chargeId: string, params: stripe.charges.IChargeUpdateOptions): stripe.charges.ICharge {
-        const charge = retrieve(chargeId);
+        const charge = retrieve(chargeId, "id");
 
         if (params.hasOwnProperty("description")) {
             charge.description = params.description;
@@ -274,7 +208,7 @@ namespace charges {
     }
 
     export function createRefund(params: stripe.refunds.IRefundCreationOptionsWithCharge): stripe.refunds.IRefund {
-        const charge = retrieve(params.charge);
+        const charge = retrieve(params.charge, "id");
 
         let refundAmount = params.hasOwnProperty("amount") ? +params.amount : charge.amount;
         if (refundAmount < 1) {
@@ -327,7 +261,7 @@ namespace charges {
         return refund;
     }
 
-    export function retrieveRefund(refundId: string): stripe.refunds.IRefund {
+    export function retrieveRefund(refundId: string, param: string): stripe.refunds.IRefund {
         for (const chargeId in existingCharges) {
             const refund = existingCharges[chargeId].refunds.data.find(refund => refund.id === refundId);
             if (refund) {
@@ -339,91 +273,9 @@ namespace charges {
             code: "resource_missing",
             doc_url: "https://stripe.com/docs/error-codes/resource-missing",
             message: `No such refund: ${refundId}`,
-            param: "id",
+            param: param,
             type: "invalid_request_error"
         });
-    }
-
-    function getCardFromSource(token: string): stripe.cards.ICard {
-        const now = new Date();
-        const source: stripe.cards.ICard = {
-            id: "card_" + generateId(24),
-            object: "card",
-            address_city: null,
-            address_country: null,
-            address_line1: null,
-            address_line1_check: null,
-            address_line2: null,
-            address_state: null,
-            address_zip: null,
-            address_zip_check: null,
-            brand: "Unknown",
-            country: "US",
-            customer: null,
-            cvc_check: null,
-            dynamic_last4: null,
-            exp_month: now.getMonth() + 1,
-            exp_year: now.getFullYear() + 1,
-            fingerprint: generateId(16),
-            funding: "credit",
-            last4: "XXXX",
-            metadata: {
-            },
-            name: null,
-            tokenization_method: null
-        };
-
-        switch (token) {
-            case "tok_visa":
-                source.brand = "Visa";
-                source.last4 = "4242";
-                break;
-            case "tok_visa_debit":
-                source.brand = "Visa";
-                source.last4 = "5556";
-                break;
-            case "tok_mastercard":
-                source.brand = "MasterCard";
-                source.last4 = "4444";
-                break;
-            case "tok_mastercard_debit":
-                source.brand = "MasterCard";
-                source.last4 = "3222";
-                break;
-            case "tok_mastercard_prepaid":
-                source.brand = "MasterCard";
-                source.last4 = "5100";
-                break;
-            case "tok_amex":
-                source.brand = "American Express";
-                source.last4 = "8431";
-                break;
-            case "tok_ca":      // CRTC approved.
-                source.brand = "Visa";
-                source.last4 = "0000";
-                source.country = "CA";
-                break;
-            case "tok_chargeDeclined":
-                source.brand = "Visa";
-                source.last4 = "0002";
-                break;
-            case "tok_chargeDeclinedInsufficientFunds":
-                source.brand = "Visa";
-                source.last4 = "9995";
-                break;
-            case "tok_chargeDeclinedIncorrectCvc":
-                source.brand = "Visa";
-                source.last4 = "0127";
-                break;
-            case "tok_chargeDeclinedExpiredCard":
-                source.brand = "Visa";
-                source.last4 = "0069";
-                break;
-            default:
-                throw new Error("Unhandled source token");
-        }
-
-        return source;
     }
 
     function getChargeFromCard(params: stripe.charges.IChargeCreationOptions, source: stripe.cards.ICard): stripe.charges.ICharge {
@@ -519,6 +371,95 @@ namespace charges {
             // transfer_data: null,
             transfer_group: params.transfer_group || null
         };
+    }
+
+    function handleSpecialChargeTokens(charge: stripe.charges.ICharge, sourceToken: string): void {
+        switch (sourceToken) {
+            case "tok_chargeDeclined":
+                charge.failure_code = "card_declined";
+                charge.failure_message = "Your card was declined.";
+                charge.outcome = {
+                    network_status: "declined_by_network",
+                    reason: "generic_decline",
+                    risk_level: "normal",
+                    // risk_score: 63,
+                    seller_message: "The bank did not return any further details with this decline.",
+                    type: "issuer_declined"
+                };
+                charge.paid = false;
+                charge.status = "failed";
+                throw new StripeError(402, {
+                    charge: charge.id,
+                    code: "card_declined",
+                    decline_code: "generic_decline",
+                    doc_url: "https://stripe.com/docs/error-codes/card-declined",
+                    message: "Your card was declined.",
+                    type: "card_error"
+                });
+            case "tok_chargeDeclinedInsufficientFunds":
+                charge.failure_code = "card_declined";
+                charge.failure_message = "Your card has insufficient funds.";
+                charge.outcome = {
+                    network_status: "declined_by_network",
+                    reason: "generic_decline",
+                    risk_level: "normal",
+                    // risk_score: 63,
+                    seller_message: "The bank did not return any further details with this decline.",
+                    type: "issuer_declined"
+                };
+                charge.paid = false;
+                charge.status = "failed";
+                throw new StripeError(402, {
+                    charge: charge.id,
+                    code: "card_declined",
+                    decline_code: "insufficient_funds",
+                    doc_url: "https://stripe.com/docs/error-codes/card-declined",
+                    message: "Your card has insufficient funds.",
+                    type: "card_error"
+                });
+            case "tok_chargeDeclinedIncorrectCvc":
+                charge.failure_code = "incorrect_cvc";
+                charge.failure_message = "Your card's security code is incorrect.";
+                charge.outcome = {
+                    network_status: "declined_by_network",
+                    reason: "incorrect_cvc",
+                    risk_level: "normal",
+                    // risk_score: 63,
+                    seller_message: "The bank returned the decline code `incorrect_cvc`.",
+                    type: "issuer_declined"
+                };
+                charge.paid = false;
+                charge.status = "failed";
+                throw new StripeError(402, {
+                    charge: charge.id,
+                    code: "incorrect_cvc",
+                    doc_url: "https://stripe.com/docs/error-codes/incorrect-cvc",
+                    message: "Your card's security code is incorrect.",
+                    param: "cvc",
+                    type: "card_error"
+                });
+            case "tok_chargeDeclinedExpiredCard":
+                charge.failure_code = "expired_card";
+                charge.failure_message = "Your card has expired.";
+                charge.outcome = {
+                    network_status: "declined_by_network",
+                    reason: "expired_card",
+                    risk_level: "normal",
+                    // risk_score: 63,
+                    seller_message: "The bank returned the decline code `expired_card`.",
+                    type: "issuer_declined"
+                };
+                charge.paid = false;
+                charge.status = "failed";
+                throw new StripeError(402, {
+                    charge: charge.id,
+                    code: "expired_card",
+                    doc_url: "https://stripe.com/docs/error-codes/expired-card",
+                    message: "Your card has expired.",
+                    param: "exp_month",
+                    type: "card_error"
+                });
+        }
     }
 }
 
