@@ -42,13 +42,7 @@ namespace charges {
     export function create(params: stripe.charges.IChargeCreationOptions): stripe.charges.ICharge {
         log.debug("create charge", params);
 
-        if (params.source === "tok_500") {
-            // It's rarely seen but this is what Stripe's 500s look like.
-            throw new StripeError(500, {
-                message: "An unknown error occurred",
-                type: "api_error"
-            });
-        }
+        handlePrechargeSpecialTokens(params.source);
         if (validCurrencies.indexOf(params.currency.toLowerCase()) === -1) {
             throw new StripeError(400, {
                 message: `Invalid currency: ${params.currency.toLowerCase()}. Stripe currently supports these currencies: ${validCurrencies.join(", ")}`,
@@ -73,13 +67,7 @@ namespace charges {
                 sourceToken = getEffectiveSourceTokenFromChain(sourceToken);
             }
 
-            if (sourceToken === "tok_500") {
-                // It's rarely seen but this is what Stripe's 500s look like.
-                throw new StripeError(500, {
-                    message: "An unknown error occurred",
-                    type: "api_error"
-                });
-            }
+            handlePrechargeSpecialTokens(sourceToken);
 
             const card = cards.createFromSource(sourceToken);
             charge = getChargeFromCard(params, card);
@@ -311,8 +299,7 @@ namespace charges {
             dispute: null,
             failure_code: null,
             failure_message: null,
-            fraud_details: {
-            },
+            fraud_details: {},
             invoice: null,
             livemode: false,
             metadata: stringifyMetadata(params.metadata),
@@ -354,8 +341,7 @@ namespace charges {
             refunded: false,
             refunds: {
                 object: "list",
-                data: [
-                ],
+                data: [],
                 has_more: false,
                 total_count: 0,
                 url: `/v1/charges/${chargeId}/refunds`
@@ -370,6 +356,24 @@ namespace charges {
             transfer_data: null,
             transfer_group: params.transfer_group || null
         };
+    }
+
+    function handlePrechargeSpecialTokens(sourceToken?: any): void {
+        switch (sourceToken) {
+            case "tok_429":
+                // An educated guess as to what this looks like.
+                throw new StripeError(429, {
+                    message: "Too many requests in a period of time.",
+                    type: "rate_limit_error",
+                    code: "rate_limit"
+                });
+            case "tok_500":
+                // Actual 500 as seen from the server.
+                throw new StripeError(500, {
+                    message: "An unknown error occurred",
+                    type: "api_error"
+                });
+        }
     }
 
     function handleSpecialChargeTokens(charge: stripe.charges.ICharge, sourceToken: string): void {

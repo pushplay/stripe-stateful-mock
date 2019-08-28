@@ -50,16 +50,27 @@ export function idempotencyRoute(req: express.Request, res: express.Response, ne
 
         const originalStatus = res.status;
         res.status = code => {
-            storedRequests[storedRequestKey].responseCode = code;
+            if (codeIsIdempotentCached(code)) {
+                storedRequests[storedRequestKey].responseCode = code;
+            } else {
+                delete storedRequests[storedRequestKey];
+            }
             return originalStatus.call(res, code);
         };
 
         const originalSend = res.send;
         res.send = body => {
-            storedRequests[storedRequestKey].responseBody = body;
+            if (storedRequests[storedRequestKey]) {
+                storedRequests[storedRequestKey].responseBody = body;
+            }
             return originalSend.call(res, body);
         };
     }
 
     return next();
+}
+
+function codeIsIdempotentCached(code: number): boolean {
+    // see https://stripe.com/docs/error-handling#content-errors
+    return code !== 401 && code !== 429;
 }

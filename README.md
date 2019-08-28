@@ -25,6 +25,10 @@ The server supports the following settings through environment variables:
 
 This server supports a few bonus test tokens to test scenarios not testable against the real server.
 
+### Source token tok_429
+
+Use the charge source token `tok_429` to get a 429 response from the server.
+
 ### Source token tok_500
 
 Use the charge source token `tok_500` to get a 500 response from the server.

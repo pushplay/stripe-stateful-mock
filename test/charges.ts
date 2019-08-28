@@ -178,6 +178,26 @@ describe("charges", () => {
     });
 
     describe("bonus secret tokens!", () => {
+        describe("tok_429", () => {
+            it("throws a 429 error", async () => {
+                let error: any;
+                try {
+                    await getLocalStripeClient().charges.create({
+                        amount: 5000,
+                        currency: "usd",
+                        source: "tok_429"
+                    });
+                } catch (err) {
+                    error = err;
+                }
+
+                chai.assert.isDefined(error);
+                chai.assert.equal(error.statusCode, 429);
+                chai.assert.equal(error.rawType, "rate_limit_error");
+                chai.assert.equal(error.type, "StripeRateLimitError");
+            });
+        });
+
         describe("tok_500", () => {
             it("throws a 500 error", async () => {
                 let error: any;
