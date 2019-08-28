@@ -6,9 +6,8 @@ let localClient: Stripe;
 
 export function getLiveStripeClient(): Stripe {
     if (!liveClient) {
-        require("dotenv-safe").config();
         liveClient = new Stripe(process.env["STRIPE_TEST_SECRET_KEY"]);
-        liveClient.setApiVersion("2019-08-14");
+        liveClient.setApiVersion(process.env["STRIPE_API_VERSION"]);
     }
     return liveClient;
 }
@@ -17,6 +16,7 @@ export function getLocalStripeClient(): Stripe {
     if (!localClient) {
         localClient = new Stripe("sk_test_foobar");
         localClient.setHost("localhost", port, "http");
+        localClient.setApiVersion(process.env["STRIPE_API_VERSION"]);
     }
     return localClient;
 }

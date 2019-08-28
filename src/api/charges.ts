@@ -5,10 +5,11 @@ import {generateId, stringifyMetadata} from "./utils";
 import {getEffectiveSourceTokenFromChain, isSourceTokenChain} from "./sourceTokenChains";
 import cards from "./cards";
 import customers from "./customers";
+import {AccountData} from "./AccountData";
 
 namespace charges {
-    
-    const existingCharges: {[id: string]: stripe.charges.ICharge} = {};
+
+    const accountCharges = new AccountData<stripe.charges.ICharge>();
 
     const validCurrencies = ["usd", "aed", "afn", "all", "amd", "ang", "aoa", "ars", "aud", "awg", "azn", "bam", "bbd", "bdt", "bgn", "bif", "bmd", "bnd", "bob", "brl", "bsd", "bwp", "bzd", "cad", "cdf", "chf", "clp", "cny", "cop", "crc", "cve", "czk", "djf", "dkk", "dop", "dzd", "egp", "etb", "eur", "fjd", "fkp", "gbp", "gel", "gip", "gmd", "gnf", "gtq", "gyd", "hkd", "hnl", "hrk", "htg", "huf", "idr", "ils", "inr", "isk", "jmd", "jpy", "kes", "kgs", "khr", "kmf", "krw", "kyd", "kzt", "lak", "lbp", "lkr", "lrd", "lsl", "mad", "mdl", "mga", "mkd", "mmk", "mnt", "mop", "mro", "mur", "mvr", "mwk", "mxn", "myr", "mzn", "nad", "ngn", "nio", "nok", "npr", "nzd", "pab", "pen", "pgk", "php", "pkr", "pln", "pyg", "qar", "ron", "rsd", "rub", "rwf", "sar", "sbd", "scr", "sek", "sgd", "shp", "sll", "sos", "srd", "std", "szl", "thb", "tjs", "top", "try", "ttd", "twd", "tzs", "uah", "ugx", "uyu", "uzs", "vnd", "vuv", "wst", "xaf", "xcd", "xof", "xpf", "yer", "zar", "zmw", "eek", "lvl", "svc", "vef"];
 
@@ -39,8 +40,8 @@ namespace charges {
         "Unknown": "unknown"
     };
 
-    export function create(params: stripe.charges.IChargeCreationOptions): stripe.charges.ICharge {
-        log.debug("create charge", params);
+    export function create(accountId: string, params: stripe.charges.IChargeCreationOptions): stripe.charges.ICharge {
+        log.debug("create charge", accountId, params);
 
         handlePrechargeSpecialTokens(params.source);
         if (validCurrencies.indexOf(params.currency.toLowerCase()) === -1) {
@@ -71,10 +72,10 @@ namespace charges {
 
             const card = cards.createFromSource(sourceToken);
             charge = getChargeFromCard(params, card);
-            existingCharges[charge.id] = charge;
+            accountCharges.put(accountId, charge);
             handleSpecialChargeTokens(charge, sourceToken);
         } else if (typeof params.customer === "string") {
-            const customer = customers.retrieve(params.customer, "customer");
+            const customer = customers.retrieve(accountId, params.customer, "customer");
             if (!customer.default_source) {
                 throw new StripeError(500, {
                     code: "missing",
@@ -86,10 +87,10 @@ namespace charges {
             }
 
             if (typeof customer.default_source === "string") {
-                const card = customers.retrieveCard(customer.id, customer.default_source);
+                const card = customers.retrieveCard(accountId, customer.id, customer.default_source, "card");
                 const cardExtra = cards.getCardExtra(card.id);
                 charge = getChargeFromCard(params, card);
-                existingCharges[charge.id] = charge;
+                accountCharges.put(accountId, charge);
                 handleSpecialChargeTokens(charge, cardExtra.sourceToken);
             } else {
                 throw new Error("Customer default_source type not handled.");
@@ -106,22 +107,26 @@ namespace charges {
         return charge;
     }
 
-    export function retrieve(chargeId: string, param: string): stripe.charges.ICharge {
-        const charge = existingCharges[chargeId];
+    export function retrieve(accountId: string, chargeId: string, paramName: string): stripe.charges.ICharge {
+        log.debug("retrieve charge", accountId, chargeId);
+
+        const charge = accountCharges.get(accountId, chargeId);
         if (!charge) {
             throw new StripeError(404, {
                 code: "resource_missing",
                 doc_url: "https://stripe.com/docs/error-codes/resource-missing",
                 message: `No such charge: ${chargeId}`,
-                param: param,
+                param: paramName,
                 type: "invalid_request_error"
             });
         }
         return charge;
     }
 
-    export function update(chargeId: string, params: stripe.charges.IChargeUpdateOptions): stripe.charges.ICharge {
-        const charge = retrieve(chargeId, "id");
+    export function update(accountId: string, chargeId: string, params: stripe.charges.IChargeUpdateOptions): stripe.charges.ICharge {
+        log.debug("update charge", accountId, chargeId, params);
+
+        const charge = retrieve(accountId, chargeId, "id");
 
         if (params.hasOwnProperty("description")) {
             charge.description = params.description;
@@ -142,8 +147,10 @@ namespace charges {
         return charge;
     }
 
-    export function capture(chargeId: string, params: stripe.charges.IChargeCaptureOptions): stripe.charges.ICharge {
-        const charge = existingCharges[chargeId];
+    export function capture(accountId: string, chargeId: string, params: stripe.charges.IChargeCaptureOptions): stripe.charges.ICharge {
+        log.debug("capture charge", accountId, chargeId, params);
+
+        const charge = accountCharges.get(accountId, chargeId);
         if (!charge) {
             throw new StripeError(404, {
                 code: "resource_missing",
@@ -184,7 +191,7 @@ namespace charges {
 
         if (captureAmount < charge.amount) {
             charge.captured = true;
-            createRefund({
+            createRefund(accountId, {
                 amount: charge.amount - captureAmount,
                 charge: charge.id
             });
@@ -195,8 +202,10 @@ namespace charges {
         return charge;
     }
 
-    export function createRefund(params: stripe.refunds.IRefundCreationOptionsWithCharge): stripe.refunds.IRefund {
-        const charge = retrieve(params.charge, "id");
+    export function createRefund(accountId: string, params: stripe.refunds.IRefundCreationOptionsWithCharge): stripe.refunds.IRefund {
+        log.debug("createRefund", accountId, params);
+
+        const charge = retrieve(accountId, params.charge, "id");
 
         let refundAmount = params.hasOwnProperty("amount") ? +params.amount : charge.amount;
         if (refundAmount < 1) {
@@ -248,9 +257,11 @@ namespace charges {
         return refund;
     }
 
-    export function retrieveRefund(refundId: string, param: string): stripe.refunds.IRefund {
-        for (const chargeId in existingCharges) {
-            const refund = existingCharges[chargeId].refunds.data.find(refund => refund.id === refundId);
+    export function retrieveRefund(accountId: string, refundId: string, paramName: string): stripe.refunds.IRefund {
+        log.debug("retrieve refund", accountId, refundId);
+
+        for (const charge of accountCharges.getAll(accountId)) {
+            const refund = charge.refunds.data.find(refund => refund.id === refundId);
             if (refund) {
                 return refund;
             }
@@ -260,7 +271,7 @@ namespace charges {
             code: "resource_missing",
             doc_url: "https://stripe.com/docs/error-codes/resource-missing",
             message: `No such refund: ${refundId}`,
-            param: param,
+            param: paramName,
             type: "invalid_request_error"
         });
     }

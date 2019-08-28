@@ -177,6 +177,44 @@ describe("charges", () => {
         });
     });
 
+    it("supports Stripe-Account header (Connect account)", async () => {
+        const params: stripe.charges.IChargeCreationOptions =  {
+            amount: 2000,
+            currency: "usd",
+            source: "tok_visa"
+        };
+
+        chai.assert.isString(process.env["STRIPE_CONNECTED_ACCOUNT_ID"], "connected account ID is set");
+
+        const localCharge = await getLocalStripeClient().charges.create(params, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
+
+        let localRetrieveError: any;
+        try {
+            await getLocalStripeClient().charges.retrieve(localCharge.id);
+        } catch (err) {
+            localRetrieveError = err;
+        }
+        chai.assert.isDefined(localRetrieveError, "charge should not be in the account, but should be in the connected account");
+
+        const localConnectRetrieveCharge = await getLocalStripeClient().charges.retrieve(localCharge.id, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
+        chai.assert.deepEqual(localConnectRetrieveCharge, localCharge);
+
+        const liveCharge = await getLiveStripeClient().charges.create(params, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
+
+        let liveRetrieveError: any;
+        try {
+            await getLiveStripeClient().charges.retrieve(liveCharge.id);
+        } catch (err) {
+            liveRetrieveError = err;
+        }
+        chai.assert.isDefined(liveRetrieveError, "charge should not be in the account, but should be in the connected account");
+
+        const liveConnectRetrieveCharge = await getLiveStripeClient().charges.retrieve(liveCharge.id, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
+        chai.assert.deepEqual(liveConnectRetrieveCharge, liveCharge);
+
+        assertChargesAreBasicallyEqual(localCharge, liveCharge);
+    });
+
     describe("bonus secret tokens!", () => {
         describe("tok_429", () => {
             it("throws a 429 error", async () => {

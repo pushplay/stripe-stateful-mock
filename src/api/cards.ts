@@ -1,6 +1,7 @@
 import * as stripe from "stripe";
 import log = require("loglevel");
 import {generateId} from "./utils";
+import {AccountData} from "./AccountData";
 
 namespace cards {
 
@@ -11,11 +12,12 @@ namespace cards {
     const cardExtras: {[cardId: string]: CardExtra} = {};
 
     export function createFromSource(token: string): stripe.cards.ICard {
-        log.debug("create card from source", token);
+        const cardId = `card_${generateId(24)}`;
+        log.debug("creating card token=", token, "cardId=", cardId);
 
         const now = new Date();
         const card: stripe.cards.ICard = {
-            id: "card_" + generateId(24),
+            id: cardId,
             object: "card",
             address_city: null,
             address_country: null,
@@ -105,7 +107,6 @@ namespace cards {
     export function getCardExtra(cardId: string): CardExtra {
         return cardExtras[cardId];
     }
-
 }
 
 export default cards;

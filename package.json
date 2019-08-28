@@ -8,8 +8,8 @@
     "clean": "rimraf ./dist",
     "run": "LOG_LEVEL=info node dist/index.js",
     "run:debug": "LOG_LEVEL=debug node dist/index.js",
-    "test": "LOG_LEVEL=silent mocha --recursive --timeout 5000 --require ts-node/register --exit \"test/**/*.ts\"",
-    "test:debug": "LOG_LEVEL=trace mocha --recursive --timeout 5000 --require ts-node/register --exit \"test/**/*.ts\""
+    "test": "LOG_LEVEL=silent mocha --recursive --timeout 5000 --require ts-node/register --require ./test/requireDotEnv.ts --exit \"test/**/*.ts\"",
+    "test:debug": "LOG_LEVEL=trace mocha --recursive --timeout 5000 --require ts-node/register --require ./test/requireDotEnv.ts --exit \"test/**/*.ts\""
   },
   "repository": {
     "type": "git",

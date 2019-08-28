@@ -125,4 +125,43 @@ describe("customers", () => {
             }
         });
     });
+
+    it("supports Stripe-Account header (Connect account)", async () => {
+        const params: stripe.customers.ICustomerCreationOptions =  {
+            source: "tok_visa"
+        };
+
+        chai.assert.isString(process.env["STRIPE_CONNECTED_ACCOUNT_ID"], "connected account ID is set");
+
+        const localCustomer = await getLocalStripeClient().customers.create(params, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
+
+        let localRetrieveError: any;
+        try {
+            await getLocalStripeClient().customers.retrieve(localCustomer.id);
+        } catch (err) {
+            localRetrieveError = err;
+        }
+        chai.assert.isDefined(localRetrieveError, "customer should not be in the account, but should be in the connected account");
+
+        const localConnectRetrieveCustomer = await getLocalStripeClient().customers.retrieve(localCustomer.id, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
+        chai.assert.deepEqual(localConnectRetrieveCustomer, localCustomer);
+
+        const localConnectRetrieveCard = await getLocalStripeClient().customers.retrieveSource(localCustomer.id, localCustomer.default_source as string, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
+        chai.assert.equal(localConnectRetrieveCard.id, localCustomer.default_source as string);
+
+        const liveCustomer = await getLiveStripeClient().customers.create(params, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
+
+        let liveRetrieveError: any;
+        try {
+            await getLiveStripeClient().customers.retrieve(liveCustomer.id);
+        } catch (err) {
+            liveRetrieveError = err;
+        }
+        chai.assert.isDefined(liveRetrieveError, "customer should not be in the account, but should be in the connected account");
+
+        const liveConnectRetrieveCustomer = await getLiveStripeClient().customers.retrieve(liveCustomer.id, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
+        chai.assert.deepEqual(liveConnectRetrieveCustomer, liveCustomer);
+
+        assertCustomersAreBasicallyEqual(localCustomer, liveCustomer);
+    });
 });

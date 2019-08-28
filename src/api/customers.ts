@@ -3,15 +3,16 @@ import log = require("loglevel");
 import StripeError from "./StripeError";
 import {generateId, stringifyMetadata} from "./utils";
 import cards from "./cards";
+import {AccountData} from "./AccountData";
 
 namespace customers {
 
-    const existingCustomers: {[customerId: string]: stripe.customers.ICustomer} = {};
+    const accountCustomers = new AccountData<stripe.customers.ICustomer>();
 
-    export function create(params: stripe.customers.ICustomerCreationOptions): stripe.customers.ICustomer {
-        log.debug("create customer", params);
+    export function create(accountId: string, params: stripe.customers.ICustomerCreationOptions): stripe.customers.ICustomer {
+        log.debug("create customer", accountId, params);
 
-        if ((params as any).id && existingCustomers[(params as any).id]) {
+        if ((params as any).id && accountCustomers.contains(accountId, (params as any).id)) {
             throw new StripeError(400, {
                 code: "resource_already_exists",
                 doc_url: "https://stripe.com/docs/error-codes/resource-already-exists",
@@ -121,34 +122,39 @@ namespace customers {
             throw new Error("Card create options on create customer aren't supported.")
         }
 
-        existingCustomers[customerId] = customer;
-        
+        accountCustomers.put(accountId, customer);
+        log.debug("saved customer", accountId, customer);
+
         return customer;
     }
 
-    export function retrieve(customerId: string, param: string): stripe.customers.ICustomer {
-        const customer = existingCustomers[customerId];
+    export function retrieve(accountId: string, customerId: string, paramName: string): stripe.customers.ICustomer {
+        log.debug("retrieve customer", accountId, customerId);
+
+        const customer = accountCustomers.get(accountId, customerId);
         if (!customer) {
             throw new StripeError(404, {
                 code: "resource_missing",
                 doc_url: "https://stripe.com/docs/error-codes/resource-missing",
                 message: `No such customer: ${customerId}`,
-                param: param,
+                param: paramName,
                 type: "invalid_request_error"
             });
         }
         return customer;
     }
 
-    export function retrieveCard(customerId: string, cardId: string): stripe.cards.ICard {
-        const customer = retrieve(customerId, "customer");
+    export function retrieveCard(accountId: string, customerId: string, cardId: string, paramName: string): stripe.cards.ICard {
+        log.debug("retrieve card", accountId, customerId, cardId);
+
+        const customer = retrieve(accountId, customerId, "customer");
         const card = customer.sources.data.find(card => card.id === cardId && card.object === "card") as stripe.cards.ICard;
         if (!card) {
             throw new StripeError(404, {
                 code: "resource_missing",
                 doc_url: "https://stripe.com/docs/error-codes/resource-missing",
                 message: `Customer ${customerId} does not have card with ID ${cardId}`,
-                param: "card",
+                param: paramName,
                 type: "invalid_request_error"
             });
         }
