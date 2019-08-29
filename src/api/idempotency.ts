@@ -3,15 +3,18 @@ import deepEqual = require("deep-equal");
 import log = require("loglevel");
 import {generateId} from "./utils";
 import StripeError from "./StripeError";
+import {AccountData} from "./AccountData";
+import {getRequestAccountId} from "../routes";
 
 interface StoredRequest {
+    id: string;
     requestId: string;
     requestBody: any;
     responseCode: number;
     responseBody: any;
 }
 
-const storedRequests: {[key: string]: StoredRequest} = {};
+const accountRequests = new AccountData<StoredRequest>();
 
 export function idempotencyRoute(req: express.Request, res: express.Response, next: express.NextFunction): void {
     const idempotencyKey = req.header("idempotency-key");
@@ -19,9 +22,11 @@ export function idempotencyRoute(req: express.Request, res: express.Response, ne
         return next();
     }
 
+    const accountId = getRequestAccountId(req);
     const storedRequestKey = `(${req.method})(${req.path})(${idempotencyKey})`;
-    if (storedRequests[storedRequestKey]) {
-        const storedRequest = storedRequests[storedRequestKey];
+
+    if (accountRequests.contains(accountId, storedRequestKey)) {
+        const storedRequest = accountRequests.get(accountId, storedRequestKey);
 
         if (!deepEqual(storedRequest.requestBody, req.body)) {
             log.error("request body", req.body, "does not match stored body", storedRequest.requestBody);
@@ -38,30 +43,32 @@ export function idempotencyRoute(req: express.Request, res: express.Response, ne
             .send(storedRequest.responseBody);
         return;
     } else {
-        const storedRequest: StoredRequest = storedRequests[storedRequestKey] = {
+        const storedRequest: StoredRequest = {
+            id: storedRequestKey,
             requestId: "req_" + generateId(14),
             requestBody: req.body,
             responseCode: 0,
             responseBody: null
         };
+        accountRequests.put(accountId, storedRequest);
         res.set("request-id", storedRequest.requestId);
 
         // Let's get real dirty.
 
         const originalStatus = res.status;
         res.status = code => {
-            if (codeIsIdempotentCached(code)) {
-                storedRequests[storedRequestKey].responseCode = code;
+            if (codeIsIdempotentCached(code) && accountRequests.contains(accountId, storedRequestKey)) {
+                accountRequests.get(accountId, storedRequestKey).responseCode = code;
             } else {
-                delete storedRequests[storedRequestKey];
+                accountRequests.remove(accountId, storedRequestKey);
             }
             return originalStatus.call(res, code);
         };
 
         const originalSend = res.send;
         res.send = body => {
-            if (storedRequests[storedRequestKey]) {
-                storedRequests[storedRequestKey].responseBody = body;
+            if (accountRequests.contains(accountId, storedRequestKey)) {
+                accountRequests.get(accountId, storedRequestKey).responseBody = body;
             }
             return originalSend.call(res, body);
         };

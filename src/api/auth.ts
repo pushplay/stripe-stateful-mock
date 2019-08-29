@@ -1,5 +1,6 @@
 import express from 'express';
 import basicAuthParser = require('basic-auth');
+import {getRequestAccountId} from "../routes";
 
 export function authRoute(req: express.Request, res: express.Response, next: express.NextFunction): void {
     let token = null;
@@ -22,11 +23,24 @@ export function authRoute(req: express.Request, res: express.Response, next: exp
     } else if (!/^sk_test_/.test(token)) {
         res.status(401).send({
             error: {
-                message: `Invalid API Key provided: ${token.substr(0, Math.min(token.length, 11))}${new Array(token.length - Math.min(token.length, 15)).fill("*").join("")}${token.substr(token.length - Math.min(token.length, 4))}`,
+                message: `Invalid API Key provided: ${censorAccessToken(token)}`,
+                type: "invalid_request_error"
+            }
+        });
+    } else if (getRequestAccountId(req) === "acct_invalid") {
+        res.status(403).send({
+            error: {
+                code: "account_invalid",
+                doc_url: "https://stripe.com/docs/error-codes/account-invalid",
+                message: `The provided key '${censorAccessToken(token)}' does not have access to account '${getRequestAccountId(req)}' (or that account does not exist). Application access may have been revoked.`,
                 type: "invalid_request_error"
             }
         });
     } else {
         next();
     }
+}
+
+function censorAccessToken(token: string): string {
+    return `${token.substr(0, Math.min(token.length, 11))}${new Array(token.length - Math.min(token.length, 15)).fill("*").join("")}${token.substr(token.length - Math.min(token.length, 4))}`;
 }

@@ -1,6 +1,7 @@
 import Stripe = require("stripe");
 import {assertErrorThunksAreEqual} from "./stripeAssert";
 import {port} from "../src";
+import {getLiveStripeClient, getLocalStripeClient} from "./stripeUtils";
 
 describe("auth", () => {
 
@@ -10,12 +11,19 @@ describe("auth", () => {
         source: "tok_visa"
     };
 
-    it("matches on bad API key", async () => {
+    it("matches the server error when the API key does not start with sk_test_", async () => {
         const localClient = new Stripe("foobar");
         localClient.setHost("localhost", port, "http");
 
         const liveClient = new Stripe("foobar");
 
         await assertErrorThunksAreEqual(() => localClient.charges.create(testChargeParams), () => liveClient.charges.create(testChargeParams));
+    });
+
+    it("matches the server error when the Stripe-Account header is acct_invalid", async () => {
+        await assertErrorThunksAreEqual(
+            () => getLocalStripeClient().charges.create(testChargeParams, {stripe_account: "acct_invalid"}),
+            () => getLiveStripeClient().charges.create(testChargeParams, {stripe_account: "acct_invalid"})
+        );
     });
 });

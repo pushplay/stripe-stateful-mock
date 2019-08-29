@@ -5,10 +5,7 @@ export class AccountData<T extends {id: string}> {
     constructor() {}
 
     get(accountId: string, objectId: string): T {
-        if (this.data[accountId] && this.data[accountId][objectId]) {
-            return this.data[accountId][objectId];
-        }
-        return null;
+        return (this.data[accountId] && this.data[accountId][objectId]) || null;
     }
 
     getAll(accountId: string): readonly T[] {
@@ -30,5 +27,11 @@ export class AccountData<T extends {id: string}> {
             throw new Error(`There is already an entry for [${accountId}][${obj.id}].  Refusing to overwrite it because the result will be confusing.`);
         }
         this.data[accountId][obj.id] = obj;
+    }
+
+    remove(accountId: string, objectId: string): void {
+        if (this.data[accountId]) {
+            delete this.data[accountId][objectId];
+        }
     }
 }

@@ -23,13 +23,13 @@ The server supports the following settings through environment variables:
 
 ## Bonus features
 
-This server supports a few bonus test tokens to test scenarios not testable against the real server.
+This server supports a few bonus parameters to test scenarios not testable against the real server.
 
-### Source token tok_429
+### Source token `tok_429`
 
 Use the charge source token `tok_429` to get a 429 response from the server.
 
-### Source token tok_500
+### Source token `tok_500`
 
 Use the charge source token `tok_500` to get a 500 response from the server.
 
@@ -50,6 +50,10 @@ The first time this charge source token is used an insufficient funds response w
 The first and second time this charge source token is used a 500 response is returned.  The third time the charge will succeed with a visa transaction.
 
 A random string is appended to the end to guarantee this sequence won't be confused for a similar test (eg `tok_500|tok_500|tok_visa|hjklhjkl`) that may be running simultaneously.  It's a lazy hack that accomplishes namespacing.
+
+### Connect account `acct_invalid`
+
+Using the `Stripe-Account` header you can specify a Stripe Connect account.  The official server verifies that you are indeed connected to this account.  The mock server supports the header but assumes all account IDs are connected and valid.  Use the value `acct_invalid` to get a 403 response corresponding to an invalid Connect Account.
 
 ## Existing work
 

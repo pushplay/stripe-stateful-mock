@@ -444,7 +444,7 @@ describe("charges", () => {
 
         it("sends the right error on mismatched idempotent bodies", async () => {
             const idempotencyKey = generateId();
-            const originalCharge = await getLocalStripeClient().charges.create({
+            await getLocalStripeClient().charges.create({
                 amount: 1000,
                 currency: "usd",
                 source: "tok_visa"
@@ -469,6 +469,28 @@ describe("charges", () => {
             chai.assert.equal(repeatError.statusCode, 400);
             chai.assert.equal(repeatError.rawType, "idempotency_error");
             chai.assert.equal(repeatError.type, "StripeIdempotencyError");
+        });
+
+        it("does not confused two Connected accounts", async () => {
+            const idempotencyKey = generateId();
+
+            await getLocalStripeClient().charges.create({
+                amount: 1000,
+                currency: "usd",
+                source: "tok_visa"
+            }, {
+                idempotency_key: idempotencyKey,
+                stripe_account: "acct_uno"
+            });
+
+            await getLocalStripeClient().charges.create({
+                amount: 2000,
+                currency: "usd",
+                source: "tok_visa"
+            }, {
+                idempotency_key: idempotencyKey,
+                stripe_account: "acct_dos"
+            });
         });
     });
 
