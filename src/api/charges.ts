@@ -358,7 +358,7 @@ namespace charges {
                 url: `/v1/charges/${chargeId}/refunds`
             },
             review: null,
-            shipping: null,
+            shipping: params.shipping || null,
             source: source,
             source_transfer: null,
             statement_descriptor: params.statement_descriptor || null,

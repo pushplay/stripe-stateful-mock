@@ -97,11 +97,28 @@ describe("charges", () => {
             success: true,
             params: {
                 amount: 3500,
-                currency: "usd",
-                source: "tok_visa",
                 description: "this is a description",
+                currency: "usd",
                 on_behalf_of: process.env["STRIPE_CONNECTED_ACCOUNT_ID"],
-                receipt_email: "foobar@example.com"
+                receipt_email: "foobar@example.com",
+                shipping: {
+                    address: {
+                        city: "Beverly Hills",
+                        country: "US",
+                        line1: "1675 E. Altadena Drive",
+                        line2: null,
+                        postal_code: "90210",
+                        state: "CA"
+
+                    },
+                    carrier: null,
+                    name: "Henrietta",
+                    phone: null,
+                    tracking_number: "abc123"
+                },
+                source: "tok_visa",
+                statement_descriptor: "ccc",
+                transfer_group: "ddd"
             }
         },
         {
