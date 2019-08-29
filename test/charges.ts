@@ -100,6 +100,7 @@ describe("charges", () => {
                 currency: "usd",
                 source: "tok_visa",
                 description: "this is a description",
+                on_behalf_of: process.env["STRIPE_CONNECTED_ACCOUNT_ID"],
                 receipt_email: "foobar@example.com"
             }
         },

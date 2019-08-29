@@ -314,7 +314,7 @@ namespace charges {
             invoice: null,
             livemode: false,
             metadata: stringifyMetadata(params.metadata),
-            on_behalf_of: null,
+            on_behalf_of: params.on_behalf_of || null,
             order: null,
             outcome: {
                 network_status: "approved_by_network",
