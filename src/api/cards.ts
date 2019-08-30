@@ -77,6 +77,10 @@ namespace cards {
                 card.brand = "Visa";
                 card.last4 = "0341";
                 break;
+            case "tok_riskLevelElevated":
+                card.brand = "Visa";
+                card.last4 = "9235";
+                break;
             case "tok_chargeDeclined":
                 card.brand = "Visa";
                 card.last4 = "0002";

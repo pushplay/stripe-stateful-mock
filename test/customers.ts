@@ -13,6 +13,7 @@ describe("customers", () => {
     const customerTests: {
         name: string;
         success: boolean;
+        only?: boolean;
         params: stripe.customers.ICustomerCreationOptions;
         charge?: {
             success: boolean;
@@ -90,7 +91,7 @@ describe("customers", () => {
     ];
 
     customerTests.forEach(test => {
-        it(`supports ${test.name}`, async () => {
+        (test.only ? it.only : it)(`supports ${test.name}`, async () => {
             if (test.success) {
                 const localCustomer = await getLocalStripeClient().customers.create(test.params);
                 const liveCustomer = await getLiveStripeClient().customers.create(test.params);

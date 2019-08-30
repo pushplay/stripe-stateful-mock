@@ -389,6 +389,17 @@ namespace charges {
 
     function handleSpecialChargeTokens(charge: stripe.charges.ICharge, sourceToken: string): void {
         switch (sourceToken) {
+            case "tok_riskLevelElevated":
+                charge.outcome = {
+                    network_status: "approved_by_network",
+                    reason: "elevated_risk_level",
+                    risk_level: "elevated",
+                    risk_score: 74,
+                    rule: "manual_review_if_elevated_risk",
+                    seller_message: "Stripe evaluated this payment as having elevated risk, and placed it in your manual review queue.",
+                    type: "manual_review"
+                };
+                break;
             case "tok_chargeDeclined":
                 charge.failure_code = "card_declined";
                 charge.failure_message = "Your card was declined.";

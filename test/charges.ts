@@ -13,6 +13,7 @@ describe("charges", () => {
     const chargeTests: {
         name: string;
         success: boolean,
+        only?: boolean,
         params: stripe.charges.IChargeCreationOptions;
     }[] = [
         {
@@ -140,6 +141,15 @@ describe("charges", () => {
             }
         },
         {
+            name: "tok_riskLevelElevated",
+            success: true,
+            params: {
+                amount: 1200,
+                currency: "usd",
+                source: "tok_riskLevelElevated"
+            }
+        },
+        {
             name: "tok_chargeDeclined",
             success: false,
             params: {
@@ -178,7 +188,7 @@ describe("charges", () => {
     ];
 
     chargeTests.forEach(test => {
-        it(`supports ${test.name}`, async () => {
+        (test.only ? it.only : it)(`supports ${test.name}`, async () => {
             if (test.success) {
                 const localCharge = await getLocalStripeClient().charges.create(test.params);
                 const liveCharge = await getLiveStripeClient().charges.create(test.params);

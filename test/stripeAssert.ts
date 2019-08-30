@@ -42,8 +42,17 @@ export function assertChargesAreBasicallyEqual(actual: Stripe.charges.ICharge, e
     chai.assert.equal(actual.refunds.total_count, expected.refunds.total_count, message);
     chai.assert.lengthOf(actual.refunds.data, actual.refunds.total_count, message);
 
+    assertOutcomesAreBasicallyEqual(actual.outcome, expected.outcome);
+
     for (let refundIx = 0; refundIx < expected.refunds.total_count; refundIx++) {
         assertRefundsAreBasicallyEqual(actual.refunds.data[refundIx], expected.refunds.data[refundIx], `of refund ${refundIx} ${message || ""}`);
+    }
+}
+
+const outcomeComparableKeys: (keyof Stripe.charges.IOutcome)[] = ["network_status", "reason", "risk_level", "rule", "seller_message", "type"];
+function assertOutcomesAreBasicallyEqual(actual: Stripe.charges.IOutcome, expected: Stripe.charges.IOutcome, message?: string): void {
+    for (const key of outcomeComparableKeys) {
+        chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}' ${message || ""}`);
     }
 }
 
