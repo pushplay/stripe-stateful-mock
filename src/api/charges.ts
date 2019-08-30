@@ -407,7 +407,7 @@ namespace charges {
                     network_status: "declined_by_network",
                     reason: "generic_decline",
                     risk_level: "normal",
-                    // risk_score: 63,
+                    risk_score: 63,
                     seller_message: "The bank did not return any further details with this decline.",
                     type: "issuer_declined"
                 };
@@ -428,7 +428,7 @@ namespace charges {
                     network_status: "declined_by_network",
                     reason: "generic_decline",
                     risk_level: "normal",
-                    // risk_score: 63,
+                    risk_score: 63,
                     seller_message: "The bank did not return any further details with this decline.",
                     type: "issuer_declined"
                 };
@@ -442,6 +442,27 @@ namespace charges {
                     message: "Your card has insufficient funds.",
                     type: "card_error"
                 });
+            case "tok_chargeDeclinedFraudulent":
+                charge.failure_code = "card_declined";
+                charge.failure_message = "Your card was declined.";
+                charge.outcome = {
+                    network_status: "not_sent_to_network",
+                    reason: "merchant_blacklist",
+                    risk_level: "highest",
+                    risk_score: 79,
+                    seller_message: "Stripe blocked this payment.",
+                    type: "blocked"
+                };
+                charge.paid = false;
+                charge.status = "failed";
+                throw new StripeError(402, {
+                    charge: charge.id,
+                    code: "card_declined",
+                    decline_code: "fraudulent",
+                    doc_url: "https://stripe.com/docs/error-codes/card-declined",
+                    message: "Your card was declined.",
+                    type: "card_error"
+                });
             case "tok_chargeDeclinedIncorrectCvc":
                 charge.failure_code = "incorrect_cvc";
                 charge.failure_message = "Your card's security code is incorrect.";
@@ -449,7 +470,7 @@ namespace charges {
                     network_status: "declined_by_network",
                     reason: "incorrect_cvc",
                     risk_level: "normal",
-                    // risk_score: 63,
+                    risk_score: 63,
                     seller_message: "The bank returned the decline code `incorrect_cvc`.",
                     type: "issuer_declined"
                 };
@@ -470,7 +491,7 @@ namespace charges {
                     network_status: "declined_by_network",
                     reason: "expired_card",
                     risk_level: "normal",
-                    // risk_score: 63,
+                    risk_score: 63,
                     seller_message: "The bank returned the decline code `expired_card`.",
                     type: "issuer_declined"
                 };
@@ -482,6 +503,26 @@ namespace charges {
                     doc_url: "https://stripe.com/docs/error-codes/expired-card",
                     message: "Your card has expired.",
                     param: "exp_month",
+                    type: "card_error"
+                });
+            case "tok_chargeDeclinedProcessingError":
+                charge.failure_code = "processing_error";
+                charge.failure_message = "An error occurred while processing your card. Try again in a little bit.";
+                charge.outcome = {
+                    network_status: "declined_by_network",
+                    reason: "processing_error",
+                    risk_level: "normal",
+                    risk_score: 47,
+                    seller_message: "The bank returned the decline code `processing_error`.",
+                    type: "issuer_declined"
+                };
+                charge.paid = false;
+                charge.status = "failed";
+                throw new StripeError(402, {
+                    charge: charge.id,
+                    code: "processing_error",
+                    doc_url: "https://stripe.com/docs/error-codes/processing-error",
+                    message: "An error occurred while processing your card. Try again in a little bit.",
                     type: "card_error"
                 });
         }

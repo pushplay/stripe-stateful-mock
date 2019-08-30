@@ -168,6 +168,15 @@ describe("charges", () => {
             }
         },
         {
+            name: "tok_chargeDeclinedFraudulent",
+            success: false,
+            params: {
+                amount: 5000,
+                currency: "usd",
+                source: "tok_chargeDeclinedFraudulent"
+            }
+        },
+        {
             name: "tok_chargeDeclinedIncorrectCvc",
             success: false,
             params: {
@@ -183,6 +192,15 @@ describe("charges", () => {
                 amount: 5000,
                 currency: "usd",
                 source: "tok_chargeDeclinedExpiredCard"
+            }
+        },
+        {
+            name: "tok_chargeDeclinedProcessingError",
+            success: false,
+            params: {
+                amount: 5000,
+                currency: "usd",
+                source: "tok_chargeDeclinedProcessingError"
             }
         }
     ];

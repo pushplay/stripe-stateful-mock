@@ -89,6 +89,10 @@ namespace cards {
                 card.brand = "Visa";
                 card.last4 = "9995";
                 break;
+            case "tok_chargeDeclinedFraudulent":
+                card.brand = "Visa";
+                card.last4 = "0019";
+                break;
             case "tok_chargeDeclinedIncorrectCvc":
                 card.brand = "Visa";
                 card.last4 = "0127";
@@ -96,6 +100,10 @@ namespace cards {
             case "tok_chargeDeclinedExpiredCard":
                 card.brand = "Visa";
                 card.last4 = "0069";
+                break;
+            case "tok_chargeDeclinedProcessingError":
+                card.brand = "Visa";
+                card.last4 = "0119";
                 break;
             default:
                 throw new Error("Unhandled source token");
