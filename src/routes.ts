@@ -30,6 +30,12 @@ routes.post('/v1/charges/:id/capture', (req, res) => {
     return res.status(200).json(charge);
 });
 
+// Old API.
+routes.get('/v1/charges/:id/refunds', (req, res) => {
+    const refunds = charges.listChargeRefunds(getRequestAccountId(req), req.params.id, req.body);
+    return res.status(200).json(refunds);
+});
+
 routes.post('/v1/customers', (req, res) => {
     const customer = customers.create(getRequestAccountId(req), req.body);
     return res.status(200).json(customer);
@@ -55,6 +61,11 @@ routes.get('/v1/customers/:customerId/sources/:cardId', (req, res) => {
 routes.post('/v1/refunds', (req, res) => {
     const refund = charges.createRefund(getRequestAccountId(req), req.body);
     return res.status(200).json(refund);
+});
+
+routes.get('/v1/refunds', (req, res) => {
+    const refunds = charges.listRefunds(getRequestAccountId(req), req.body);
+    return res.status(200).json(refunds);
 });
 
 routes.get('/v1/refunds/:id', (req, res) => {

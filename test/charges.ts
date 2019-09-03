@@ -4,7 +4,7 @@ import {getLiveStripeClient, getLocalStripeClient} from "./stripeUtils";
 import {
     assertChargesAreBasicallyEqual,
     assertErrorThunksAreEqual,
-    assertErrorsAreEqual, assertRefundsAreBasicallyEqual
+    assertErrorsAreEqual, assertRefundsAreBasicallyEqual, assertRefundListsAreBasicallyEqual
 } from "./stripeAssert";
 import {generateId} from "../src/api/utils";
 
@@ -71,6 +71,69 @@ describe("charges", () => {
             }
         },
         {
+            name: "tok_riskLevelElevated",
+            success: true,
+            params: {
+                amount: 1200,
+                currency: "usd",
+                source: "tok_riskLevelElevated"
+            }
+        },
+        {
+            name: "tok_chargeDeclined",
+            success: false,
+            params: {
+                amount: 5000,
+                currency: "usd",
+                source: "tok_chargeDeclined"
+            }
+        },
+        {
+            name: "tok_chargeDeclinedInsufficientFunds",
+            success: false,
+            params: {
+                amount: 5000,
+                currency: "usd",
+                source: "tok_chargeDeclinedInsufficientFunds"
+            }
+        },
+        {
+            name: "tok_chargeDeclinedFraudulent",
+            success: false,
+            params: {
+                amount: 5000,
+                currency: "usd",
+                source: "tok_chargeDeclinedFraudulent"
+            }
+        },
+        {
+            name: "tok_chargeDeclinedIncorrectCvc",
+            success: false,
+            params: {
+                amount: 5000,
+                currency: "usd",
+                source: "tok_chargeDeclinedIncorrectCvc"
+            }
+        },
+        {
+            name: "tok_chargeDeclinedExpiredCard",
+            success: false,
+            params: {
+                amount: 5000,
+                currency: "usd",
+                source: "tok_chargeDeclinedExpiredCard"
+            }
+        },
+        {
+            name: "tok_chargeDeclinedProcessingError",
+            success: false,
+            params: {
+                amount: 5000,
+                currency: "usd",
+                source: "tok_chargeDeclinedProcessingError"
+            }
+        },
+        {
             name: "metadata",
             success: true,
             params: {
@@ -132,7 +195,16 @@ describe("charges", () => {
             }
         },
         {
-            name: "checking min transaction amount",
+            name: "checking positive amount",
+            success: false,
+            params: {
+                amount: -1,
+                currency: "usd",
+                source: "tok_visa"
+            }
+        },
+        {
+            name: "checking min amount",
             success: false,
             params: {
                 amount: 5,
@@ -141,66 +213,12 @@ describe("charges", () => {
             }
         },
         {
-            name: "tok_riskLevelElevated",
-            success: true,
-            params: {
-                amount: 1200,
-                currency: "usd",
-                source: "tok_riskLevelElevated"
-            }
-        },
-        {
-            name: "tok_chargeDeclined",
+            name: "checking max amount",
             success: false,
             params: {
-                amount: 5000,
+                amount: 1000000000,
                 currency: "usd",
-                source: "tok_chargeDeclined"
-            }
-        },
-        {
-            name: "tok_chargeDeclinedInsufficientFunds",
-            success: false,
-            params: {
-                amount: 5000,
-                currency: "usd",
-                source: "tok_chargeDeclinedInsufficientFunds"
-            }
-        },
-        {
-            name: "tok_chargeDeclinedFraudulent",
-            success: false,
-            params: {
-                amount: 5000,
-                currency: "usd",
-                source: "tok_chargeDeclinedFraudulent"
-            }
-        },
-        {
-            name: "tok_chargeDeclinedIncorrectCvc",
-            success: false,
-            params: {
-                amount: 5000,
-                currency: "usd",
-                source: "tok_chargeDeclinedIncorrectCvc"
-            }
-        },
-        {
-            name: "tok_chargeDeclinedExpiredCard",
-            success: false,
-            params: {
-                amount: 5000,
-                currency: "usd",
-                source: "tok_chargeDeclinedExpiredCard"
-            }
-        },
-        {
-            name: "tok_chargeDeclinedProcessingError",
-            success: false,
-            params: {
-                amount: 5000,
-                currency: "usd",
-                source: "tok_chargeDeclinedProcessingError"
+                source: "tok_visa"
             }
         }
     ];
@@ -812,6 +830,7 @@ describe("charges", () => {
                 }
             });
             const localRefundedCharge = await getLocalStripeClient().charges.retrieve(localCharge.id);
+            const localChargeRefunds = await getLocalStripeClient().refunds.list({charge: localCharge.id});
 
             const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
             const liveRefund1 = await getLiveStripeClient().refunds.create({
@@ -828,10 +847,12 @@ describe("charges", () => {
                 }
             });
             const liveRefundedCharge = await getLiveStripeClient().charges.retrieve(liveCharge.id);
+            const liveChargeRefunds = await getLiveStripeClient().refunds.list({charge: liveCharge.id});
 
             assertRefundsAreBasicallyEqual(localRefund1, liveRefund1);
             assertRefundsAreBasicallyEqual(localRefund2, liveRefund2);
             assertChargesAreBasicallyEqual(localRefundedCharge, liveRefundedCharge);
+            assertRefundListsAreBasicallyEqual(localChargeRefunds, liveChargeRefunds, JSON.stringify(localChargeRefunds, null, 2) + "\n" + JSON.stringify(liveChargeRefunds, null, 2));
         });
 
         it("can't refund a non-existent charge", async () => {
@@ -839,6 +860,46 @@ describe("charges", () => {
             await assertErrorThunksAreEqual(
                 () => getLocalStripeClient().refunds.create({charge: chargeId}),
                 () => getLiveStripeClient().refunds.create({charge: chargeId})
+            );
+        });
+
+        it("can't refund more than the amount on the charge", async () => {
+            const chargeParams: stripe.charges.IChargeCreationOptions = {
+                amount: 4300,
+                currency: "usd",
+                source: "tok_visa"
+            };
+            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
+
+            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
+
+            await assertErrorThunksAreEqual(
+                () => getLocalStripeClient().refunds.create({charge: localCharge.id, amount: 4500}),
+                () => getLiveStripeClient().refunds.create({charge: liveCharge.id, amount: 4500})
+            );
+        });
+
+        it("can't refund an already refunded charge", async () => {
+            const chargeParams: stripe.charges.IChargeCreationOptions = {
+                amount: 4300,
+                currency: "usd",
+                source: "tok_visa"
+            };
+            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
+            const localRefund = await getLocalStripeClient().refunds.create({
+                charge: localCharge.id
+            });
+
+            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
+            const liveRefund = await getLiveStripeClient().refunds.create({
+                charge: liveCharge.id
+            });
+
+            assertRefundsAreBasicallyEqual(localRefund, liveRefund);
+
+            await assertErrorThunksAreEqual(
+                () => getLocalStripeClient().refunds.create({charge: localCharge.id}),
+                () => getLiveStripeClient().refunds.create({charge: liveCharge.id})
             );
         });
     });

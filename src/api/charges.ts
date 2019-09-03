@@ -44,6 +44,24 @@ namespace charges {
         log.debug("create charge", accountId, params);
 
         handlePrechargeSpecialTokens(params.source);
+        if (params.amount < 1) {
+            throw new StripeError(400, {
+                code: "parameter_invalid_integer",
+                doc_url: "https://stripe.com/docs/error-codes/parameter-invalid-integer",
+                message: "Invalid positive integer",
+                param: "amount",
+                type: "invalid_request_error"
+            });
+        }
+        if (params.amount > 99999999) {
+            throw new StripeError(400, {
+                code: "amount_too_large",
+                doc_url: "https://stripe.com/docs/error-codes/amount-too-large",
+                message: "Amount must be no more than $999,999.99",
+                param: "amount",
+                type: "invalid_request_error"
+            });
+        }
         if (validCurrencies.indexOf(params.currency.toLowerCase()) === -1) {
             throw new StripeError(400, {
                 message: `Invalid currency: ${params.currency.toLowerCase()}. Stripe currently supports these currencies: ${validCurrencies.join(", ")}`,
@@ -205,24 +223,42 @@ namespace charges {
     export function createRefund(accountId: string, params: stripe.refunds.IRefundCreationOptionsWithCharge): stripe.refunds.IRefund {
         log.debug("createRefund", accountId, params);
 
-        const charge = retrieve(accountId, params.charge, "id");
+        if (params.hasOwnProperty("amount")) {
+            if (params.amount < 1) {
+                throw new StripeError(400, {
+                    code: "parameter_invalid_integer",
+                    doc_url: "https://stripe.com/docs/error-codes/parameter-invalid-integer",
+                    message: "Invalid positive integer",
+                    param: "amount",
+                    type: "invalid_request_error"
+                });
+            }
+            if (params.amount > 99999999) {
+                throw new StripeError(400, {
+                    code: "amount_too_large",
+                    doc_url: "https://stripe.com/docs/error-codes/amount-too-large",
+                    message: "Amount must be no more than $999,999.99",
+                    param: "amount",
+                    type: "invalid_request_error"
+                });
+            }
+        }
 
-        let refundAmount = params.hasOwnProperty("amount") ? +params.amount : (charge.amount - charge.amount_refunded);
-        if (refundAmount < 1) {
+        const charge = retrieve(accountId, params.charge, "id");
+        if (charge.amount_refunded >= charge.amount) {
             throw new StripeError(400, {
-                code: "parameter_invalid_integer",
-                doc_url: "https://stripe.com/docs/error-codes/parameter-invalid-integer",
-                message: "Invalid positive integer",
-                param: "amount",
+                code: "charge_already_refunded",
+                doc_url: "https://stripe.com/docs/error-codes/charge-already-refunded",
+                message: `Charge ${charge.id} has already been refunded.`,
                 type: "invalid_request_error"
             });
         }
+
+        let refundAmount = params.hasOwnProperty("amount") ? +params.amount : charge.amount - charge.amount_refunded;
         if (refundAmount > charge.amount - charge.amount_refunded) {
-            log.debug(`createRefund refundAmount (${refundAmount}) > charge.amount (${charge.amount}) - charge.amount_refunded (${charge.amount_refunded})`);
             throw new StripeError(400, {
-                code: "amount_too_large",
-                doc_url: "https://stripe.com/docs/error-codes/amount-too-large",
-                message: "Amount must be no more than $999,999.99",
+                message: `Refund amount (\$${refundAmount / 100}) is greater than unrefunded amount on charge (\$${(charge.amount - charge.amount_refunded) / 100})`,
+                param: "amount",
                 type: "invalid_request_error"
             });
         }
@@ -275,6 +311,31 @@ namespace charges {
             param: paramName,
             type: "invalid_request_error"
         });
+    }
+
+    export function listRefunds(accountId: string, params: stripe.refunds.IRefundListOptions): stripe.IList<stripe.refunds.IRefund> {
+        if (params.charge) {
+            return listChargeRefunds(accountId, params.charge, params);
+        }
+
+        log.debug("list refunds", accountId, params);
+        const refunds: stripe.refunds.IRefund[] = accountCharges.getAll(accountId).reduce((refunds, charge) => [...refunds, ...charge.refunds.data], [] as stripe.refunds.IRefund[]);
+        return {
+            object: "list",
+            data: refunds,
+            has_more: false,
+            url: "/v1/refunds",
+            total_count: refunds.length
+        };
+    }
+
+    export function listChargeRefunds(accountId: string, chargeId: string, params: stripe.IListOptions): stripe.IList<stripe.refunds.IRefund> {
+        log.debug("list charge refunds", accountId, chargeId, params);
+        const charge = retrieve(accountId, chargeId, "charge");
+        return {
+            ...charge.refunds,
+            total_count: undefined  // For some reason this isn't on this endpoint.
+        };
     }
 
     function getChargeFromCard(params: stripe.charges.IChargeCreationOptions, source: stripe.cards.ICard): stripe.charges.ICharge {

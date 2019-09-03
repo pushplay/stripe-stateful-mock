@@ -22,7 +22,7 @@ export async function assertErrorThunksAreEqual(actual: () => Promise<any>, expe
 }
 
 const comparableErrorKeys = ["code", "rawType", "statusCode", "type"];
-const comparableRawErrorKeys = ["decline_code", "doc_url", "param"];
+const comparableRawErrorKeys = ["code", "decline_code", "doc_url", "param", "type"];
 export function assertErrorsAreEqual(actual: any, expected: any): void {
     for (const key of comparableErrorKeys) {
         chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}'`);
@@ -42,17 +42,23 @@ export function assertChargesAreBasicallyEqual(actual: Stripe.charges.ICharge, e
     chai.assert.equal(actual.refunds.total_count, expected.refunds.total_count, message);
     chai.assert.lengthOf(actual.refunds.data, actual.refunds.total_count, message);
 
-    assertOutcomesAreBasicallyEqual(actual.outcome, expected.outcome);
-
-    for (let refundIx = 0; refundIx < expected.refunds.total_count; refundIx++) {
-        assertRefundsAreBasicallyEqual(actual.refunds.data[refundIx], expected.refunds.data[refundIx], `of refund ${refundIx} ${message || ""}`);
-    }
+    assertOutcomesAreBasicallyEqual(actual.outcome, expected.outcome, message);
+    assertRefundListsAreBasicallyEqual(actual.refunds, expected.refunds, message);
 }
 
 const outcomeComparableKeys: (keyof Stripe.charges.IOutcome)[] = ["network_status", "reason", "risk_level", "rule", "seller_message", "type"];
 function assertOutcomesAreBasicallyEqual(actual: Stripe.charges.IOutcome, expected: Stripe.charges.IOutcome, message?: string): void {
     for (const key of outcomeComparableKeys) {
         chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}' ${message || ""}`);
+    }
+}
+
+export function assertRefundListsAreBasicallyEqual(actual: Stripe.IList<Stripe.refunds.IRefund>, expected: Stripe.IList<Stripe.refunds.IRefund>, message?: string): void {
+    chai.assert.equal(actual.total_count, expected.total_count, message);
+    chai.assert.lengthOf(actual.data, expected.data.length, message);
+
+    for (let refundIx = 0; refundIx < expected.total_count; refundIx++) {
+        assertRefundsAreBasicallyEqual(actual.data[refundIx], expected.data[refundIx], `of refund ${refundIx} ${message || ""}`);
     }
 }
 
