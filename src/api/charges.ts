@@ -6,6 +6,7 @@ import {getEffectiveSourceTokenFromChain, isSourceTokenChain} from "./sourceToke
 import cards from "./cards";
 import customers from "./customers";
 import {AccountData} from "./AccountData";
+import disputes from "./disputes";
 
 namespace charges {
 
@@ -41,7 +42,7 @@ namespace charges {
     };
 
     export function create(accountId: string, params: stripe.charges.IChargeCreationOptions): stripe.charges.ICharge {
-        log.debug("create charge", accountId, params);
+        log.debug("charges.create", accountId, params);
 
         handlePrechargeSpecialTokens(params.source);
         if (params.amount < 1) {
@@ -91,7 +92,7 @@ namespace charges {
             const card = cards.createFromSource(sourceToken);
             charge = getChargeFromCard(params, card);
             accountCharges.put(accountId, charge);
-            handleSpecialChargeTokens(charge, sourceToken);
+            handleSpecialChargeTokens(accountId, charge, sourceToken);
         } else if (typeof params.customer === "string") {
             const customer = customers.retrieve(accountId, params.customer, "customer");
             if (!customer.default_source) {
@@ -109,7 +110,7 @@ namespace charges {
                 const cardExtra = cards.getCardExtra(card.id);
                 charge = getChargeFromCard(params, card);
                 accountCharges.put(accountId, charge);
-                handleSpecialChargeTokens(charge, cardExtra.sourceToken);
+                handleSpecialChargeTokens(accountId, charge, cardExtra.sourceToken);
             } else {
                 throw new Error("Customer default_source type not handled.");
             }
@@ -126,7 +127,7 @@ namespace charges {
     }
 
     export function retrieve(accountId: string, chargeId: string, paramName: string): stripe.charges.ICharge {
-        log.debug("retrieve charge", accountId, chargeId);
+        log.debug("charges.retrieve", accountId, chargeId);
 
         const charge = accountCharges.get(accountId, chargeId);
         if (!charge) {
@@ -142,7 +143,7 @@ namespace charges {
     }
 
     export function update(accountId: string, chargeId: string, params: stripe.charges.IChargeUpdateOptions): stripe.charges.ICharge {
-        log.debug("update charge", accountId, chargeId, params);
+        log.debug("charges.update", accountId, chargeId, params);
 
         const charge = retrieve(accountId, chargeId, "id");
 
@@ -166,7 +167,7 @@ namespace charges {
     }
 
     export function capture(accountId: string, chargeId: string, params: stripe.charges.IChargeCaptureOptions): stripe.charges.ICharge {
-        log.debug("capture charge", accountId, chargeId, params);
+        log.debug("charges.capture", accountId, chargeId, params);
 
         const charge = accountCharges.get(accountId, chargeId);
         if (!charge) {
@@ -221,7 +222,7 @@ namespace charges {
     }
 
     export function createRefund(accountId: string, params: stripe.refunds.IRefundCreationOptionsWithCharge): stripe.refunds.IRefund {
-        log.debug("createRefund", accountId, params);
+        log.debug("charges.createRefund", accountId, params);
 
         if (params.hasOwnProperty("amount")) {
             if (params.amount < 1) {
@@ -252,6 +253,17 @@ namespace charges {
                 message: `Charge ${charge.id} has already been refunded.`,
                 type: "invalid_request_error"
             });
+        }
+        if (charge.dispute) {
+            const dispute = disputes.retrieve(accountId, charge.dispute as string, "dispute");
+            if (!dispute.is_charge_refundable) {
+                throw new StripeError(400, {
+                    code: "charge_disputed",
+                    doc_url: "https://stripe.com/docs/error-codes/charge-disputed",
+                    message: `Charge ${charge.id} has been charged back; cannot issue a refund.`,
+                    type: "invalid_request_error"
+                });
+            }
         }
 
         let refundAmount = params.hasOwnProperty("amount") ? +params.amount : charge.amount - charge.amount_refunded;
@@ -295,7 +307,7 @@ namespace charges {
     }
 
     export function retrieveRefund(accountId: string, refundId: string, paramName: string): stripe.refunds.IRefund {
-        log.debug("retrieve refund", accountId, refundId);
+        log.debug("charges.retrieveRefund", accountId, refundId);
 
         for (const charge of accountCharges.getAll(accountId)) {
             const refund = charge.refunds.data.find(refund => refund.id === refundId);
@@ -318,7 +330,7 @@ namespace charges {
             return listChargeRefunds(accountId, params.charge, params);
         }
 
-        log.debug("list refunds", accountId, params);
+        log.debug("charges.listRefunds", accountId, params);
         const refunds: stripe.refunds.IRefund[] = accountCharges.getAll(accountId).reduce((refunds, charge) => [...refunds, ...charge.refunds.data], [] as stripe.refunds.IRefund[]);
         return {
             object: "list",
@@ -330,7 +342,7 @@ namespace charges {
     }
 
     export function listChargeRefunds(accountId: string, chargeId: string, params: stripe.IListOptions): stripe.IList<stripe.refunds.IRefund> {
-        log.debug("list charge refunds", accountId, chargeId, params);
+        log.debug("charges.listChargeRefunds", accountId, chargeId, params);
         const charge = retrieve(accountId, chargeId, "charge");
         return {
             ...charge.refunds,
@@ -449,7 +461,7 @@ namespace charges {
         }
     }
 
-    function handleSpecialChargeTokens(charge: stripe.charges.ICharge, sourceToken: string): void {
+    function handleSpecialChargeTokens(accountId: string, charge: stripe.charges.ICharge, sourceToken: string): void {
         switch (sourceToken) {
             case "tok_riskLevelElevated":
                 charge.outcome = {
@@ -586,6 +598,13 @@ namespace charges {
                     doc_url: "https://stripe.com/docs/error-codes/processing-error",
                     message: "An error occurred while processing your card. Try again in a little bit.",
                     type: "card_error"
+                });
+            case "tok_createDispute":
+            case "tok_createDisputeProductNotReceived":
+            case "tok_createDisputeInquiry":
+                setTimeout(() => {
+                    const dispute = disputes.createFromSource(accountId, sourceToken, charge);
+                    charge.dispute = dispute.id;
                 });
         }
     }

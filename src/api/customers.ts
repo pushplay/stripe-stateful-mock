@@ -10,7 +10,7 @@ namespace customers {
     const accountCustomers = new AccountData<stripe.customers.ICustomer>();
 
     export function create(accountId: string, params: stripe.customers.ICustomerCreationOptions): stripe.customers.ICustomer {
-        log.debug("create customer", accountId, params);
+        log.debug("customers.create", accountId, params);
 
         if ((params as any).id && accountCustomers.contains(accountId, (params as any).id)) {
             throw new StripeError(400, {
@@ -129,7 +129,7 @@ namespace customers {
     }
 
     export function retrieve(accountId: string, customerId: string, paramName: string): stripe.customers.ICustomer {
-        log.debug("retrieve customer", accountId, customerId);
+        log.debug("customers.retrieve", accountId, customerId);
 
         const customer = accountCustomers.get(accountId, customerId);
         if (!customer) {
@@ -145,7 +145,7 @@ namespace customers {
     }
 
     export function retrieveCard(accountId: string, customerId: string, cardId: string, paramName: string): stripe.cards.ICard {
-        log.debug("retrieve card", accountId, customerId, cardId);
+        log.debug("customers.retrieveCard", accountId, customerId, cardId);
 
         const customer = retrieve(accountId, customerId, "customer");
         const card = customer.sources.data.find(card => card.id === cardId && card.object === "card") as stripe.cards.ICard;

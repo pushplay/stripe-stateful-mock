@@ -1,12 +1,18 @@
 import stripe, {charges} from "stripe";
 import chai = require("chai");
+import chaiExclude from "chai-exclude";
 import {getLiveStripeClient, getLocalStripeClient} from "./stripeUtils";
 import {
     assertChargesAreBasicallyEqual,
     assertErrorThunksAreEqual,
-    assertErrorsAreEqual, assertRefundsAreBasicallyEqual, assertRefundListsAreBasicallyEqual
+    assertErrorsAreEqual,
+    assertRefundsAreBasicallyEqual,
+    assertRefundListsAreBasicallyEqual,
+    assertDisputesAreBasicallyEqual
 } from "./stripeAssert";
 import {generateId} from "../src/api/utils";
+
+chai.use(chaiExclude);
 
 describe("charges", () => {
 
@@ -134,6 +140,33 @@ describe("charges", () => {
             }
         },
         {
+            name: "tok_createDispute",
+            success: true,
+            params: {
+                amount: 5000,
+                currency: "usd",
+                source: "tok_createDispute"
+            }
+        },
+        {
+            name: "tok_createDisputeProductNotReceived",
+            success: true,
+            params: {
+                amount: 5000,
+                currency: "usd",
+                source: "tok_createDisputeProductNotReceived"
+            }
+        },
+        {
+            name: "tok_createDisputeInquiry",
+            success: true,
+            params: {
+                amount: 5000,
+                currency: "usd",
+                source: "tok_createDisputeInquiry"
+            }
+        },
+        {
             name: "metadata",
             success: true,
             params: {
@@ -231,7 +264,17 @@ describe("charges", () => {
                 assertChargesAreBasicallyEqual(localCharge, liveCharge);
 
                 const localGetCharge = await getLocalStripeClient().charges.retrieve(localCharge.id);
-                chai.assert.deepEqual(localGetCharge, localCharge);
+                const liveGetCharge = await getLiveStripeClient().charges.retrieve(liveCharge.id);
+
+                chai.assert.deepEqualExcluding(localGetCharge, localCharge, ["dispute"]);
+                assertChargesAreBasicallyEqual(localCharge, liveGetCharge);
+
+                if (liveGetCharge.dispute) {
+                    chai.assert.isString(localGetCharge.dispute, "dispute is set on retrieved charge");
+                    const localDispute = await getLocalStripeClient().disputes.retrieve(localGetCharge.dispute as string);
+                    const liveDispute = await getLiveStripeClient().disputes.retrieve(liveGetCharge.dispute as string);
+                    assertDisputesAreBasicallyEqual(localDispute, liveDispute);
+                }
             } else {
                 await assertErrorThunksAreEqual(
                     () => getLocalStripeClient().charges.create(test.params),
@@ -901,6 +944,44 @@ describe("charges", () => {
                 () => getLocalStripeClient().refunds.create({charge: localCharge.id}),
                 () => getLiveStripeClient().refunds.create({charge: liveCharge.id})
             );
+        });
+
+        it("can't refund a disputed charge with is_charge_refundable=false", async () => {
+            const chargeParams: stripe.charges.IChargeCreationOptions = {
+                amount: 4300,
+                currency: "usd",
+                source: "tok_createDispute"
+            };
+            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
+
+            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
+
+            await assertErrorThunksAreEqual(
+                () => getLocalStripeClient().refunds.create({charge: localCharge.id}),
+                () => getLiveStripeClient().refunds.create({charge: liveCharge.id})
+            );
+        });
+
+        it("can refund a disputed charge with is_charge_refundable=true", async () => {
+            const chargeParams: stripe.charges.IChargeCreationOptions = {
+                amount: 4300,
+                currency: "usd",
+                source: "tok_createDisputeInquiry"
+            };
+            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
+            const localRefund = await getLocalStripeClient().refunds.create({
+                charge: localCharge.id
+            });
+            const localRefundedCharge = await getLocalStripeClient().charges.retrieve(localCharge.id);
+
+            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
+            const liveRefund = await getLiveStripeClient().refunds.create({
+                charge: liveCharge.id
+            });
+            const liveRefundedCharge = await getLiveStripeClient().charges.retrieve(liveCharge.id);
+
+            assertRefundsAreBasicallyEqual(localRefund, liveRefund);
+            assertChargesAreBasicallyEqual(localRefundedCharge, liveRefundedCharge);
         });
     });
 

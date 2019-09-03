@@ -93,3 +93,10 @@ export function assertCardsAreBasicallyEqual(actual: Stripe.cards.ICard, expecte
         chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}' ${message || ""}`);
     }
 }
+
+const disputeKeys: (keyof Stripe.disputes.IDispute)[] = ["object", "amount", "currency", "is_charge_refundable", "livemode", "metadata", "reason", "status"];
+export function assertDisputesAreBasicallyEqual(actual: Stripe.disputes.IDispute, expected: Stripe.disputes.IDispute, message?: string): void {
+    for (const key of disputeKeys) {
+        chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}' ${message || ""}`);
+    }
+}

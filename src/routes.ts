@@ -1,6 +1,7 @@
 import express from 'express';
 import charges from "./api/charges";
 import customers from "./api/customers";
+import disputes from "./api/disputes";
 
 const routes = express.Router();
 
@@ -56,6 +57,11 @@ routes.get('/v1/customers/:customerId/cards/:cardId', (req, res) => {
 routes.get('/v1/customers/:customerId/sources/:cardId', (req, res) => {
     const card = customers.retrieveCard(getRequestAccountId(req), req.params.customerId, req.params.cardId, "card");
     return res.status(200).json(card);
+});
+
+routes.get('/v1/disputes/:id', (req, res) => {
+    const dispute = disputes.retrieve(getRequestAccountId(req), req.params.id, "dispute");
+    return res.status(200).json(dispute);
 });
 
 routes.post('/v1/refunds', (req, res) => {

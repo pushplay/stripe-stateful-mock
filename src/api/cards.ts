@@ -12,9 +12,9 @@ namespace cards {
     const cardExtras: {[cardId: string]: CardExtra} = {};
 
     export function createFromSource(token: string): stripe.cards.ICard {
-        const cardId = `card_${generateId(24)}`;
-        log.debug("creating card for token", token, cardId);
+        log.debug("cards.createFromSource", token);
 
+        const cardId = `card_${generateId(24)}`;
         const now = new Date();
         const card: stripe.cards.ICard = {
             id: cardId,
@@ -104,6 +104,18 @@ namespace cards {
             case "tok_chargeDeclinedProcessingError":
                 card.brand = "Visa";
                 card.last4 = "0119";
+                break;
+            case "tok_createDispute":
+                card.brand = "Visa";
+                card.last4 = "0259";
+                break;
+            case "tok_createDisputeProductNotReceived":
+                card.brand = "Visa";
+                card.last4 = "2685";
+                break;
+            case "tok_createDisputeInquiry":
+                card.brand = "Visa";
+                card.last4 = "1976";
                 break;
             default:
                 throw new Error(`Unhandled source token '${token}'`);

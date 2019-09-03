@@ -46,6 +46,7 @@
     "@types/mocha": "^5.2.7",
     "@types/stripe": "^6.31.23",
     "chai": "^4.2.0",
+    "chai-exclude": "^2.0.2",
     "dotenv-safe": "^8.1.0",
     "mocha": "^6.2.0",
     "rimraf": "^3.0.0",
