@@ -13,7 +13,7 @@ namespace cards {
 
     export function createFromSource(token: string): stripe.cards.ICard {
         const cardId = `card_${generateId(24)}`;
-        log.debug("creating card token=", token, "cardId=", cardId);
+        log.debug("creating card for token", token, cardId);
 
         const now = new Date();
         const card: stripe.cards.ICard = {
@@ -106,7 +106,7 @@ namespace cards {
                 card.last4 = "0119";
                 break;
             default:
-                throw new Error("Unhandled source token");
+                throw new Error(`Unhandled source token '${token}'`);
         }
 
         cardExtras[card.id] = {

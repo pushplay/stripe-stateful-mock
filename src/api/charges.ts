@@ -207,7 +207,7 @@ namespace charges {
 
         const charge = retrieve(accountId, params.charge, "id");
 
-        let refundAmount = params.hasOwnProperty("amount") ? +params.amount : charge.amount;
+        let refundAmount = params.hasOwnProperty("amount") ? +params.amount : (charge.amount - charge.amount_refunded);
         if (refundAmount < 1) {
             throw new StripeError(400, {
                 code: "parameter_invalid_integer",
@@ -218,6 +218,7 @@ namespace charges {
             });
         }
         if (refundAmount > charge.amount - charge.amount_refunded) {
+            log.debug(`createRefund refundAmount (${refundAmount}) > charge.amount (${charge.amount}) - charge.amount_refunded (${charge.amount_refunded})`);
             throw new StripeError(400, {
                 code: "amount_too_large",
                 doc_url: "https://stripe.com/docs/error-codes/amount-too-large",

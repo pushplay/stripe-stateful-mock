@@ -760,7 +760,7 @@ describe("charges", () => {
             assertChargesAreBasicallyEqual(localRefundedCharge, liveRefundedCharge);
         });
 
-        it("can partial refund a charge with metadata", async () => {
+        it("can partial refund a charge", async () => {
             const chargeParams: stripe.charges.IChargeCreationOptions = {
                 amount: 4300,
                 currency: "usd",
@@ -787,6 +787,50 @@ describe("charges", () => {
             const liveRefundedCharge = await getLiveStripeClient().charges.retrieve(liveCharge.id);
 
             assertRefundsAreBasicallyEqual(localRefund, liveRefund);
+            assertChargesAreBasicallyEqual(localRefundedCharge, liveRefundedCharge);
+        });
+
+        it("can partial refund then whole refund a charge", async () => {
+            const chargeParams: stripe.charges.IChargeCreationOptions = {
+                amount: 4300,
+                currency: "usd",
+                source: "tok_visa"
+            };
+
+            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
+            const localRefund1 = await getLocalStripeClient().refunds.create({
+                charge: localCharge.id,
+                amount: 1200,
+                metadata: {
+                    extra: "info"
+                }
+            });
+            const localRefund2 = await getLocalStripeClient().refunds.create({
+                charge: localCharge.id,
+                metadata: {
+                    extra: "even more info"
+                }
+            });
+            const localRefundedCharge = await getLocalStripeClient().charges.retrieve(localCharge.id);
+
+            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
+            const liveRefund1 = await getLiveStripeClient().refunds.create({
+                charge: liveCharge.id,
+                amount: 1200,
+                metadata: {
+                    extra: "info"
+                }
+            });
+            const liveRefund2 = await getLiveStripeClient().refunds.create({
+                charge: liveCharge.id,
+                metadata: {
+                    extra: "even more info"
+                }
+            });
+            const liveRefundedCharge = await getLiveStripeClient().charges.retrieve(liveCharge.id);
+
+            assertRefundsAreBasicallyEqual(localRefund1, liveRefund1);
+            assertRefundsAreBasicallyEqual(localRefund2, liveRefund2);
             assertChargesAreBasicallyEqual(localRefundedCharge, liveRefundedCharge);
         });
 
