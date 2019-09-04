@@ -5,6 +5,7 @@ import {routes} from './routes';
 import StripeError from "./api/StripeError";
 import {idempotencyRoute} from "./api/idempotency";
 import {authRoute} from "./api/auth";
+import {loggingRoute} from "./api/logging";
 
 if (process.env.hasOwnProperty("LOG_LEVEL")) {
     log.setLevel(process.env["LOG_LEVEL"] as any);
@@ -13,6 +14,7 @@ if (process.env.hasOwnProperty("LOG_LEVEL")) {
 const app = express();
 
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(loggingRoute);
 app.use(authRoute);
 app.use(idempotencyRoute);
 app.use('/', routes);
@@ -20,12 +22,11 @@ app.use('/', routes);
 // Error handling comes last.
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (err instanceof StripeError) {
-        log.debug("stripe error:", err.message);
         res.status(err.statusCode).send({error: err.error});
         return;
     }
 
-    log.error("unexpected error:", err.stack);
+    log.error("Unexpected error:", err.stack);
     res.status(500).send({
         message: "Unexpected error: " + err.message,
         stack: err.stack
