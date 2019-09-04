@@ -1,11 +1,13 @@
 {
   "name": "stripe-stateful-mock",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "A half-baked, stateful Stripe mock server",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "clean": "rimraf ./dist",
+    "lint": "tslint --project tsconfig.json",
+    "prepublishOnly": "npm run clean && npm run build && npm run lint && npm run test",
     "run": "LOG_LEVEL=info node dist/index.js",
     "run:debug": "LOG_LEVEL=debug node dist/index.js",
     "test": "LOG_LEVEL=silent mocha --recursive --timeout 5000 --require ts-node/register --require ./test/requireDotEnv.ts --exit \"test/**/*.ts\"",
@@ -13,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Giftbit/stripe-chargerette.git"
+    "url": "git+https://github.com/Giftbit/stripe-stateful-mock.git"
   },
   "keywords": [
     "mock",
@@ -21,23 +23,24 @@
     "test",
     "unittest"
   ],
-  "author": "",
+  "contributors": [
+    "Jeffery Grajkowski <pushplay@gmail.com> (https://github.com/pushplay)"
+  ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Giftbit/stripe-chargerette/issues"
+    "url": "https://github.com/Giftbit/stripe-stateful-mock/issues"
   },
-  "homepage": "https://github.com/Giftbit/stripe-chargerette#readme",
+  "homepage": "https://github.com/Giftbit/stripe-stateful-mock#readme",
   "dependencies": {
     "basic-auth": "^2.0.1",
     "body-parser": "^1.19.0",
-    "deep-equal": "^1.0.1",
     "express": "^4.17.1",
     "loglevel": "^1.6.3"
   },
   "devDependencies": {
     "@types/basic-auth": "^1.1.2",
     "@types/body-parser": "^1.17.1",
-    "@types/chai": "^4.2.0",
+    "@types/chai": "^4.2.1",
     "@types/chai-as-promised": "^7.1.2",
     "@types/deep-equal": "^1.0.1",
     "@types/dotenv-safe": "^5.0.3",
@@ -47,11 +50,12 @@
     "@types/stripe": "^6.31.23",
     "chai": "^4.2.0",
     "chai-exclude": "^2.0.2",
+    "deep-equal": "^1.1.0",
     "dotenv-safe": "^8.1.0",
     "mocha": "^6.2.0",
     "rimraf": "^3.0.0",
     "stripe": "^7.8.0",
     "ts-node": "^8.3.0",
-    "typescript": "^3.5.3"
+    "typescript": "^3.6.2"
   }
 }

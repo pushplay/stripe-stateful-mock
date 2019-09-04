@@ -18,9 +18,9 @@ namespace customers {
                 doc_url: "https://stripe.com/docs/error-codes/resource-already-exists",
                 message: "Customer already exists.",
                 type: "invalid_request_error"
-            })
+            });
         }
-        
+
         const customerId = (params as any).id || `cus_${generateId(14)}`;
         const now = new Date();
         const customer: stripe.customers.ICustomer = {
@@ -119,7 +119,7 @@ namespace customers {
                     });
             }
         } else if (params.source) {
-            throw new Error("Card create options on create customer aren't supported.")
+            throw new Error("Card create options on create customer aren't supported.");
         }
 
         accountCustomers.put(accountId, customer);

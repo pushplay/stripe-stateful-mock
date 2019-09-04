@@ -1,4 +1,4 @@
-import express from 'express';
+import express from "express";
 import deepEqual = require("deep-equal");
 import log = require("loglevel");
 import {generateId} from "./utils";

@@ -8,7 +8,7 @@ export class AccountData<T extends {id: string}> {
         return (this.data[accountId] && this.data[accountId][objectId]) || null;
     }
 
-    getAll(accountId: string): readonly T[] {
+    getAll(accountId: string): ReadonlyArray<T> {
         if (!this.data[accountId]) {
             return [];
         }

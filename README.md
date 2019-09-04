@@ -1,6 +1,6 @@
 # stripe-stateful-mock
 
-Simulates a stateful Stripe server for local unit testing.  Makes Stripe calls 50-100x faster.  Supports charge, capture and refund with the most common [test tokens](https://stripe.com/docs/testing).  Also supports idempotency and Connect accounts.
+Simulates a stateful Stripe server for local unit testing.  Makes Stripe calls 50-100x faster than testing against the official server.  Supports charge, capture and refund with the most common [test tokens](https://stripe.com/docs/testing).  Also supports idempotency and Connect accounts.
 
 Correctness of this test server is not guaranteed!  Set up unit testing to work against either the Stripe server with a test account or this unit test server with a flag to switch between them.  Test against the official Stripe server occasionally to ensure correctness on the fine details.
 

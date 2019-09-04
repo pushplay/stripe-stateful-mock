@@ -1,4 +1,4 @@
-import express from 'express';
+import express from "express";
 import log = require("loglevel");
 
 export function loggingRoute(req: express.Request, res: express.Response, next: express.NextFunction): void {

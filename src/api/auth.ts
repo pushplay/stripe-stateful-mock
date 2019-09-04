@@ -1,5 +1,5 @@
-import express from 'express';
-import basicAuthParser = require('basic-auth');
+import express from "express";
+import basicAuthParser = require("basic-auth");
 import {getRequestAccountId} from "../routes";
 
 export function authRoute(req: express.Request, res: express.Response, next: express.NextFunction): void {

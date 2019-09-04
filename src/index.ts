@@ -1,7 +1,7 @@
-import express from 'express';
-import bodyParser from 'body-parser';
+import express from "express";
+import bodyParser from "body-parser";
 import log = require("loglevel");
-import {routes} from './routes';
+import {routes} from "./routes";
 import StripeError from "./api/StripeError";
 import {idempotencyRoute} from "./api/idempotency";
 import {authRoute} from "./api/auth";
@@ -17,7 +17,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(loggingRoute);
 app.use(authRoute);
 app.use(idempotencyRoute);
-app.use('/', routes);
+app.use("/", routes);
 
 // Error handling comes last.
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
