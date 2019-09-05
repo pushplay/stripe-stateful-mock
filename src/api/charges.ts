@@ -293,7 +293,7 @@ namespace charges {
             created: (now.getTime() / 1000) | 0,
             currency: charge.currency.toLowerCase(),
             metadata: stringifyMetadata(params.metadata),
-            reason: null,
+            reason: params.reason || null,
             receipt_number: null,
             source_transfer_reversal: null,
             status: "succeeded",

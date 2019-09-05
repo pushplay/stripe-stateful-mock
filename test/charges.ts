@@ -803,17 +803,25 @@ describe("charges", () => {
             const chargeParams: stripe.charges.IChargeCreationOptions = {
                 amount: 4300,
                 currency: "usd",
-                source: "tok_visa"
+                source: "tok_visa",
             };
             const localCharge = await getLocalStripeClient().charges.create(chargeParams);
             const localRefund = await getLocalStripeClient().refunds.create({
-                charge: localCharge.id
+                charge: localCharge.id,
+                reason: "fraudulent",
+                metadata: {
+                    extra: "info"
+                }
             });
             const localRefundedCharge = await getLocalStripeClient().charges.retrieve(localCharge.id);
 
             const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
             const liveRefund = await getLiveStripeClient().refunds.create({
-                charge: liveCharge.id
+                charge: liveCharge.id,
+                reason: "fraudulent",
+                metadata: {
+                    extra: "info"
+                }
             });
             const liveRefundedCharge = await getLiveStripeClient().charges.retrieve(liveCharge.id);
 
@@ -830,20 +838,14 @@ describe("charges", () => {
             const localCharge = await getLocalStripeClient().charges.create(chargeParams);
             const localRefund = await getLocalStripeClient().refunds.create({
                 charge: localCharge.id,
-                amount: 1200,
-                metadata: {
-                    extra: "info"
-                }
+                amount: 1200
             });
             const localRefundedCharge = await getLocalStripeClient().charges.retrieve(localCharge.id);
 
             const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
             const liveRefund = await getLiveStripeClient().refunds.create({
                 charge: liveCharge.id,
-                amount: 1200,
-                metadata: {
-                    extra: "info"
-                }
+                amount: 1200
             });
             const liveRefundedCharge = await getLiveStripeClient().charges.retrieve(liveCharge.id);
 
