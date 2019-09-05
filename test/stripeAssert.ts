@@ -1,7 +1,7 @@
 import Stripe = require("stripe");
 import chai = require("chai");
 
-export async function assertErrorThunksAreEqual(actual: () => Promise<any>, expected: () => Promise<any>): Promise<void> {
+export async function assertErrorThunksAreEqual(actual: () => Promise<any>, expected: () => Promise<any>, message?: string): Promise<void> {
     let actualError: any;
     try {
         await actual();
@@ -16,19 +16,19 @@ export async function assertErrorThunksAreEqual(actual: () => Promise<any>, expe
         expectedError = err;
     }
 
-    chai.assert.isDefined(actualError, "actual is rejected");
-    chai.assert.isDefined(expectedError, "expected is rejected");
-    assertErrorsAreEqual(actualError, expectedError);
+    chai.assert.isDefined(actualError, `actual is rejected ${message || ""}`);
+    chai.assert.isDefined(expectedError, `expected is rejected ${message || ""}`);
+    assertErrorsAreEqual(actualError, expectedError, message);
 }
 
 const comparableErrorKeys = ["code", "rawType", "statusCode", "type"];
 const comparableRawErrorKeys = ["code", "decline_code", "doc_url", "param", "type"];
-export function assertErrorsAreEqual(actual: any, expected: any): void {
+export function assertErrorsAreEqual(actual: any, expected: any, message?: string): void {
     for (const key of comparableErrorKeys) {
-        chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}'`);
+        chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}' ${message || ""}`);
     }
     for (const key of comparableRawErrorKeys) {
-        chai.assert.deepEqual(actual.raw[key], expected.raw[key], `comparing key 'raw.${key}'`);
+        chai.assert.deepEqual(actual.raw[key], expected.raw[key], `comparing key 'raw.${key}' ${message || ""}`);
     }
 }
 

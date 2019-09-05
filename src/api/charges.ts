@@ -81,7 +81,40 @@ namespace charges {
         }
 
         let charge: stripe.charges.ICharge;
-        if (typeof params.source === "string") {
+        if (typeof params.customer === "string") {
+            const customer = customers.retrieve(accountId, params.customer, "customer");
+            let cardId: string;
+
+            if (params.source) {
+                const source = customer.sources.data.find(s => s.id === params.source);
+                if (!source) {
+                    throw new StripeError(404, {
+                        code: "missing",
+                        doc_url: "https://stripe.com/docs/error-codes/missing",
+                        message: `Customer ${customer.id} does not have a linked source with ID ${params.source}.`,
+                        param: "source",
+                        type: "invalid_request_error"
+                    });
+                }
+                cardId = source.id;
+            } else if (customer.default_source) {
+                cardId = customer.default_source as string;
+            } else {
+                throw new StripeError(404, {
+                    code: "missing",
+                    doc_url: "https://stripe.com/docs/error-codes/missing",
+                    message: "Cannot charge a customer that has no active card",
+                    param: "card",
+                    type: "card_error"
+                });
+            }
+
+            const card = customers.retrieveCard(accountId, customer.id, cardId, "card");
+            const cardExtra = cards.getCardExtra(card.id);
+            charge = getChargeFromCard(params, card);
+            accountCharges.put(accountId, charge);
+            handleSpecialChargeTokens(accountId, charge, cardExtra.sourceToken);
+        } else if (typeof params.source === "string") {
             let sourceToken = params.source;
             if (isSourceTokenChain(sourceToken)) {
                 sourceToken = getEffectiveSourceTokenFromChain(sourceToken);
@@ -93,27 +126,6 @@ namespace charges {
             charge = getChargeFromCard(params, card);
             accountCharges.put(accountId, charge);
             handleSpecialChargeTokens(accountId, charge, sourceToken);
-        } else if (typeof params.customer === "string") {
-            const customer = customers.retrieve(accountId, params.customer, "customer");
-            if (!customer.default_source) {
-                throw new StripeError(500, {
-                    code: "missing",
-                    doc_url: "https://stripe.com/docs/error-codes/missing",
-                    message: "Cannot charge a customer that has no active card",
-                    param: "card",
-                    type: "card_error"
-                });
-            }
-
-            if (typeof customer.default_source === "string") {
-                const card = customers.retrieveCard(accountId, customer.id, customer.default_source, "card");
-                const cardExtra = cards.getCardExtra(card.id);
-                charge = getChargeFromCard(params, card);
-                accountCharges.put(accountId, charge);
-                handleSpecialChargeTokens(accountId, charge, cardExtra.sourceToken);
-            } else {
-                throw new Error("Customer default_source type not handled.");
-            }
         } else {
             throw new StripeError(400, {
                 code: "parameter_missing",
@@ -463,6 +475,27 @@ namespace charges {
 
     function handleSpecialChargeTokens(accountId: string, charge: stripe.charges.ICharge, sourceToken: string): void {
         switch (sourceToken) {
+            case "tok_chargeCustomerFail":
+                charge.failure_code = "card_declined";
+                charge.failure_message = "Your card was declined.";
+                charge.outcome = {
+                    network_status: "declined_by_network",
+                    reason: "generic_decline",
+                    risk_level: "normal",
+                    risk_score: 4,
+                    seller_message: "The bank did not return any further details with this decline.",
+                    type: "issuer_declined"
+                };
+                charge.paid = false;
+                charge.status = "failed";
+                throw new StripeError(402, {
+                    charge: charge.id,
+                    code: "card_declined",
+                    decline_code: "generic_decline",
+                    doc_url: "https://stripe.com/docs/error-codes/card-declined",
+                    message: "Your card was declined.",
+                    type: "card_error"
+                });
             case "tok_riskLevelElevated":
                 charge.outcome = {
                     network_status: "approved_by_network",

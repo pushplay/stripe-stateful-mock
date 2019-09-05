@@ -74,10 +74,41 @@ namespace customers {
             tax_info_verification: null
         };
 
+        if (params.source) {
+            createCard(accountId, customer, {source: params.source});
+        }
+
+        accountCustomers.put(accountId, customer);
+
+        return customer;
+    }
+
+    export function retrieve(accountId: string, customerId: string, paramName: string): stripe.customers.ICustomer {
+        log.debug("customers.retrieve", accountId, customerId);
+
+        const customer = accountCustomers.get(accountId, customerId);
+        if (!customer) {
+            throw new StripeError(404, {
+                code: "resource_missing",
+                doc_url: "https://stripe.com/docs/error-codes/resource-missing",
+                message: `No such customer: ${customerId}`,
+                param: paramName,
+                type: "invalid_request_error"
+            });
+        }
+        return customer;
+    }
+
+    export function createCard(accountId: string, customerOrId: string | stripe.customers.ICustomer, params: stripe.customers.ICustomerSourceCreationOptions): stripe.cards.ICard {
+        log.debug("customers.createCard", accountId, customerOrId, params);
+
+        const customer = typeof customerOrId === "object" ? customerOrId : retrieve(accountId, customerOrId, "customer");
         if (typeof params.source === "string") {
             const card = cards.createFromSource(params.source);
-            card.customer = customerId;
-            customer.default_source = card.id;
+            card.customer = customer.id;
+            if (!customer.default_source) {
+                customer.default_source = card.id;
+            }
             customer.sources.data.push(card);
             customer.sources.total_count++;
 
@@ -118,30 +149,11 @@ namespace customers {
                         type: "card_error"
                     });
             }
+
+            return card;
         } else if (params.source) {
             throw new Error("Card create options on create customer aren't supported.");
         }
-
-        accountCustomers.put(accountId, customer);
-        log.debug("saved customer", accountId, customer);
-
-        return customer;
-    }
-
-    export function retrieve(accountId: string, customerId: string, paramName: string): stripe.customers.ICustomer {
-        log.debug("customers.retrieve", accountId, customerId);
-
-        const customer = accountCustomers.get(accountId, customerId);
-        if (!customer) {
-            throw new StripeError(404, {
-                code: "resource_missing",
-                doc_url: "https://stripe.com/docs/error-codes/resource-missing",
-                message: `No such customer: ${customerId}`,
-                param: paramName,
-                type: "invalid_request_error"
-            });
-        }
-        return customer;
     }
 
     export function retrieveCard(accountId: string, customerId: string, cardId: string, paramName: string): stripe.cards.ICard {

@@ -5,7 +5,6 @@ import {routes} from "./routes";
 import StripeError from "./api/StripeError";
 import {idempotencyRoute} from "./api/idempotency";
 import {authRoute} from "./api/auth";
-import {loggingRoute} from "./api/logging";
 
 if (process.env.hasOwnProperty("LOG_LEVEL")) {
     log.setLevel(process.env["LOG_LEVEL"] as any);
@@ -14,7 +13,6 @@ if (process.env.hasOwnProperty("LOG_LEVEL")) {
 const app = express();
 
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(loggingRoute);
 app.use(authRoute);
 app.use(idempotencyRoute);
 app.use("/", routes);

@@ -18,6 +18,7 @@ describe("customers", () => {
         charge?: {
             success: boolean;
             params: stripe.charges.IChargeCreationOptions;
+            source?: stripe.customers.ICustomerSourceCreationOptions;
         };
     }[] = [
         {
@@ -43,6 +44,19 @@ describe("customers", () => {
                 params: {
                     currency: "usd",
                     amount: 8675309
+                }
+            }
+        },
+        {
+            name: "charging an invalid source",
+            success: true,
+            params: {},
+            charge: {
+                success: false,
+                params: {
+                    currency: "usd",
+                    amount: 8675309,
+                    source: `invalid-${generateId(12)}`
                 }
             }
         },
@@ -113,18 +127,62 @@ describe("customers", () => {
                         assertChargesAreBasicallyEqual(localCharge, liveCharge);
                     } else {
                         await assertErrorThunksAreEqual(
-                            () => getLocalStripeClient().charges.create(test.charge.params),
-                            () => getLiveStripeClient().charges.create(test.charge.params)
+                            () => getLocalStripeClient().charges.create({
+                                ...test.charge.params,
+                                customer: localCustomer.id
+                            }),
+                            () => getLiveStripeClient().charges.create({
+                                ...test.charge.params,
+                                customer: liveCustomer.id
+                            }),
+                            "on charging"
                         );
                     }
                 }
             } else {
                 await assertErrorThunksAreEqual(
                     () => getLocalStripeClient().customers.create(test.params),
-                    () => getLiveStripeClient().customers.create(test.params)
+                    () => getLiveStripeClient().customers.create(test.params),
+                    "on creating the customer"
                 );
             }
         });
+    });
+
+    it("supports creating and charging an additional source", async () => {
+        const customerParams: stripe.customers.ICustomerCreationOptions = {
+            source: "tok_mastercard"
+        };
+        const createSourceParams: stripe.customers.ICustomerSourceCreationOptions = {
+            source: "tok_visa"
+        };
+
+        const localCustomer = await getLocalStripeClient().customers.create(customerParams);
+        const localAdditionalSource = await getLocalStripeClient().customers.createSource(localCustomer.id, createSourceParams);
+        const localCustomerWithAdditionalSource = await getLocalStripeClient().customers.retrieve(localCustomer.id);
+        const localCharge = await getLocalStripeClient().charges.create({
+            amount: 1000,
+            currency: "usd",
+            customer: localCustomer.id,
+            source: localAdditionalSource.id
+        });
+
+        chai.assert.notEqual(localAdditionalSource.id, localCustomer.default_source);
+        chai.assert.equal(localCustomerWithAdditionalSource.default_source, localCustomerWithAdditionalSource.sources.data[0].id);
+        chai.assert.equal(localCustomerWithAdditionalSource.sources.data[1].id, localAdditionalSource.id);
+
+        const liveCustomer = await getLiveStripeClient().customers.create(customerParams);
+        const liveAdditionalSource = await getLiveStripeClient().customers.createSource(liveCustomer.id, createSourceParams);
+        const liveCustomerWithAdditionalSource = await getLiveStripeClient().customers.retrieve(liveCustomer.id);
+        const liveCharge = await getLiveStripeClient().charges.create({
+            amount: 1000,
+            currency: "usd",
+            customer: liveCustomer.id,
+            source: liveAdditionalSource.id
+        });
+
+        assertCustomersAreBasicallyEqual(localCustomerWithAdditionalSource, liveCustomerWithAdditionalSource);
+        assertChargesAreBasicallyEqual(localCharge, liveCharge);
     });
 
     it("supports Stripe-Account header (Connect account)", async () => {

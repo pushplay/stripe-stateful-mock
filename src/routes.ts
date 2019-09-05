@@ -59,6 +59,11 @@ routes.get("/v1/customers/:customerId/sources/:cardId", (req, res) => {
     return res.status(200).json(card);
 });
 
+routes.post("/v1/customers/:customerId/sources", (req, res) => {
+    const card = customers.createCard(getRequestAccountId(req), req.params.customerId, req.body);
+    return res.status(200).json(card);
+});
+
 routes.get("/v1/disputes/:id", (req, res) => {
     const dispute = disputes.retrieve(getRequestAccountId(req), req.params.id, "dispute");
     return res.status(200).json(dispute);
