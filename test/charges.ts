@@ -7,320 +7,273 @@ import {
     assertErrorThunksAreEqual,
     assertErrorsAreEqual,
     assertRefundsAreBasicallyEqual,
-    assertRefundListsAreBasicallyEqual,
-    assertDisputesAreBasicallyEqual
+    assertDisputesAreBasicallyEqual, assertListsAreBasicallyEqual
 } from "./stripeAssert";
 import {generateId} from "../src/api/utils";
+import {buildStripeParityTest} from "./buildStripeParityTest";
 
 chai.use(chaiExclude);
 
 describe("charges", () => {
 
-    const chargeTests: {
-        name: string;
-        success: boolean,
-        only?: boolean,
-        params: stripe.charges.IChargeCreationOptions;
-    }[] = [
-        {
-            name: "tok_visa",
-            success: true,
-            params: {
-                amount: 2000,
-                currency: "usd",
-                source: "tok_visa"
+    const buildChargeParityTest = (params: stripe.charges.IChargeCreationOptions) =>
+        buildStripeParityTest(
+            async stripeClient => {
+                const charge = await stripeClient.charges.create(params);
+                return [charge];
             }
-        },
-        {
-            name: "tok_visa_debit",
-            success: true,
-            params: {
-                amount: 2000,
-                currency: "usd",
-                source: "tok_visa_debit"
+        );
+
+    const buildChargeFailureParityTest = (params: stripe.charges.IChargeCreationOptions) =>
+        buildStripeParityTest(
+            async stripeClient => {
+                let chargeError: any;
+                try {
+                    await stripeClient.charges.create(params);
+                } catch (err) {
+                    chargeError = err;
+                }
+                return [chargeError];
             }
-        },
-        {
-            name: "tok_mastercard",
-            success: true,
-            params: {
-                amount: 5000,
-                currency: "usd",
-                source: "tok_mastercard"
-            }
-        },
-        {
-            name: "tok_mastercard_debit",
-            success: true,
-            params: {
-                amount: 5000,
-                currency: "usd",
-                source: "tok_mastercard_debit"
-            }
-        },
-        {
-            name: "tok_mastercard_prepaid",
-            success: true,
-            params: {
-                amount: 5000,
-                currency: "usd",
-                source: "tok_mastercard_prepaid"
-            }
-        },
-        {
-            name: "tok_amex",
-            success: true,
-            params: {
-                amount: 3500,
-                currency: "usd",
-                source: "tok_amex"
-            }
-        },
-        {
-            name: "tok_riskLevelElevated",
-            success: true,
-            params: {
-                amount: 1200,
-                currency: "usd",
-                source: "tok_riskLevelElevated"
-            }
-        },
-        {
-            name: "tok_chargeDeclined",
-            success: false,
-            params: {
-                amount: 5000,
-                currency: "usd",
-                source: "tok_chargeDeclined"
-            }
-        },
-        {
-            name: "tok_chargeDeclinedInsufficientFunds",
-            success: false,
-            params: {
-                amount: 5000,
-                currency: "usd",
-                source: "tok_chargeDeclinedInsufficientFunds"
-            }
-        },
-        {
-            name: "tok_chargeDeclinedFraudulent",
-            success: false,
-            params: {
-                amount: 5000,
-                currency: "usd",
-                source: "tok_chargeDeclinedFraudulent"
-            }
-        },
-        {
-            name: "tok_chargeDeclinedIncorrectCvc",
-            success: false,
-            params: {
-                amount: 5000,
-                currency: "usd",
-                source: "tok_chargeDeclinedIncorrectCvc"
-            }
-        },
-        {
-            name: "tok_chargeDeclinedExpiredCard",
-            success: false,
-            params: {
-                amount: 5000,
-                currency: "usd",
-                source: "tok_chargeDeclinedExpiredCard"
-            }
-        },
-        {
-            name: "tok_chargeDeclinedProcessingError",
-            success: false,
-            params: {
-                amount: 5000,
-                currency: "usd",
-                source: "tok_chargeDeclinedProcessingError"
-            }
-        },
-        {
-            name: "tok_createDispute",
-            success: true,
-            params: {
+        );
+
+    it("supports tok_visa", buildChargeParityTest({
+        amount: 2000,
+        currency: "usd",
+        source: "tok_visa"
+    }));
+
+    it("supports tok_visa_debit", buildChargeParityTest({
+        amount: 2000,
+        currency: "usd",
+        source: "tok_visa_debit"
+    }));
+
+    it("supports tok_mastercard", buildChargeParityTest({
+        amount: 2000,
+        currency: "usd",
+        source: "tok_mastercard"
+    }));
+
+    it("supports tok_mastercard_debit", buildChargeParityTest({
+        amount: 2000,
+        currency: "usd",
+        source: "tok_mastercard_debit"
+    }));
+
+    it("supports tok_mastercard_prepaid", buildChargeParityTest({
+        amount: 2000,
+        currency: "usd",
+        source: "tok_mastercard_prepaid"
+    }));
+
+    it("supports tok_amex", buildChargeParityTest({
+        amount: 2000,
+        currency: "usd",
+        source: "tok_amex"
+    }));
+
+    it("supports tok_riskLevelElevated", buildChargeParityTest({
+        amount: 2000,
+        currency: "usd",
+        source: "tok_riskLevelElevated"
+    }));
+
+    it("supports tok_chargeDeclined", buildChargeFailureParityTest({
+        amount: 2000,
+        currency: "usd",
+        source: "tok_chargeDeclined"
+    }));
+
+    it("supports tok_chargeDeclinedInsufficientFunds", buildChargeFailureParityTest({
+        amount: 2000,
+        currency: "usd",
+        source: "tok_chargeDeclinedInsufficientFunds"
+    }));
+
+    it("supports tok_chargeDeclinedFraudulent", buildChargeFailureParityTest({
+        amount: 2000,
+        currency: "usd",
+        source: "tok_chargeDeclinedFraudulent"
+    }));
+
+    it("supports tok_chargeDeclinedIncorrectCvc", buildChargeFailureParityTest({
+        amount: 2000,
+        currency: "usd",
+        source: "tok_chargeDeclinedIncorrectCvc"
+    }));
+
+    it("supports tok_chargeDeclinedExpiredCard", buildChargeFailureParityTest({
+        amount: 2000,
+        currency: "usd",
+        source: "tok_chargeDeclinedExpiredCard"
+    }));
+
+    it("supports tok_chargeDeclinedProcessingError", buildChargeFailureParityTest({
+        amount: 2000,
+        currency: "usd",
+        source: "tok_chargeDeclinedProcessingError"
+    }));
+
+    it("supports tok_chargeDeclinedProcessingError", buildChargeFailureParityTest({
+        amount: 2000,
+        currency: "usd",
+        source: "tok_chargeDeclinedProcessingError"
+    }));
+
+    it("supports tok_createDispute", buildStripeParityTest(
+        async stripeClient => {
+            const charge = await stripeClient.charges.create({
                 amount: 5000,
                 currency: "usd",
                 source: "tok_createDispute"
-            }
-        },
-        {
-            name: "tok_createDisputeProductNotReceived",
-            success: true,
-            params: {
+            });
+            chai.assert.isNull(charge.dispute);
+
+            const chargeGet = await stripeClient.charges.retrieve(charge.id);
+            chai.assert.isString(chargeGet.dispute);
+            return [charge, chargeGet];
+        }
+    ));
+
+    it("supports tok_createDisputeProductNotReceived", buildStripeParityTest(
+        async stripeClient => {
+            const charge = await stripeClient.charges.create({
                 amount: 5000,
                 currency: "usd",
                 source: "tok_createDisputeProductNotReceived"
-            }
-        },
-        {
-            name: "tok_createDisputeInquiry",
-            success: true,
-            params: {
+            });
+            chai.assert.isNull(charge.dispute);
+
+            const chargeGet = await stripeClient.charges.retrieve(charge.id);
+            chai.assert.isString(chargeGet.dispute);
+            return [charge, chargeGet];
+        }
+    ));
+
+    it("supports tok_createDisputeInquiry", buildStripeParityTest(
+        async stripeClient => {
+            const charge = await stripeClient.charges.create({
                 amount: 5000,
                 currency: "usd",
                 source: "tok_createDisputeInquiry"
-            }
-        },
-        {
-            name: "metadata",
-            success: true,
-            params: {
-                amount: 8888,
-                currency: "usd",
-                source: "tok_visa",
-                metadata: {
-                    selfReferential: "yes",
-                    testNumberHandling: 420
-                }
-            }
-        },
-        {
-            name: "capture=false",
-            success: true,
-            params: {
-                amount: 3500,
-                currency: "usd",
-                source: "tok_visa",
-                capture: false
-            }
-        },
-        {
-            name: "misc additional params",
-            success: true,
-            params: {
-                amount: 3500,
-                description: "this is a description",
-                currency: "usd",
-                on_behalf_of: process.env["STRIPE_CONNECTED_ACCOUNT_ID"],
-                receipt_email: "foobar@example.com",
-                shipping: {
-                    address: {
-                        city: "Beverly Hills",
-                        country: "US",
-                        line1: "1675 E. Altadena Drive",
-                        line2: null,
-                        postal_code: "90210",
-                        state: "CA"
+            });
+            chai.assert.isNull(charge.dispute);
 
-                    },
-                    carrier: null,
-                    name: "Henrietta",
-                    phone: null,
-                    tracking_number: "abc123"
-                },
-                source: "tok_visa",
-                statement_descriptor: "ccc",
-                transfer_group: "ddd"
-            }
+            const chargeGet = await stripeClient.charges.retrieve(charge.id);
+            chai.assert.isString(chargeGet.dispute);
+            return [charge, chargeGet];
+        }
+    ));
+
+    it("supports metadata", buildChargeParityTest({
+        amount: 8888,
+        currency: "usd",
+        source: "tok_visa",
+        metadata: {
+            selfReferential: "yes",
+            testNumberHandling: 420
+        }
+    }));
+
+    it("supports capture=false", buildStripeParityTest(
+         async stripeClient => {
+             const charge = await stripeClient.charges.create({
+                 amount: 3500,
+                 currency: "usd",
+                 source: "tok_visa",
+                 capture: false
+             });
+             chai.assert.isFalse(charge.captured);
+             return [charge];
+         }
+    ));
+
+    it("supports misc additional params", buildChargeParityTest({
+        amount: 3500,
+        description: "this is a description",
+        currency: "usd",
+        on_behalf_of: process.env["STRIPE_CONNECTED_ACCOUNT_ID"],
+        receipt_email: "foobar@example.com",
+        shipping: {
+            address: {
+                city: "Beverly Hills",
+                country: "US",
+                line1: "1675 E. Altadena Drive",
+                line2: null,
+                postal_code: "90210",
+                state: "CA"
+
+            },
+            carrier: null,
+            name: "Henrietta",
+            phone: null,
+            tracking_number: "abc123"
         },
-        {
-            name: "upper case currency",
-            success: true,
-            params: {
+        source: "tok_visa",
+        statement_descriptor: "ccc",
+        transfer_group: "ddd"
+    }));
+
+    it("supports upper case currency", buildStripeParityTest(
+        async stripeClient => {
+            const charge = await stripeClient.charges.create({
                 amount: 3500,
                 currency: "USD",
                 source: "tok_visa"
-            }
-        },
-        {
-            name: "checking positive amount",
-            success: false,
-            params: {
-                amount: -1,
-                currency: "usd",
-                source: "tok_visa"
-            }
-        },
-        {
-            name: "checking min amount",
-            success: false,
-            params: {
-                amount: 5,
-                currency: "usd",
-                source: "tok_visa"
-            }
-        },
-        {
-            name: "checking max amount",
-            success: false,
-            params: {
-                amount: 1000000000,
-                currency: "usd",
-                source: "tok_visa"
-            }
+            });
+            chai.assert.equal(charge.currency, "usd");
+            return [charge];
         }
-    ];
+    ));
 
-    chargeTests.forEach(test => {
-        (test.only ? it.only : it)(`supports ${test.name}`, async () => {
-            if (test.success) {
-                const localCharge = await getLocalStripeClient().charges.create(test.params);
-                const liveCharge = await getLiveStripeClient().charges.create(test.params);
-                assertChargesAreBasicallyEqual(localCharge, liveCharge);
+    it("checks amount is positive", buildChargeFailureParityTest({
+        amount: -1,
+        currency: "usd",
+        source: "tok_visa"
+    }));
 
-                const localGetCharge = await getLocalStripeClient().charges.retrieve(localCharge.id);
-                const liveGetCharge = await getLiveStripeClient().charges.retrieve(liveCharge.id);
+    it("checks min amount", buildChargeFailureParityTest({
+        amount: 5,
+        currency: "usd",
+        source: "tok_visa"
+    }));
 
-                chai.assert.deepEqualExcluding(localGetCharge, localCharge, ["dispute"]);
-                assertChargesAreBasicallyEqual(localCharge, liveGetCharge);
+    it("checks max amount", buildChargeFailureParityTest({
+        amount: 1000000000,
+        currency: "usd",
+        source: "tok_visa"
+    }));
 
-                if (liveGetCharge.dispute) {
-                    chai.assert.isString(localGetCharge.dispute, "dispute is set on retrieved charge");
-                    const localDispute = await getLocalStripeClient().disputes.retrieve(localGetCharge.dispute as string);
-                    const liveDispute = await getLiveStripeClient().disputes.retrieve(liveGetCharge.dispute as string);
-                    assertDisputesAreBasicallyEqual(localDispute, liveDispute);
+    it("supports Stripe-Account header (Connect account)", buildStripeParityTest(
+        async stripeClient => {
+            chai.assert.isString(process.env["STRIPE_CONNECTED_ACCOUNT_ID"], "connected account ID is set");
+
+            const charge = await stripeClient.charges.create(
+                {
+                    amount: 2000,
+                    currency: "usd",
+                    source: "tok_visa"
+                },
+                {
+                    stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]
                 }
-            } else {
-                await assertErrorThunksAreEqual(
-                    () => getLocalStripeClient().charges.create(test.params),
-                    () => getLiveStripeClient().charges.create(test.params)
-                );
+            );
+
+            let retrieveError: any;
+            try {
+                await stripeClient.charges.retrieve(charge.id);
+            } catch (err) {
+                retrieveError = err;
             }
-        });
-    });
+            chai.assert.isDefined(retrieveError, "charge should not be in the account, but should be in the connected account");
 
-    it("supports Stripe-Account header (Connect account)", async () => {
-        const params: stripe.charges.IChargeCreationOptions =  {
-            amount: 2000,
-            currency: "usd",
-            source: "tok_visa"
-        };
+            const connectRetrieveCharge = await stripeClient.charges.retrieve(charge.id, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
+            chai.assert.deepEqual(connectRetrieveCharge, charge);
 
-        chai.assert.isString(process.env["STRIPE_CONNECTED_ACCOUNT_ID"], "connected account ID is set");
-
-        const localCharge = await getLocalStripeClient().charges.create(params, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
-
-        let localRetrieveError: any;
-        try {
-            await getLocalStripeClient().charges.retrieve(localCharge.id);
-        } catch (err) {
-            localRetrieveError = err;
+            return [charge, retrieveError, connectRetrieveCharge];
         }
-        chai.assert.isDefined(localRetrieveError, "charge should not be in the account, but should be in the connected account");
-
-        const localConnectRetrieveCharge = await getLocalStripeClient().charges.retrieve(localCharge.id, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
-        chai.assert.deepEqual(localConnectRetrieveCharge, localCharge);
-
-        const liveCharge = await getLiveStripeClient().charges.create(params, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
-
-        let liveRetrieveError: any;
-        try {
-            await getLiveStripeClient().charges.retrieve(liveCharge.id);
-        } catch (err) {
-            liveRetrieveError = err;
-        }
-        chai.assert.isDefined(liveRetrieveError, "charge should not be in the account, but should be in the connected account");
-
-        const liveConnectRetrieveCharge = await getLiveStripeClient().charges.retrieve(liveCharge.id, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
-        chai.assert.deepEqual(liveConnectRetrieveCharge, liveCharge);
-
-        assertChargesAreBasicallyEqual(localCharge, liveCharge);
-    });
+    ));
 
     describe("bonus secret tokens!", () => {
         describe("tok_429", () => {
@@ -583,450 +536,408 @@ describe("charges", () => {
         });
     });
 
-    it.skip("is much faster than calling Stripe (not usually worth running)", async () => {
-        const dateA = Date.now();
-        for (const test of chargeTests) {
-            try {
-                await getLocalStripeClient().charges.create(test.params);
-            } catch (err) {}
-        }
-        const dateB = Date.now();
-        for (const test of chargeTests) {
-            try {
-                await getLiveStripeClient().charges.create(test.params);
-            } catch (err) {}
-        }
-        const dateC = Date.now();
-
-        chai.assert.isBelow(dateB - dateA, dateC - dateB);
-        console.log("milliseconds local=", dateB - dateA, "milliseconds live=", dateC - dateB);
-    }).timeout(120000);
-
     describe("pending capture", () => {
-        it("fully captures by default", async () => {
-            const chargeParams: stripe.charges.IChargeCreationOptions = {
-                amount: 7200,
-                currency: "usd",
-                source: "tok_visa",
-                capture: false
-            };
-            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
-            chai.assert.isFalse(localCharge.captured);
+        it("fully captures by default", buildStripeParityTest(
+            async stripeClient => {
+                const charge = await stripeClient.charges.create({
+                    amount: 7200,
+                    currency: "usd",
+                    source: "tok_visa",
+                    capture: false
+                });
+                chai.assert.isFalse(charge.captured);
 
-            const localCapture = await getLocalStripeClient().charges.capture(localCharge.id);
-            chai.assert.isTrue(localCapture.captured);
-            chai.assert.lengthOf(localCapture.refunds.data, 0);
+                const capture = await stripeClient.charges.capture(charge.id);
+                chai.assert.isTrue(capture.captured);
+                chai.assert.lengthOf(capture.refunds.data, 0);
 
-            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
-            chai.assert.isFalse(liveCharge.captured);
+                return [charge, capture];
+            }
+        ));
 
-            const liveCapture = await getLiveStripeClient().charges.capture(liveCharge.id);
-            chai.assert.isTrue(liveCapture.captured);
+        it("fully captures manually entered amount", buildStripeParityTest(
+            async stripeClient => {
+                const charge = await stripeClient.charges.create({
+                    amount: 7200,
+                    currency: "usd",
+                    source: "tok_visa",
+                    capture: false
+                });
+                chai.assert.isFalse(charge.captured);
 
-            assertChargesAreBasicallyEqual(localCharge, liveCharge);
-            assertChargesAreBasicallyEqual(localCapture, liveCapture);
-        });
+                const capture = await stripeClient.charges.capture(charge.id, {amount: 7200});
+                chai.assert.isTrue(capture.captured);
+                chai.assert.lengthOf(capture.refunds.data, 0);
 
-        it("fully captures manually entered amount", async () => {
-            const chargeParams: stripe.charges.IChargeCreationOptions = {
-                amount: 7200,
-                currency: "usd",
-                source: "tok_visa",
-                capture: false
-            };
-            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
-            chai.assert.isFalse(localCharge.captured);
+                return [charge, capture];
+            }
+        ));
 
-            const localCapture = await getLocalStripeClient().charges.capture(localCharge.id, {amount: 7200});
-            chai.assert.isTrue(localCapture.captured);
-            chai.assert.lengthOf(localCapture.refunds.data, 0);
+        it("partially captures", buildStripeParityTest(
+            async stripeClient => {
+                const charge = await stripeClient.charges.create({
+                    amount: 7200,
+                    currency: "usd",
+                    source: "tok_visa",
+                    capture: false
+                });
+                chai.assert.isFalse(charge.captured);
 
-            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
-            chai.assert.isFalse(liveCharge.captured);
+                const capture = await stripeClient.charges.capture(charge.id, {amount: 3200});
+                chai.assert.isTrue(capture.captured);
+                chai.assert.lengthOf(capture.refunds.data, 1);
 
-            const liveCapture = await getLiveStripeClient().charges.capture(liveCharge.id, {amount: 7200});
-            chai.assert.isTrue(liveCapture.captured);
+                return [charge, capture];
+            }
+        ));
 
-            assertChargesAreBasicallyEqual(localCharge, liveCharge);
-            assertChargesAreBasicallyEqual(localCapture, liveCapture);
-        });
+        it("can't capture twice", buildStripeParityTest(
+            async stripeClient => {
+                const charge = await stripeClient.charges.create({
+                    amount: 7200,
+                    currency: "usd",
+                    source: "tok_visa",
+                    capture: false
+                });
+                chai.assert.isFalse(charge.captured);
 
-        it("partially captures", async () => {
-            const chargeParams: stripe.charges.IChargeCreationOptions = {
-                amount: 7200,
-                currency: "usd",
-                source: "tok_visa",
-                capture: false
-            };
-            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
-            chai.assert.isFalse(localCharge.captured);
+                const capture = await stripeClient.charges.capture(charge.id, {amount: 3200});
+                chai.assert.isTrue(capture.captured);
+                chai.assert.lengthOf(capture.refunds.data, 1);
 
-            const localCapture = await getLocalStripeClient().charges.capture(localCharge.id, {amount: 3200});
-            chai.assert.isTrue(localCapture.captured);
-            chai.assert.lengthOf(localCapture.refunds.data, 1);
+                let capture2Error: any;
+                try {
+                    await stripeClient.charges.capture(charge.id, {amount: 3200});
+                } catch (err) {
+                    capture2Error = err;
+                }
 
-            const localRefund = await getLocalStripeClient().refunds.retrieve(localCapture.refunds.data[0].id);
-            chai.assert.deepEqual(localRefund, localCapture.refunds.data[0]);
+                return [charge, capture, capture2Error];
+            }
+        ));
 
-            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
-            chai.assert.isFalse(liveCharge.captured);
+        it("can't capture less than the min charge", buildStripeParityTest(
+            async stripeClient => {
+                const charge = await stripeClient.charges.create({
+                    amount: 7200,
+                    currency: "usd",
+                    source: "tok_visa",
+                    capture: false
+                });
+                chai.assert.isFalse(charge.captured);
 
-            const liveCapture = await getLiveStripeClient().charges.capture(liveCharge.id, {amount: 3200});
-            chai.assert.isTrue(liveCapture.captured);
+                let captureError: any;
+                try {
+                    await stripeClient.charges.capture(charge.id, {amount: 12});
+                } catch (err) {
+                    captureError = err;
+                }
 
-            assertChargesAreBasicallyEqual(localCharge, liveCharge);
-            assertChargesAreBasicallyEqual(localCapture, liveCapture);
-        });
+                return [charge, captureError];
+            }
+        ));
 
-        it("can't capture twice", async () => {
-            const chargeParams: stripe.charges.IChargeCreationOptions = {
-                amount: 7200,
-                currency: "usd",
-                source: "tok_visa",
-                capture: false
-            };
-            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
-            await getLocalStripeClient().charges.capture(localCharge.id, {amount: 3200});
+        it("can't capture a non-existent charge", buildStripeParityTest(
+            async stripeClient => {
+                let captureError: any;
+                try {
+                    await stripeClient.charges.capture(generateId());
+                } catch (err) {
+                    captureError = err;
+                }
 
-            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
-            await getLiveStripeClient().charges.capture(liveCharge.id, {amount: 3200});
-
-            await assertErrorThunksAreEqual(
-                () => getLocalStripeClient().charges.capture(localCharge.id, {amount: 3200}),
-                () => getLiveStripeClient().charges.capture(liveCharge.id, {amount: 3200})
-            );
-        });
-
-        it("can't capture less than the min charge", async () => {
-            const chargeParams: stripe.charges.IChargeCreationOptions = {
-                amount: 7200,
-                currency: "usd",
-                source: "tok_visa",
-                capture: false
-            };
-            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
-
-            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
-
-            await assertErrorThunksAreEqual(
-                () => getLocalStripeClient().charges.capture(localCharge.id, {amount: 12}),
-                () => getLiveStripeClient().charges.capture(liveCharge.id, {amount: 12})
-            );
-        });
-
-        it("can't capture a non-existent charge", async () => {
-            const chargeId = generateId();
-            await assertErrorThunksAreEqual(
-                () => getLocalStripeClient().charges.capture(chargeId),
-                () => getLiveStripeClient().charges.capture(chargeId)
-            );
-        });
+                return [captureError];
+            }
+        ));
     });
 
     describe("pending void", () => {
-        it("fully voids by default", async () => {
-            const chargeParams: stripe.charges.IChargeCreationOptions = {
-                amount: 7200,
-                currency: "usd",
-                source: "tok_visa",
-                capture: false
-            };
-            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
-            chai.assert.isFalse(localCharge.captured);
+        it("fully voids by default", buildStripeParityTest(
+            async stripeClient => {
+                const charge = await stripeClient.charges.create({
+                    amount: 7200,
+                    currency: "usd",
+                    source: "tok_visa",
+                    capture: false
+                });
+                chai.assert.isFalse(charge.captured);
 
-            const localVoid = await getLocalStripeClient().refunds.create({charge: localCharge.id});
+                const voyed = await stripeClient.refunds.create({charge: charge.id});
 
-            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
-            chai.assert.isFalse(liveCharge.captured);
+                return [charge, voyed];
+            }
+        ));
 
-            const liveVoid = await getLiveStripeClient().refunds.create({charge: liveCharge.id});
+        it("fully voids manually entered amount", buildStripeParityTest(
+            async stripeClient => {
+                const charge = await stripeClient.charges.create({
+                    amount: 7200,
+                    currency: "usd",
+                    source: "tok_visa",
+                    capture: false
+                });
+                chai.assert.isFalse(charge.captured);
 
-            assertChargesAreBasicallyEqual(localCharge, liveCharge);
-            assertRefundsAreBasicallyEqual(localVoid, liveVoid);
-        });
+                const voyed = await stripeClient.refunds.create({charge: charge.id, amount: 7200});
 
-        it("fully voids manually entered amount with metadata", async () => {
-            const chargeParams: stripe.charges.IChargeCreationOptions = {
-                amount: 7200,
-                currency: "usd",
-                source: "tok_visa",
-                capture: false
-            };
-            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
-            chai.assert.isFalse(localCharge.captured);
+                return [charge, voyed];
+            }
+        ));
 
-            const localVoid = await getLocalStripeClient().refunds.create({
-                charge: localCharge.id,
-                amount: 7200,
-                metadata: {
-                    extra: "info"
+        it("stores void metadata", buildStripeParityTest(
+            async stripeClient => {
+                const charge = await stripeClient.charges.create({
+                    amount: 7200,
+                    currency: "usd",
+                    source: "tok_visa",
+                    capture: false
+                });
+                chai.assert.isFalse(charge.captured);
+
+                const voyed = await stripeClient.refunds.create({
+                    charge: charge.id,
+                    metadata: {
+                        extra: "info"
+                    }
+                });
+                chai.assert.isObject(voyed.metadata);
+
+                return [charge, voyed];
+            }
+        ));
+
+
+        it("can't partially void", buildStripeParityTest(
+            async stripeClient => {
+                const charge = await stripeClient.charges.create({
+                    amount: 7200,
+                    currency: "usd",
+                    source: "tok_visa",
+                    capture: false
+                });
+
+                let voidError: any;
+                try {
+                    await stripeClient.refunds.create({charge: charge.id, amount: 1200})
+                } catch (err) {
+                    voidError = err;
                 }
-            });
 
-            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
-            chai.assert.isFalse(liveCharge.captured);
-
-            const liveVoid = await getLiveStripeClient().refunds.create({
-                charge: liveCharge.id,
-                amount: 7200,
-                metadata: {
-                    extra: "info"
-                }
-            });
-
-            assertChargesAreBasicallyEqual(localCharge, liveCharge);
-            assertRefundsAreBasicallyEqual(localVoid, liveVoid);
-        });
-
-        it("can't partially void", async () => {
-            const chargeParams: stripe.charges.IChargeCreationOptions = {
-                amount: 7200,
-                currency: "usd",
-                source: "tok_visa",
-                capture: false
-            };
-            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
-            chai.assert.isFalse(localCharge.captured);
-
-            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
-            chai.assert.isFalse(liveCharge.captured);
-
-            await assertErrorThunksAreEqual(
-                () => getLocalStripeClient().refunds.create({charge: localCharge.id, amount: 1200}),
-                () => getLiveStripeClient().refunds.create({charge: liveCharge.id, amount: 1200})
-            );
-        });
+                return [charge, voidError];
+            }
+        ));
     });
 
     describe("refund", () => {
-        it("can refund a whole charge", async () => {
-            const chargeParams: stripe.charges.IChargeCreationOptions = {
-                amount: 4300,
-                currency: "usd",
-                source: "tok_visa",
-            };
-            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
-            const localRefund = await getLocalStripeClient().refunds.create({
-                charge: localCharge.id,
-                reason: "fraudulent",
-                metadata: {
-                    extra: "info"
+        it("can refund a whole charge", buildStripeParityTest(
+            async stripeClient => {
+                const charge = await stripeClient.charges.create({
+                    amount: 4300,
+                    currency: "usd",
+                    source: "tok_visa",
+                });
+                const refund = await stripeClient.refunds.create({
+                    charge: charge.id
+                });
+                const refundedCharge = await getLocalStripeClient().charges.retrieve(charge.id);
+                return [charge, refund, refundedCharge];
+            }
+        ));
+
+        it("can partial refund a charge", buildStripeParityTest(
+            async stripeClient => {
+                const charge = await stripeClient.charges.create({
+                    amount: 4300,
+                    currency: "usd",
+                    source: "tok_visa",
+                });
+                const refund = await stripeClient.refunds.create({
+                    charge: charge.id,
+                    amount: 1200
+                });
+                const refundedCharge = await getLocalStripeClient().charges.retrieve(charge.id);
+                return [charge, refund, refundedCharge];
+            }
+        ));
+
+        it("can partial refund then whole refund a charge", buildStripeParityTest(
+            async stripeClient => {
+                const charge = await stripeClient.charges.create({
+                    amount: 4300,
+                    currency: "usd",
+                    source: "tok_visa",
+                });
+                const refund1 = await getLocalStripeClient().refunds.create({
+                    charge: charge.id,
+                    amount: 1200,
+                    metadata: {
+                        extra: "info"
+                    }
+                });
+                const refund2 = await getLocalStripeClient().refunds.create({
+                    charge: charge.id,
+                    metadata: {
+                        extra: "even more info"
+                    }
+                });
+                const refundedCharge = await getLocalStripeClient().charges.retrieve(charge.id);
+                return [charge, refund1, refund2, refundedCharge];
+            }
+        ));
+
+        it("can refund a charge with metadata and a reason", buildStripeParityTest(
+            async stripeClient => {
+                const charge = await stripeClient.charges.create({
+                    amount: 4300,
+                    currency: "usd",
+                    source: "tok_visa",
+                });
+                const refund = await stripeClient.refunds.create({
+                    charge: charge.id,
+                    reason: "fraudulent",
+                    metadata: {
+                        extra: "info"
+                    }
+                });
+                const refundedCharge = await getLocalStripeClient().charges.retrieve(charge.id);
+                return [charge, refund, refundedCharge];
+            }
+        ));
+
+        it("can refund a captured charge", buildStripeParityTest(
+            async stripeClient => {
+                const charge = await stripeClient.charges.create({
+                    amount: 4300,
+                    currency: "usd",
+                    source: "tok_visa",
+                    capture: false
+                });
+                const capture = await stripeClient.charges.capture(charge.id, {amount: 1300});
+                const refund = await stripeClient.refunds.create({
+                    charge: charge.id,
+                    reason: "fraudulent",
+                    metadata: {
+                        extra: "info"
+                    }
+                });
+                const refundedCharge = await getLocalStripeClient().charges.retrieve(charge.id);
+                return [charge, capture, refund, refundedCharge];
+            }
+        ));
+
+        it("can't refund a non-existent charge", buildStripeParityTest(
+            async stripeClient => {
+                let refundError: any = null;
+                try {
+                    await stripeClient.refunds.create({charge: generateId()});
+                } catch (err) {
+                    refundError = err;
                 }
-            });
-            const localRefundedCharge = await getLocalStripeClient().charges.retrieve(localCharge.id);
+                return [refundError];
+            }
+        ));
 
-            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
-            const liveRefund = await getLiveStripeClient().refunds.create({
-                charge: liveCharge.id,
-                reason: "fraudulent",
-                metadata: {
-                    extra: "info"
+        it("can't refund more than the amount on the charge", buildStripeParityTest(
+            async stripeClient => {
+                const charge = await stripeClient.charges.create({
+                    amount: 4300,
+                    currency: "usd",
+                    source: "tok_visa"
+                });
+
+                let refundError: any = null;
+                try {
+                    await stripeClient.refunds.create({charge: charge.id, amount: 4500});
+                } catch (err) {
+                    refundError = err;
                 }
-            });
-            const liveRefundedCharge = await getLiveStripeClient().charges.retrieve(liveCharge.id);
+                return [charge, refundError];
+            }
+        ));
 
-            assertRefundsAreBasicallyEqual(localRefund, liveRefund);
-            assertChargesAreBasicallyEqual(localRefundedCharge, liveRefundedCharge);
-        });
+        it("can't refund an already refunded charge", buildStripeParityTest(
+            async stripeClient => {
+                const charge = await stripeClient.charges.create({
+                    amount: 4300,
+                    currency: "usd",
+                    source: "tok_visa"
+                });
 
-        it("can partial refund a charge", async () => {
-            const chargeParams: stripe.charges.IChargeCreationOptions = {
-                amount: 4300,
-                currency: "usd",
-                source: "tok_visa"
-            };
-            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
-            const localRefund = await getLocalStripeClient().refunds.create({
-                charge: localCharge.id,
-                amount: 1200
-            });
-            const localRefundedCharge = await getLocalStripeClient().charges.retrieve(localCharge.id);
+                const refund = await stripeClient.refunds.create({charge: charge.id});
 
-            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
-            const liveRefund = await getLiveStripeClient().refunds.create({
-                charge: liveCharge.id,
-                amount: 1200
-            });
-            const liveRefundedCharge = await getLiveStripeClient().charges.retrieve(liveCharge.id);
-
-            assertRefundsAreBasicallyEqual(localRefund, liveRefund);
-            assertChargesAreBasicallyEqual(localRefundedCharge, liveRefundedCharge);
-        });
-
-        it("can partial refund then whole refund a charge", async () => {
-            const chargeParams: stripe.charges.IChargeCreationOptions = {
-                amount: 4300,
-                currency: "usd",
-                source: "tok_visa"
-            };
-
-            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
-            const localRefund1 = await getLocalStripeClient().refunds.create({
-                charge: localCharge.id,
-                amount: 1200,
-                metadata: {
-                    extra: "info"
+                let refundError: any = null;
+                try {
+                    await stripeClient.refunds.create({charge: charge.id});
+                } catch (err) {
+                    refundError = err;
                 }
-            });
-            const localRefund2 = await getLocalStripeClient().refunds.create({
-                charge: localCharge.id,
-                metadata: {
-                    extra: "even more info"
+                return [charge, refund, refundError];
+            }
+        ));
+
+        it("can't refund a disputed charge with is_charge_refundable=false", buildStripeParityTest(
+            async stripeClient => {
+                const charge = await stripeClient.charges.create({
+                    amount: 4300,
+                    currency: "usd",
+                    source: "tok_createDispute"
+                });
+
+                let refundError: any = null;
+                try {
+                    await stripeClient.refunds.create({charge: charge.id});
+                } catch (err) {
+                    refundError = err;
                 }
-            });
-            const localRefundedCharge = await getLocalStripeClient().charges.retrieve(localCharge.id);
-            const localChargeRefunds = await getLocalStripeClient().refunds.list({charge: localCharge.id});
+                return [charge, refundError];
+            }
+        ));
 
-            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
-            const liveRefund1 = await getLiveStripeClient().refunds.create({
-                charge: liveCharge.id,
-                amount: 1200,
-                metadata: {
-                    extra: "info"
-                }
-            });
-            const liveRefund2 = await getLiveStripeClient().refunds.create({
-                charge: liveCharge.id,
-                metadata: {
-                    extra: "even more info"
-                }
-            });
-            const liveRefundedCharge = await getLiveStripeClient().charges.retrieve(liveCharge.id);
-            const liveChargeRefunds = await getLiveStripeClient().refunds.list({charge: liveCharge.id});
-
-            assertRefundsAreBasicallyEqual(localRefund1, liveRefund1);
-            assertRefundsAreBasicallyEqual(localRefund2, liveRefund2);
-            assertChargesAreBasicallyEqual(localRefundedCharge, liveRefundedCharge);
-            assertRefundListsAreBasicallyEqual(localChargeRefunds, liveChargeRefunds, JSON.stringify(localChargeRefunds, null, 2) + "\n" + JSON.stringify(liveChargeRefunds, null, 2));
-        });
-
-        it("can't refund a non-existent charge", async () => {
-            const chargeId = generateId();
-            await assertErrorThunksAreEqual(
-                () => getLocalStripeClient().refunds.create({charge: chargeId}),
-                () => getLiveStripeClient().refunds.create({charge: chargeId})
-            );
-        });
-
-        it("can't refund more than the amount on the charge", async () => {
-            const chargeParams: stripe.charges.IChargeCreationOptions = {
-                amount: 4300,
-                currency: "usd",
-                source: "tok_visa"
-            };
-            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
-
-            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
-
-            await assertErrorThunksAreEqual(
-                () => getLocalStripeClient().refunds.create({charge: localCharge.id, amount: 4500}),
-                () => getLiveStripeClient().refunds.create({charge: liveCharge.id, amount: 4500})
-            );
-        });
-
-        it("can't refund an already refunded charge", async () => {
-            const chargeParams: stripe.charges.IChargeCreationOptions = {
-                amount: 4300,
-                currency: "usd",
-                source: "tok_visa"
-            };
-            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
-            const localRefund = await getLocalStripeClient().refunds.create({
-                charge: localCharge.id
-            });
-
-            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
-            const liveRefund = await getLiveStripeClient().refunds.create({
-                charge: liveCharge.id
-            });
-
-            assertRefundsAreBasicallyEqual(localRefund, liveRefund);
-
-            await assertErrorThunksAreEqual(
-                () => getLocalStripeClient().refunds.create({charge: localCharge.id}),
-                () => getLiveStripeClient().refunds.create({charge: liveCharge.id})
-            );
-        });
-
-        it("can't refund a disputed charge with is_charge_refundable=false", async () => {
-            const chargeParams: stripe.charges.IChargeCreationOptions = {
-                amount: 4300,
-                currency: "usd",
-                source: "tok_createDispute"
-            };
-            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
-
-            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
-
-            await assertErrorThunksAreEqual(
-                () => getLocalStripeClient().refunds.create({charge: localCharge.id}),
-                () => getLiveStripeClient().refunds.create({charge: liveCharge.id})
-            );
-        });
-
-        it("can refund a disputed charge with is_charge_refundable=true", async () => {
-            const chargeParams: stripe.charges.IChargeCreationOptions = {
-                amount: 4300,
-                currency: "usd",
-                source: "tok_createDisputeInquiry"
-            };
-            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
-            const localRefund = await getLocalStripeClient().refunds.create({
-                charge: localCharge.id
-            });
-            const localRefundedCharge = await getLocalStripeClient().charges.retrieve(localCharge.id);
-
-            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
-            const liveRefund = await getLiveStripeClient().refunds.create({
-                charge: liveCharge.id
-            });
-            const liveRefundedCharge = await getLiveStripeClient().charges.retrieve(liveCharge.id);
-
-            assertRefundsAreBasicallyEqual(localRefund, liveRefund);
-            assertChargesAreBasicallyEqual(localRefundedCharge, liveRefundedCharge);
-        });
+        it("can refund a disputed charge with is_charge_refundable=true", buildStripeParityTest(
+            async stripeClient => {
+                const charge = await stripeClient.charges.create({
+                    amount: 4300,
+                    currency: "usd",
+                    source: "tok_createDisputeInquiry"
+                });
+                const refund = await stripeClient.refunds.create({charge: charge.id});
+                return [charge, refund];
+            }
+        ));
     });
 
     describe("update", () => {
-        it("can update metadata", async () => {
-            const chargeParams: stripe.charges.IChargeCreationOptions = {
-                amount: 4300,
-                currency: "usd",
-                source: "tok_visa",
-                metadata: {
-                    a: "alpha"
-                }
-            };
+        it("can update metadata", buildStripeParityTest(
+             async stripeClient => {
+                 const charge = await stripeClient.charges.create({
+                     amount: 4300,
+                     currency: "usd",
+                     source: "tok_visa",
+                     metadata: {
+                         a: "alpha"
+                     }
+                 });
+                 const updatedCharge = await stripeClient.charges.update(charge.id, {metadata: {a: "aardvark", b: "boa"}});
 
-            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
-            const localUpdatedCharge = await getLocalStripeClient().charges.update(localCharge.id, {metadata: {a: "aardvark", b: "boa"}});
+                 chai.assert.notDeepEqual(updatedCharge.metadata, charge.metadata);
+                 return [charge, updatedCharge];
+             }
+        ));
 
-            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
-            const liveUpdatedCharge = await getLiveStripeClient().charges.update(liveCharge.id, {metadata: {a: "aardvark", b: "boa"}});
+        it("can update misc params", buildStripeParityTest(
+             async stripeClient => {
+                 const charge = await stripeClient.charges.create({
+                     amount: 4300,
+                     currency: "usd",
+                     source: "tok_visa"
+                 });
+                 const updatedCharge = await stripeClient.charges.update(charge.id, {
+                     receipt_email: "receipt@example.com",
+                     description: "a new description"
+                 });
 
-            assertChargesAreBasicallyEqual(localUpdatedCharge, liveUpdatedCharge);
-        });
-
-        it("can update misc params", async () => {
-            const chargeParams: stripe.charges.IChargeCreationOptions = {
-                amount: 4300,
-                currency: "usd",
-                source: "tok_visa"
-            };
-
-            const localCharge = await getLocalStripeClient().charges.create(chargeParams);
-            const localUpdatedCharge = await getLocalStripeClient().charges.update(localCharge.id, {
-                receipt_email: "receipt@example.com",
-                description: "a new description"
-            });
-
-            const liveCharge = await getLiveStripeClient().charges.create(chargeParams);
-            const liveUpdatedCharge = await getLiveStripeClient().charges.update(liveCharge.id, {
-                receipt_email: "receipt@example.com",
-                description: "a new description"
-            });
-
-            assertChargesAreBasicallyEqual(localUpdatedCharge, liveUpdatedCharge);
-        });
+                 return [charge, updatedCharge];
+             }
+        ));
     });
 });

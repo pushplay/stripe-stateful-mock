@@ -2,6 +2,7 @@ import express from "express";
 import charges from "./api/charges";
 import customers from "./api/customers";
 import disputes from "./api/disputes";
+import paymentIntents from "./api/paymentIntents";
 
 const routes = express.Router();
 
@@ -67,6 +68,36 @@ routes.post("/v1/customers/:customerId/sources", (req, res) => {
 routes.get("/v1/disputes/:id", (req, res) => {
     const dispute = disputes.retrieve(getRequestAccountId(req), req.params.id, "dispute");
     return res.status(200).json(dispute);
+});
+
+routes.get("/v1/payment_intents", (req, res) => {
+    const pis = paymentIntents.list(getRequestAccountId(req), req.body);
+    return res.status(200).json(pis);
+});
+
+routes.get("/v1/payment_intents/:id", (req, res) => {
+    const pi = paymentIntents.retrieve(getRequestAccountId(req), req.params.id, "intent");
+    return res.status(200).json(pi);
+});
+
+routes.post("/v1/payment_intents/:id", (req, res) => {
+    const pi = paymentIntents.update(getRequestAccountId(req), req.params.id, req.body);
+    return res.status(200).json(pi);
+});
+
+routes.post("/v1/payment_intents/:id/confirm", (req, res) => {
+    const pi = paymentIntents.confirm(getRequestAccountId(req), req.params.id, req.body);
+    return res.status(200).json(pi);
+});
+
+routes.post("/v1/payment_intents/:id/capture", (req, res) => {
+    const pi = paymentIntents.capture(getRequestAccountId(req), req.params.id, req.body);
+    return res.status(200).json(pi);
+});
+
+routes.post("/v1/payment_intents/:id/cancel", (req, res) => {
+    const pi = paymentIntents.cancel(getRequestAccountId(req), req.params.id, req.body);
+    return res.status(200).json(pi);
 });
 
 routes.post("/v1/refunds", (req, res) => {

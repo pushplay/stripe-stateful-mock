@@ -32,6 +32,66 @@ export function assertErrorsAreEqual(actual: any, expected: any, message?: strin
     }
 }
 
+export type ComparableStripeObject = Error
+    | Stripe.IList<any>
+    | Stripe.cards.ICard
+    | Stripe.charges.ICharge
+    | Stripe.customers.ICustomer
+    | Stripe.disputes.IDispute
+    | Stripe.refunds.IRefund;
+
+export function assertObjectsAreBasicallyEqual(actual: ComparableStripeObject, expected: ComparableStripeObject, message?: string): void {
+    chai.assert.isDefined(actual, message);
+    chai.assert.isNotNull(actual, message);
+    chai.assert.isDefined(expected, message);
+    chai.assert.isNotNull(expected, message);
+
+    if (actual instanceof Error) {
+        chai.assert.instanceOf(expected, Error, message);
+        assertErrorsAreEqual(actual, expected, message);
+        return;
+    }
+    if (expected instanceof Error) {
+        chai.assert.fail(actual as any, expected, `both should be errors ${message}`);
+        return;
+    }
+
+    chai.assert.equal(actual.object, expected.object, message);
+    switch (actual.object) {
+        case "card":
+            assertCardsAreBasicallyEqual(actual as Stripe.cards.ICard, expected as Stripe.cards.ICard, message);
+            break;
+        case "charge":
+            assertChargesAreBasicallyEqual(actual as Stripe.charges.ICharge, expected as Stripe.charges.ICharge, message);
+            break;
+        case "customer":
+            assertCustomersAreBasicallyEqual(actual as Stripe.customers.ICustomer, expected as Stripe.customers.ICustomer, message);
+            break;
+        case "dispute":
+            assertDisputesAreBasicallyEqual(actual as Stripe.disputes.IDispute, expected as Stripe.disputes.IDispute, message);
+            break;
+        case "list":
+            assertListsAreBasicallyEqual(actual as Stripe.IList<any>, expected as Stripe.IList<any>, message);
+            break;
+        case "refund":
+            assertRefundsAreBasicallyEqual(actual as Stripe.refunds.IRefund, expected as Stripe.refunds.IRefund, message);
+            break;
+        default:
+            throw new Error(`Unhandle Stripe object type: ${actual.object}`);
+    }
+}
+
+export function assertListsAreBasicallyEqual<T extends ComparableStripeObject>(actual: Stripe.IList<T>, expected: Stripe.IList<T>, message?: string): void {
+    chai.assert.lengthOf(actual.data, expected.data.length, message);
+    chai.assert.equal(actual.has_more, expected.has_more, message);
+    chai.assert.equal(actual.object, expected.object, message);
+    chai.assert.equal(actual.total_count, expected.total_count, message);
+
+    for (let ix = 0; ix < actual.data.length; ix++) {
+        assertObjectsAreBasicallyEqual(actual.data[ix], expected.data[ix], message);
+    }
+}
+
 const chargeComparableKeys: (keyof Stripe.charges.ICharge)[] = ["object", "amount", "amount_refunded", "application_fee", "application_fee_amount", "billing_details", "captured", "currency", "description", "failure_code", "failure_message", "metadata", "paid", "receipt_email", "refunded", "statement_descriptor", "statement_descriptor_suffix", "status", "transfer_group"];
 export function assertChargesAreBasicallyEqual(actual: Stripe.charges.ICharge, expected: Stripe.charges.ICharge, message?: string): void {
     chai.assert.match(actual.id, /^ch_/, `actual charge ID is formatted correctly ${message}`);
@@ -43,22 +103,13 @@ export function assertChargesAreBasicallyEqual(actual: Stripe.charges.ICharge, e
     chai.assert.lengthOf(actual.refunds.data, actual.refunds.total_count, message);
 
     assertOutcomesAreBasicallyEqual(actual.outcome, expected.outcome, message);
-    assertRefundListsAreBasicallyEqual(actual.refunds, expected.refunds, message);
+    assertListsAreBasicallyEqual(actual.refunds, expected.refunds, message);
 }
 
 const outcomeComparableKeys: (keyof Stripe.charges.IOutcome)[] = ["network_status", "reason", "risk_level", "rule", "seller_message", "type"];
 function assertOutcomesAreBasicallyEqual(actual: Stripe.charges.IOutcome, expected: Stripe.charges.IOutcome, message?: string): void {
     for (const key of outcomeComparableKeys) {
         chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}' ${message || ""}`);
-    }
-}
-
-export function assertRefundListsAreBasicallyEqual(actual: Stripe.IList<Stripe.refunds.IRefund>, expected: Stripe.IList<Stripe.refunds.IRefund>, message?: string): void {
-    chai.assert.equal(actual.total_count, expected.total_count, message);
-    chai.assert.lengthOf(actual.data, expected.data.length, message);
-
-    for (let refundIx = 0; refundIx < expected.total_count; refundIx++) {
-        assertRefundsAreBasicallyEqual(actual.data[refundIx], expected.data[refundIx], `of refund ${refundIx} ${message || ""}`);
     }
 }
 
