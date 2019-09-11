@@ -17,7 +17,10 @@ describe("auth", () => {
 
         const liveClient = new Stripe("foobar");
 
-        await assertErrorThunksAreEqual(() => localClient.charges.create(testChargeParams), () => liveClient.charges.create(testChargeParams));
+        await assertErrorThunksAreEqual(
+            () => localClient.charges.create(testChargeParams),
+            () => liveClient.charges.create(testChargeParams)
+        );
     });
 
     it("matches the server error when the Stripe-Account header is acct_invalid", async () => {

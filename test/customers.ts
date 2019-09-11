@@ -3,7 +3,7 @@ import * as stripe from "stripe";
 import {generateId} from "../src/api/utils";
 import {buildStripeParityTest} from "./buildStripeParityTest";
 
-describe.only("customers", () => {
+describe("customers", () => {
 
     it("supports basic creation with no params", buildStripeParityTest(
         async (stripeClient) => {

@@ -1,16 +1,10 @@
 import stripe, {charges} from "stripe";
-import chai = require("chai");
 import chaiExclude from "chai-exclude";
-import {getLiveStripeClient, getLocalStripeClient} from "./stripeUtils";
-import {
-    assertChargesAreBasicallyEqual,
-    assertErrorThunksAreEqual,
-    assertErrorsAreEqual,
-    assertRefundsAreBasicallyEqual,
-    assertDisputesAreBasicallyEqual, assertListsAreBasicallyEqual
-} from "./stripeAssert";
+import {getLocalStripeClient} from "./stripeUtils";
+import {assertErrorsAreEqual} from "./stripeAssert";
 import {generateId} from "../src/api/utils";
 import {buildStripeParityTest} from "./buildStripeParityTest";
+import chai = require("chai");
 
 chai.use(chaiExclude);
 
@@ -152,16 +146,16 @@ describe("charges", () => {
     ));
 
     it("supports tok_createDisputeInquiry", buildStripeParityTest(
-        async stripeClient => {
+        async (stripeClient, mode) => {
             const charge = await stripeClient.charges.create({
                 amount: 5000,
                 currency: "usd",
                 source: "tok_createDisputeInquiry"
             });
-            chai.assert.isNull(charge.dispute);
+            chai.assert.isNull(charge.dispute, mode);
 
             const chargeGet = await stripeClient.charges.retrieve(charge.id);
-            chai.assert.isString(chargeGet.dispute);
+            chai.assert.isString(chargeGet.dispute, mode);
             return [charge, chargeGet];
         }
     ));
@@ -177,16 +171,17 @@ describe("charges", () => {
     }));
 
     it("supports capture=false", buildStripeParityTest(
-         async stripeClient => {
-             const charge = await stripeClient.charges.create({
-                 amount: 3500,
-                 currency: "usd",
-                 source: "tok_visa",
-                 capture: false
-             });
-             chai.assert.isFalse(charge.captured);
-             return [charge];
-         }
+        async stripeClient => {
+            const charge = await stripeClient.charges.create({
+                amount: 3500,
+                currency: "usd",
+                source: "tok_visa",
+                capture: false
+            });
+            chai.assert.isFalse(charge.captured);
+            chai.assert.isNull(charge.balance_transaction);
+            return [charge];
+        }
     ));
 
     it("supports misc additional params", buildChargeParityTest({
@@ -739,7 +734,7 @@ describe("charges", () => {
                 const refund = await stripeClient.refunds.create({
                     charge: charge.id
                 });
-                const refundedCharge = await getLocalStripeClient().charges.retrieve(charge.id);
+                const refundedCharge = await stripeClient.charges.retrieve(charge.id);
                 return [charge, refund, refundedCharge];
             }
         ));
@@ -755,7 +750,7 @@ describe("charges", () => {
                     charge: charge.id,
                     amount: 1200
                 });
-                const refundedCharge = await getLocalStripeClient().charges.retrieve(charge.id);
+                const refundedCharge = await stripeClient.charges.retrieve(charge.id);
                 return [charge, refund, refundedCharge];
             }
         ));
@@ -767,20 +762,20 @@ describe("charges", () => {
                     currency: "usd",
                     source: "tok_visa",
                 });
-                const refund1 = await getLocalStripeClient().refunds.create({
+                const refund1 = await stripeClient.refunds.create({
                     charge: charge.id,
                     amount: 1200,
                     metadata: {
                         extra: "info"
                     }
                 });
-                const refund2 = await getLocalStripeClient().refunds.create({
+                const refund2 = await stripeClient.refunds.create({
                     charge: charge.id,
                     metadata: {
                         extra: "even more info"
                     }
                 });
-                const refundedCharge = await getLocalStripeClient().charges.retrieve(charge.id);
+                const refundedCharge = await stripeClient.charges.retrieve(charge.id);
                 return [charge, refund1, refund2, refundedCharge];
             }
         ));
@@ -799,7 +794,7 @@ describe("charges", () => {
                         extra: "info"
                     }
                 });
-                const refundedCharge = await getLocalStripeClient().charges.retrieve(charge.id);
+                const refundedCharge = await stripeClient.charges.retrieve(charge.id);
                 return [charge, refund, refundedCharge];
             }
         ));
@@ -820,7 +815,7 @@ describe("charges", () => {
                         extra: "info"
                     }
                 });
-                const refundedCharge = await getLocalStripeClient().charges.retrieve(charge.id);
+                const refundedCharge = await stripeClient.charges.retrieve(charge.id);
                 return [charge, capture, refund, refundedCharge];
             }
         ));
@@ -908,36 +903,41 @@ describe("charges", () => {
 
     describe("update", () => {
         it("can update metadata", buildStripeParityTest(
-             async stripeClient => {
-                 const charge = await stripeClient.charges.create({
-                     amount: 4300,
-                     currency: "usd",
-                     source: "tok_visa",
-                     metadata: {
-                         a: "alpha"
-                     }
-                 });
-                 const updatedCharge = await stripeClient.charges.update(charge.id, {metadata: {a: "aardvark", b: "boa"}});
+            async stripeClient => {
+                const charge = await stripeClient.charges.create({
+                    amount: 4300,
+                    currency: "usd",
+                    source: "tok_visa",
+                    metadata: {
+                        a: "alpha"
+                    }
+                });
+                const updatedCharge = await stripeClient.charges.update(charge.id, {
+                    metadata: {
+                        a: "aardvark",
+                        b: "boa"
+                    }
+                });
 
-                 chai.assert.notDeepEqual(updatedCharge.metadata, charge.metadata);
-                 return [charge, updatedCharge];
-             }
+                chai.assert.notDeepEqual(updatedCharge.metadata, charge.metadata);
+                return [charge, updatedCharge];
+            }
         ));
 
         it("can update misc params", buildStripeParityTest(
-             async stripeClient => {
-                 const charge = await stripeClient.charges.create({
-                     amount: 4300,
-                     currency: "usd",
-                     source: "tok_visa"
-                 });
-                 const updatedCharge = await stripeClient.charges.update(charge.id, {
-                     receipt_email: "receipt@example.com",
-                     description: "a new description"
-                 });
+            async stripeClient => {
+                const charge = await stripeClient.charges.create({
+                    amount: 4300,
+                    currency: "usd",
+                    source: "tok_visa"
+                });
+                const updatedCharge = await stripeClient.charges.update(charge.id, {
+                    receipt_email: "receipt@example.com",
+                    description: "a new description"
+                });
 
-                 return [charge, updatedCharge];
-             }
+                return [charge, updatedCharge];
+            }
         ));
     });
 });

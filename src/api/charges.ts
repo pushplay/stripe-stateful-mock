@@ -229,6 +229,7 @@ namespace charges {
         } else {
             charge.captured = true;
         }
+        charge.balance_transaction = "txn_" + generateId(24);
 
         return charge;
     }
@@ -373,7 +374,7 @@ namespace charges {
             application: null,
             application_fee: null,
             application_fee_amount: null,
-            balance_transaction: "txn_" + generateId(24),
+            balance_transaction: params.capture as any as string !== "false" ? "txn_" + generateId(24) : null,
             billing_details: {
                 address: {
                     city: null,

@@ -6,8 +6,8 @@ import {assertObjectsAreBasicallyEqual, ComparableStripeObject} from "./stripeAs
 
 /**
  * Build a test that runs the same script twice: once with the local mock
- * and once with the live server and then compares the two sets of Stripe
- * objects for equality.
+ * and once with the live server and then compares the two returned sets
+ * of Stripe objects for equality.
  */
 export function buildStripeParityTest<T extends (Error | ComparableStripeObject)[]>(script: (stripeClient: Stripe, mode: "local" | "live") => Promise<T>): () => Promise<void> {
     return async () => {
