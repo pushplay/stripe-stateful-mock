@@ -1,226 +1,201 @@
 import * as chai from "chai";
 import * as stripe from "stripe";
-import {getLiveStripeClient, getLocalStripeClient} from "./stripeUtils";
 import {generateId} from "../src/api/utils";
-import {
-    assertChargesAreBasicallyEqual,
-    assertCustomersAreBasicallyEqual,
-    assertErrorThunksAreEqual
-} from "./stripeAssert";
+import {buildStripeParityTest} from "./buildStripeParityTest";
 
 describe("customers", () => {
 
-    const customerTests: {
-        name: string;
-        success: boolean;
-        only?: boolean;
-        params: stripe.customers.ICustomerCreationOptions;
-        charge?: {
-            success: boolean;
-            params: stripe.charges.IChargeCreationOptions;
-            source?: stripe.customers.ICustomerSourceCreationOptions;
-        };
-    }[] = [
-        {
-            name: "basic creation with no params",
-            success: true,
-            params: {}
-        },
-        {
-            name: "creating with a specific ID",    // undocumented feature
-            success: true,
-            params: {
-                id: `cus_${generateId()}`
-            } as any
-        },
-        {
-            name: "creating and charging a source",
-            success: true,
-            params: {
+    it("supports basic creation with no params", buildStripeParityTest(
+        async (stripeClient) => {
+            const customer = await stripeClient.customers.create({});
+            const customerGet = await stripeClient.customers.retrieve(customer.id);
+            return [customer, customerGet];
+        }
+    ));
+
+    it("supports creating with a specific ID", buildStripeParityTest(
+        async (stripeClient) => {
+            // This isn't documented anywhere but it does work.
+            const id = `cus_${generateId()}`;
+            const customer = await stripeClient.customers.create({id} as any);
+            chai.assert.equal(customer.id, id);
+            const customerGet = await stripeClient.customers.retrieve(customer.id);
+            chai.assert.equal(customerGet.id, id);
+            return [customer];
+        }
+    ));
+
+    it("creating and charging a default source", buildStripeParityTest(
+        async (stripeClient) => {
+            const customer = await stripeClient.customers.create({
                 source: "tok_visa"
-            },
-            charge: {
-                success: true,
-                params: {
-                    currency: "usd",
-                    amount: 8675309
-                }
-            }
-        },
-        {
-            name: "charging an invalid source",
-            success: true,
-            params: {},
-            charge: {
-                success: false,
-                params: {
+            });
+            const charge = await stripeClient.charges.create({
+                currency: "usd",
+                amount: 8675309,
+                customer: customer.id
+            });
+            return [customer, charge];
+        }
+    ));
+
+    it("supports creating and charging an additional source", buildStripeParityTest(
+        async (stripeClient) => {
+            const customer = await stripeClient.customers.create({
+                source: "tok_mastercard"
+            });
+            const additionalSource = await stripeClient.customers.createSource(customer.id, {
+                source: "tok_visa"
+            }) as stripe.cards.ICard;
+            const customerWithAdditionalSource = await stripeClient.customers.retrieve(customer.id);
+            const charge = await stripeClient.charges.create({
+                amount: 1000,
+                currency: "usd",
+                customer: customer.id,
+                source: additionalSource.id
+            });
+
+            chai.assert.notEqual(additionalSource.id, customer.default_source);
+            chai.assert.equal(customerWithAdditionalSource.default_source, customerWithAdditionalSource.sources.data[0].id);
+            chai.assert.equal(customerWithAdditionalSource.sources.data[1].id, additionalSource.id);
+            return [customer, additionalSource, customerWithAdditionalSource, charge];
+        }
+    ));
+
+    it("errors on charging an invalid non-default source", buildStripeParityTest(
+        async (stripeClient) => {
+            const customer = await stripeClient.customers.create({
+                source: "tok_visa"
+            });
+            let chargeError: any = null;
+            try {
+                await stripeClient.charges.create({
                     currency: "usd",
                     amount: 8675309,
+                    customer: customer.id,
                     source: `invalid-${generateId(12)}`
-                }
+                });
+            } catch (err) {
+                chargeError = err;
             }
-        },
-        {
-            name: "tok_chargeDeclined",
-            success: false,
-            params: {
-                source: "tok_chargeDeclined"
+            return [customer, chargeError];
+        }
+    ));
+
+    it("supports tok_chargeDeclined", buildStripeParityTest(
+        async (stripeClient) => {
+            let customerError: any = null;
+            try {
+                await stripeClient.customers.create({
+                    source: "tok_chargeDeclined"
+                });
+            } catch (err) {
+                customerError = err;
             }
-        },
-        {
-            name: "tok_chargeDeclinedInsufficientFunds",
-            success: false,
-            params: {
-                source: "tok_chargeDeclinedInsufficientFunds"
+            return [customerError];
+        }
+    ));
+
+    it("supports tok_chargeDeclinedInsufficientFunds", buildStripeParityTest(
+        async (stripeClient) => {
+            let customerError: any = null;
+            try {
+                await stripeClient.customers.create({
+                    source: "tok_chargeDeclinedInsufficientFunds"
+                });
+            } catch (err) {
+                customerError = err;
             }
-        },
-        {
-            name: "tok_chargeDeclinedIncorrectCvc",
-            success: false,
-            params: {
-                source: "tok_chargeDeclinedIncorrectCvc"
+            return [customerError];
+        }
+    ));
+
+    it("supports tok_chargeDeclinedIncorrectCvc", buildStripeParityTest(
+        async (stripeClient) => {
+            let customerError: any = null;
+            try {
+                await stripeClient.customers.create({
+                    source: "tok_chargeDeclinedIncorrectCvc"
+                });
+            } catch (err) {
+                customerError = err;
             }
-        },
-        {
-            name: "tok_chargeDeclinedExpiredCard",
-            success: false,
-            params: {
-                source: "tok_chargeDeclinedExpiredCard"
+            return [customerError];
+        }
+    ));
+
+    it("supports tok_chargeDeclinedIncorrectCvc", buildStripeParityTest(
+        async (stripeClient) => {
+            let customerError: any = null;
+            try {
+                await stripeClient.customers.create({
+                    source: "tok_chargeDeclinedIncorrectCvc"
+                });
+            } catch (err) {
+                customerError = err;
             }
-        },
-        {
-            name: "tok_chargeCustomerFail",
-            success: true,
-            params: {
+            return [customerError];
+        }
+    ));
+
+    it("supports tok_chargeDeclinedExpiredCard", buildStripeParityTest(
+        async (stripeClient) => {
+            let customerError: any = null;
+            try {
+                await stripeClient.customers.create({
+                    source: "tok_chargeDeclinedExpiredCard"
+                });
+            } catch (err) {
+                customerError = err;
+            }
+            return [customerError];
+        }
+    ));
+
+    it("supports tok_chargeCustomerFail", buildStripeParityTest(
+        async (stripeClient) => {
+            const customer = await stripeClient.customers.create({
                 source: "tok_chargeCustomerFail"
-            },
-            charge: {
-                success: false,
-                params: {
+            });
+            let chargeError: any = null;
+            try {
+                await stripeClient.charges.create({
                     currency: "usd",
-                    amount: 8675309
-                }
+                    amount: 8675309,
+                    customer: customer.id
+                });
+            } catch (err) {
+                chargeError = err;
             }
+            return [customer, chargeError];
         }
-    ];
+    ));
 
-    customerTests.forEach(test => {
-        (test.only ? it.only : it)(`supports ${test.name}`, async () => {
-            if (test.success) {
-                const localCustomer = await getLocalStripeClient().customers.create(test.params);
-                const liveCustomer = await getLiveStripeClient().customers.create(test.params);
-                assertCustomersAreBasicallyEqual(localCustomer, liveCustomer);
+    it("supports Stripe-Account header (Connect account)", buildStripeParityTest(
+        async (stripeClient) => {
+            const params: stripe.customers.ICustomerCreationOptions =  {
+                source: "tok_visa"
+            };
 
-                const getLocalCustomer = await getLocalStripeClient().customers.retrieve(localCustomer.id);
-                chai.assert.deepEqual(getLocalCustomer, localCustomer);
+            chai.assert.isString(process.env["STRIPE_CONNECTED_ACCOUNT_ID"], "connected account ID is set");
 
-                if (test.charge) {
-                    if (test.charge.success) {
-                        const localCharge = await getLocalStripeClient().charges.create({
-                            ...test.charge.params,
-                            customer: localCustomer.id
-                        });
-                        const liveCharge = await getLiveStripeClient().charges.create({
-                            ...test.charge.params,
-                            customer: liveCustomer.id
-                        });
-                        assertChargesAreBasicallyEqual(localCharge, liveCharge);
-                    } else {
-                        await assertErrorThunksAreEqual(
-                            () => getLocalStripeClient().charges.create({
-                                ...test.charge.params,
-                                customer: localCustomer.id
-                            }),
-                            () => getLiveStripeClient().charges.create({
-                                ...test.charge.params,
-                                customer: liveCustomer.id
-                            }),
-                            "on charging"
-                        );
-                    }
-                }
-            } else {
-                await assertErrorThunksAreEqual(
-                    () => getLocalStripeClient().customers.create(test.params),
-                    () => getLiveStripeClient().customers.create(test.params),
-                    "on creating the customer"
-                );
+            const customer = await stripeClient.customers.create(params, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
+
+            let retrieveError: any;
+            try {
+                await stripeClient.customers.retrieve(customer.id);
+            } catch (err) {
+                retrieveError = err;
             }
-        });
-    });
+            chai.assert.isDefined(retrieveError, "customer should not be in the account, but should be in the connected account");
 
-    it("supports creating and charging an additional source", async () => {
-        const customerParams: stripe.customers.ICustomerCreationOptions = {
-            source: "tok_mastercard"
-        };
-        const createSourceParams: stripe.customers.ICustomerSourceCreationOptions = {
-            source: "tok_visa"
-        };
+            const connectRetrieveCustomer = await stripeClient.customers.retrieve(customer.id, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
+            chai.assert.deepEqual(connectRetrieveCustomer, customer);
 
-        const localCustomer = await getLocalStripeClient().customers.create(customerParams);
-        const localAdditionalSource = await getLocalStripeClient().customers.createSource(localCustomer.id, createSourceParams);
-        const localCustomerWithAdditionalSource = await getLocalStripeClient().customers.retrieve(localCustomer.id);
-        const localCharge = await getLocalStripeClient().charges.create({
-            amount: 1000,
-            currency: "usd",
-            customer: localCustomer.id,
-            source: localAdditionalSource.id
-        });
+            const connectRetrieveCard = await stripeClient.customers.retrieveSource(customer.id, customer.default_source as string, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]}) as stripe.cards.ICard;
+            chai.assert.equal(connectRetrieveCard.id, customer.default_source as string);
 
-        chai.assert.notEqual(localAdditionalSource.id, localCustomer.default_source);
-        chai.assert.equal(localCustomerWithAdditionalSource.default_source, localCustomerWithAdditionalSource.sources.data[0].id);
-        chai.assert.equal(localCustomerWithAdditionalSource.sources.data[1].id, localAdditionalSource.id);
-
-        const liveCustomer = await getLiveStripeClient().customers.create(customerParams);
-        const liveAdditionalSource = await getLiveStripeClient().customers.createSource(liveCustomer.id, createSourceParams);
-        const liveCustomerWithAdditionalSource = await getLiveStripeClient().customers.retrieve(liveCustomer.id);
-        const liveCharge = await getLiveStripeClient().charges.create({
-            amount: 1000,
-            currency: "usd",
-            customer: liveCustomer.id,
-            source: liveAdditionalSource.id
-        });
-
-        assertCustomersAreBasicallyEqual(localCustomerWithAdditionalSource, liveCustomerWithAdditionalSource);
-        assertChargesAreBasicallyEqual(localCharge, liveCharge);
-    });
-
-    it("supports Stripe-Account header (Connect account)", async () => {
-        const params: stripe.customers.ICustomerCreationOptions =  {
-            source: "tok_visa"
-        };
-
-        chai.assert.isString(process.env["STRIPE_CONNECTED_ACCOUNT_ID"], "connected account ID is set");
-
-        const localCustomer = await getLocalStripeClient().customers.create(params, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
-
-        let localRetrieveError: any;
-        try {
-            await getLocalStripeClient().customers.retrieve(localCustomer.id);
-        } catch (err) {
-            localRetrieveError = err;
+            return [customer, retrieveError, connectRetrieveCustomer, connectRetrieveCard];
         }
-        chai.assert.isDefined(localRetrieveError, "customer should not be in the account, but should be in the connected account");
-
-        const localConnectRetrieveCustomer = await getLocalStripeClient().customers.retrieve(localCustomer.id, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
-        chai.assert.deepEqual(localConnectRetrieveCustomer, localCustomer);
-
-        const localConnectRetrieveCard = await getLocalStripeClient().customers.retrieveSource(localCustomer.id, localCustomer.default_source as string, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
-        chai.assert.equal(localConnectRetrieveCard.id, localCustomer.default_source as string);
-
-        const liveCustomer = await getLiveStripeClient().customers.create(params, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
-
-        let liveRetrieveError: any;
-        try {
-            await getLiveStripeClient().customers.retrieve(liveCustomer.id);
-        } catch (err) {
-            liveRetrieveError = err;
-        }
-        chai.assert.isDefined(liveRetrieveError, "customer should not be in the account, but should be in the connected account");
-
-        const liveConnectRetrieveCustomer = await getLiveStripeClient().customers.retrieve(liveCustomer.id, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
-        chai.assert.deepEqual(liveConnectRetrieveCustomer, liveCustomer);
-
-        assertCustomersAreBasicallyEqual(localCustomer, liveCustomer);
-    });
+    ));
 });
