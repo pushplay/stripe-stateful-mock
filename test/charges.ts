@@ -444,6 +444,7 @@ describe("charges", () => {
 
             assertErrorsAreEqual(repeatError, originalError);
             chai.assert.equal(repeatError.headers["original-request"], originalError.headers["request-id"]);
+            chai.assert.equal(repeatError.headers["idempotent-replayed"], "true");
         });
 
         it("replays 500s (yes Stripe really does that)", async () => {

@@ -40,6 +40,7 @@ export function idempotencyRoute(req: express.Request, res: express.Response, ne
         res.status(storedRequest.responseCode)
             .set("original-request", storedRequest.requestId)
             .set("request-id", "req_" + generateId(14))
+            .set("idempotent-replayed", "true")
             .send(storedRequest.responseBody);
         return;
     } else {
