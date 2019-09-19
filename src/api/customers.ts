@@ -26,9 +26,9 @@ namespace customers {
         const customer: stripe.customers.ICustomer = {
             id: customerId,
             object: "customer",
-            account_balance: params.account_balance || 0,
+            account_balance: +params.account_balance || +params.balance || 0,
             address: params.address || null,
-            balance: params.balance || 0,
+            balance: +params.balance || +params.account_balance || 0,
             created: (now.getTime() / 1000) | 0,
             currency: null,
             default_source: null,
@@ -96,6 +96,67 @@ namespace customers {
                 type: "invalid_request_error"
             });
         }
+        return customer;
+    }
+
+    export function update(accountId: string, customerId: string, params: stripe.customers.ICustomerUpdateOptions) {
+        log.debug("customers.update", accountId, customerId, params);
+
+        const customer = retrieve(accountId, customerId, "id");
+
+        // All validation must happen above any setting or we can end up with partially
+        // updated customers.
+        if (params.default_source && !customer.sources.data.find(source => source.id === params.default_source)) {
+            throw new StripeError(400, {
+                code: "resource_missing",
+                doc_url: "https://stripe.com/docs/error-codes/resource-missing",
+                message: `No such source: ${params.default_source}`,
+                param: "source",
+                type: "invalid_request_error"
+            });
+        }
+
+        if (params.hasOwnProperty("account_balance") || params.hasOwnProperty("balance")) {
+            customer.account_balance = +params.account_balance || +params.balance;
+            customer.balance = +params.account_balance || +params.balance;
+        }
+        if (params.hasOwnProperty("address")) {
+            customer.address = params.address;
+        }
+        if (params.hasOwnProperty("default_source")) {
+            customer.default_source = params.default_source;
+        }
+        if (params.hasOwnProperty("description")) {
+            customer.description = params.description;
+        }
+        if (params.hasOwnProperty("email")) {
+            customer.email = params.email;
+        }
+        if (params.hasOwnProperty("invoice_prefix")) {
+            customer.invoice_prefix = params.invoice_prefix;
+        }
+        if (params.hasOwnProperty("invoice_settings")) {
+            customer.invoice_settings = params.invoice_settings;
+        }
+        if (params.hasOwnProperty("metadata")) {
+            customer.metadata = stringifyMetadata(params.metadata);
+        }
+        if (params.hasOwnProperty("name")) {
+            customer.name = params.name;
+        }
+        if (params.hasOwnProperty("phone")) {
+            customer.phone = params.phone;
+        }
+        if (params.hasOwnProperty("preferred_locales")) {
+            customer.preferred_locales = params.preferred_locales;
+        }
+        if (params.hasOwnProperty("shipping")) {
+            customer.shipping = params.shipping;
+        }
+        if (params.hasOwnProperty("tax_exempt")) {
+            customer.tax_exempt = params.tax_exempt;
+        }
+
         return customer;
     }
 
@@ -171,6 +232,30 @@ namespace customers {
             });
         }
         return card;
+    }
+
+    export function deleteCard(accountId: string, customerId: string, cardId: string): any {
+        log.debug("customers.deleteCard", accountId, customerId, cardId);
+
+        const customer = retrieve(accountId, customerId, "customer");
+        const card = retrieveCard(accountId, customerId, cardId, "id");
+        const cardIx = customer.sources.data.indexOf(card);
+        if (cardIx === -1) {
+            throw new Error("The world does not make sense.");
+        }
+        customer.sources.data.splice(cardIx, 1);
+        customer.sources.total_count--;
+
+        if (customer.default_source === cardId) {
+            customer.default_source = customer.sources.data.length ? customer.sources.data[0].id : null;
+        }
+
+        // The docs return a full Card object but my tests return this abbreviated thing.  *shrug*
+        return {
+            id: "card_1FKCxrBCvBiGc7Sdp8LvNQKQ",
+            object: "card",
+            deleted: true
+        };
     }
 }
 

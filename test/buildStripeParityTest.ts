@@ -18,7 +18,7 @@ export function buildStripeParityTest<T extends (Error | ComparableStripeObject)
         const liveResults = await script(getLiveStripeClient(), "live");
 
         for (let i = 0; i < localResults.length && i < liveResults.length; i++) {
-            assertObjectsAreBasicallyEqual(localResults[i], liveResults[i], `result ${i}`);
+            assertObjectsAreBasicallyEqual(localResults[i], liveResults[i], `result array item ${i}`);
         }
 
         chai.assert.lengthOf(localResults, liveResults.length, "local results and live results agree to this point they should have the same length");

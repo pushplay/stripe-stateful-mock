@@ -47,6 +47,11 @@ routes.get("/v1/customers/:id", (req, res) => {
     return res.status(200).json(customer);
 });
 
+routes.post("/v1/customers/:id", (req, res) => {
+    const customer = customers.update(getRequestAccountId(req), req.params.id, req.body);
+    return res.status(200).json(customer);
+});
+
 // Old API.
 routes.get("/v1/customers/:customerId/cards/:cardId", (req, res) => {
     const card = customers.retrieveCard(getRequestAccountId(req), req.params.customerId, req.params.cardId, "card");
@@ -57,6 +62,11 @@ routes.get("/v1/customers/:customerId/cards/:cardId", (req, res) => {
 routes.get("/v1/customers/:customerId/sources/:cardId", (req, res) => {
     const card = customers.retrieveCard(getRequestAccountId(req), req.params.customerId, req.params.cardId, "card");
     return res.status(200).json(card);
+});
+
+routes.delete("/v1/customers/:customerId/sources/:cardId", (req, res) => {
+    const customer = customers.deleteCard(getRequestAccountId(req), req.params.customerId, req.params.cardId);
+    return res.status(200).json(customer);
 });
 
 routes.post("/v1/customers/:customerId/sources", (req, res) => {

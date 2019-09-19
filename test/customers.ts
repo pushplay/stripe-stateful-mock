@@ -198,4 +198,85 @@ describe("customers", () => {
             return [customer, retrieveError, connectRetrieveCustomer, connectRetrieveCard];
         }
     ));
+
+    describe("deleting", () => {
+        it("supports deleting the only source", buildStripeParityTest(
+            async (stripeClient) => {
+                const customerBeforeDelete = await stripeClient.customers.create({
+                    source: "tok_visa"
+                });
+                await stripeClient.customers.deleteSource(customerBeforeDelete.id, customerBeforeDelete.default_source as string);
+                const customerAfterDelete = await stripeClient.customers.retrieve(customerBeforeDelete.id);
+                return [customerBeforeDelete, customerAfterDelete];
+            }
+        ));
+
+        it("supports deleting the non-default_source", buildStripeParityTest(
+            async (stripeClient) => {
+                const customerBeforeDelete = await stripeClient.customers.create({
+                    source: "tok_visa"
+                });
+                const secondSource = await stripeClient.customers.createSource(customerBeforeDelete.id, {source: "tok_visa"});
+                await stripeClient.customers.deleteSource(customerBeforeDelete.id, secondSource.id);
+                const customerAfterDelete = await stripeClient.customers.retrieve(customerBeforeDelete.id);
+                return [customerBeforeDelete, secondSource as stripe.cards.ICard, customerAfterDelete];
+            }
+        ));
+
+        it("supports deleting the default_source with a second source", buildStripeParityTest(
+            async (stripeClient) => {
+                const customerBeforeDelete = await stripeClient.customers.create({
+                    source: "tok_visa"
+                });
+                const secondSource = await stripeClient.customers.createSource(customerBeforeDelete.id, {source: "tok_visa"});
+                await stripeClient.customers.deleteSource(customerBeforeDelete.id, customerBeforeDelete.default_source as string);
+                const customerAfterDelete = await stripeClient.customers.retrieve(customerBeforeDelete.id);
+                return [customerBeforeDelete, secondSource as stripe.cards.ICard, customerAfterDelete];
+            }
+        ));
+    });
+
+    describe("updating", () => {
+        it("supports updating", buildStripeParityTest(
+            async (stripeClient) => {
+                const customer = await stripeClient.customers.create({
+                    source: "tok_visa"
+                });
+                const customerAfterUpdate = await stripeClient.customers.update(customer.id, {
+                    description: "foobar",
+                    email: "email@example.com",
+                    name: "foo bar"
+                });
+                return [customer, customerAfterUpdate];
+            }
+        ));
+
+        it("supports updating the default source", buildStripeParityTest(
+            async (stripeClient) => {
+                const customer = await stripeClient.customers.create({
+                    source: "tok_visa"
+                });
+                const secondSource = await stripeClient.customers.createSource(customer.id, {source: "tok_visa"});
+                const customerAfterUpdate = await stripeClient.customers.update(customer.id, {default_source: secondSource.id});
+                chai.assert.equal(customerAfterUpdate.default_source, secondSource.id);
+                return [customer, secondSource as stripe.cards.ICard, customerAfterUpdate];
+            }
+        ));
+
+        it("errors updating the default source to a non-existant source", buildStripeParityTest(
+            async (stripeClient) => {
+                const customer = await stripeClient.customers.create({
+                    source: "tok_visa"
+                });
+
+                let updateError: any = null;
+                try {
+                    await stripeClient.customers.update(customer.id, {default_source: generateId()});
+                } catch (err) {
+                    updateError = err;
+                }
+                return [customer, updateError];
+            }
+        ));
+    });
 });
