@@ -78,7 +78,9 @@ namespace customers {
             createCard(accountId, customer, {source: params.source});
         }
 
-        accountCustomers.put(accountId, customer);
+        if (params.source !== "tok_forget") {
+            accountCustomers.put(accountId, customer);
+        }
 
         return customer;
     }

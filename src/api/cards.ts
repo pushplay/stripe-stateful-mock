@@ -14,6 +14,7 @@ namespace cards {
     export function createFromSource(token: string): stripe.cards.ICard {
         log.debug("cards.createFromSource", token);
 
+        let saveCard = true;
         const cardId = `card_${generateId(24)}`;
         const now = new Date();
         const card: stripe.cards.ICard = {
@@ -117,13 +118,21 @@ namespace cards {
                 card.brand = "Visa";
                 card.last4 = "1976";
                 break;
+            case "tok_forget":
+                // Unofficial token.
+                card.brand = "Visa";
+                card.last4 = "1982";
+                saveCard = false;
+                break;
             default:
                 throw new Error(`Unhandled source token '${token}'`);
         }
 
-        cardExtras[card.id] = {
-            sourceToken: token
-        };
+        if (saveCard) {
+            cardExtras[card.id] = {
+                sourceToken: token
+            };
+        }
 
         return card;
     }

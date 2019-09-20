@@ -27,11 +27,15 @@ This server supports a few bonus parameters to test scenarios not testable again
 
 ### Source token `tok_429`
 
-Use the charge source token `tok_429` to get a 429 response from the server.
+Use the charge source token `tok_429` to get a 429 (rate limit) response from the server.
 
 ### Source token `tok_500`
 
-Use the charge source token `tok_500` to get a 500 response from the server.
+Use the charge source token `tok_500` to get a 500 (server error) response from the server.
+
+### Source token `tok_forget`
+
+Use the charge source token `tok_forget` to get a normal charge response from the server that is not saved.
 
 ### Source token chains
 

@@ -124,7 +124,9 @@ namespace charges {
 
             const card = cards.createFromSource(sourceToken);
             charge = getChargeFromCard(params, card);
-            accountCharges.put(accountId, charge);
+            if (params.source !== "tok_forget") {
+                accountCharges.put(accountId, charge);
+            }
             handleSpecialChargeTokens(accountId, charge, sourceToken);
         } else {
             throw new StripeError(400, {
@@ -640,6 +642,7 @@ namespace charges {
                     const dispute = disputes.createFromSource(accountId, sourceToken, charge);
                     charge.dispute = dispute.id;
                 });
+                break;
         }
     }
 }

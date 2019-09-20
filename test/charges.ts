@@ -10,6 +10,8 @@ chai.use(chaiExclude);
 
 describe("charges", () => {
 
+    const localStripeClient = getLocalStripeClient();
+
     const buildChargeParityTest = (params: stripe.charges.IChargeCreationOptions) =>
         buildStripeParityTest(
             async stripeClient => {
@@ -131,16 +133,16 @@ describe("charges", () => {
     ));
 
     it("supports tok_createDisputeProductNotReceived", buildStripeParityTest(
-        async stripeClient => {
+        async (stripeClient, mode) => {
             const charge = await stripeClient.charges.create({
                 amount: 5000,
                 currency: "usd",
                 source: "tok_createDisputeProductNotReceived"
             });
-            chai.assert.isNull(charge.dispute);
+            chai.assert.isNull(charge.dispute, mode);
 
             const chargeGet = await stripeClient.charges.retrieve(charge.id);
-            chai.assert.isString(chargeGet.dispute);
+            chai.assert.isString(chargeGet.dispute, mode);
             return [charge, chargeGet];
         }
     ));
@@ -171,15 +173,15 @@ describe("charges", () => {
     }));
 
     it("supports capture=false", buildStripeParityTest(
-        async stripeClient => {
+        async (stripeClient, mode) => {
             const charge = await stripeClient.charges.create({
                 amount: 3500,
                 currency: "usd",
                 source: "tok_visa",
                 capture: false
             });
-            chai.assert.isFalse(charge.captured);
-            chai.assert.isNull(charge.balance_transaction);
+            chai.assert.isFalse(charge.captured, mode);
+            chai.assert.isNull(charge.balance_transaction, mode);
             return [charge];
         }
     ));
@@ -270,12 +272,12 @@ describe("charges", () => {
         }
     ));
 
-    describe("bonus secret tokens!", () => {
+    describe("unofficial token support", () => {
         describe("tok_429", () => {
             it("throws a 429 error", async () => {
                 let error: any;
                 try {
-                    await getLocalStripeClient().charges.create({
+                    await localStripeClient.charges.create({
                         amount: 5000,
                         currency: "usd",
                         source: "tok_429"
@@ -295,7 +297,7 @@ describe("charges", () => {
             it("throws a 500 error", async () => {
                 let error: any;
                 try {
-                    await getLocalStripeClient().charges.create({
+                    await localStripeClient.charges.create({
                         amount: 5000,
                         currency: "usd",
                         source: "tok_500"
@@ -310,6 +312,29 @@ describe("charges", () => {
                 chai.assert.equal(error.type, "StripeAPIError");
             });
         });
+        
+        describe("tok_forget", () => {
+            it("creates a successful charge that is not saved", async () => {
+                const charge = await localStripeClient.charges.create(
+                    {
+                        amount: 2000,
+                        currency: "usd",
+                        source: "tok_forget"
+                    }
+                );
+                chai.assert.isString(charge.id);
+
+                let getChargeError: any;
+                try {
+                    await localStripeClient.charges.retrieve(charge.id);
+                } catch (err) {
+                    getChargeError = err;
+                }
+
+                chai.assert.isDefined(getChargeError);
+                chai.assert.equal(getChargeError.statusCode, 404);
+            });
+        });
 
         describe("source token chains", async () => {
             it("supports test case tok_chargeDeclinedInsufficientFunds|tok_visa", async () => {
@@ -321,14 +346,14 @@ describe("charges", () => {
 
                 let nsfError: any;
                 try {
-                    await getLocalStripeClient().charges.create(chargeParams);
+                    await localStripeClient.charges.create(chargeParams);
                 } catch (err) {
                     nsfError = err;
                 }
                 chai.assert.isDefined(nsfError);
                 chai.assert.equal(nsfError.type, "StripeCardError");
 
-                const charge = await getLocalStripeClient().charges.create(chargeParams);
+                const charge = await localStripeClient.charges.create(chargeParams);
                 chai.assert.equal(charge.amount, chargeParams.amount);
             });
 
@@ -341,7 +366,7 @@ describe("charges", () => {
 
                 let error1: any;
                 try {
-                    await getLocalStripeClient().charges.create(chargeParams);
+                    await localStripeClient.charges.create(chargeParams);
                 } catch (err) {
                     error1 = err;
                 }
@@ -351,7 +376,7 @@ describe("charges", () => {
 
                 let error2: any;
                 try {
-                    await getLocalStripeClient().charges.create(chargeParams);
+                    await localStripeClient.charges.create(chargeParams);
                 } catch (err) {
                     error2 = err;
                 }
@@ -359,7 +384,7 @@ describe("charges", () => {
                 chai.assert.equal(error2.statusCode, 500);
                 chai.assert.equal(error2.type, "StripeAPIError");
 
-                const charge = await getLocalStripeClient().charges.create(chargeParams);
+                const charge = await localStripeClient.charges.create(chargeParams);
                 chai.assert.equal(charge.amount, chargeParams.amount);
             });
 
@@ -377,7 +402,7 @@ describe("charges", () => {
 
                 let error1: any;
                 try {
-                    await getLocalStripeClient().charges.create(chargeParams1);
+                    await localStripeClient.charges.create(chargeParams1);
                 } catch (err) {
                     error1 = err;
                 }
@@ -387,7 +412,7 @@ describe("charges", () => {
 
                 let error2: any;
                 try {
-                    await getLocalStripeClient().charges.create(chargeParams2);
+                    await localStripeClient.charges.create(chargeParams2);
                 } catch (err) {
                     error2 = err;
                 }
@@ -395,10 +420,10 @@ describe("charges", () => {
                 chai.assert.equal(error2.statusCode, 500);
                 chai.assert.equal(error2.type, "StripeAPIError");
 
-                const charge1 = await getLocalStripeClient().charges.create(chargeParams1);
+                const charge1 = await localStripeClient.charges.create(chargeParams1);
                 chai.assert.equal(charge1.amount, chargeParams1.amount);
 
-                const charge2 = await getLocalStripeClient().charges.create(chargeParams2);
+                const charge2 = await localStripeClient.charges.create(chargeParams2);
                 chai.assert.equal(charge2.amount, chargeParams2.amount);
             });
         });
@@ -412,8 +437,8 @@ describe("charges", () => {
                 currency: "usd",
                 source: "tok_visa"
             };
-            const originalCharge = await getLocalStripeClient().charges.create(params, {idempotency_key: idempotencyKey});
-            const repeatCharge = await getLocalStripeClient().charges.create(params, {idempotency_key: idempotencyKey});
+            const originalCharge = await localStripeClient.charges.create(params, {idempotency_key: idempotencyKey});
+            const repeatCharge = await localStripeClient.charges.create(params, {idempotency_key: idempotencyKey});
 
             chai.assert.deepEqual(repeatCharge, originalCharge);
         });
@@ -428,7 +453,7 @@ describe("charges", () => {
 
             let originalError: any;
             try {
-                await getLocalStripeClient().charges.create(params, {idempotency_key: idempotencyKey});
+                await localStripeClient.charges.create(params, {idempotency_key: idempotencyKey});
             } catch (err) {
                 originalError = err;
             }
@@ -436,7 +461,7 @@ describe("charges", () => {
 
             let repeatError: any;
             try {
-                await getLocalStripeClient().charges.create(params, {idempotency_key: idempotencyKey});
+                await localStripeClient.charges.create(params, {idempotency_key: idempotencyKey});
             } catch (err) {
                 repeatError = err;
             }
@@ -457,7 +482,7 @@ describe("charges", () => {
 
             let originalError: any;
             try {
-                await getLocalStripeClient().charges.create(params, {
+                await localStripeClient.charges.create(params, {
                     idempotency_key: idempotencyKey
                 });
             } catch (err) {
@@ -468,7 +493,7 @@ describe("charges", () => {
 
             let repeatError: any;
             try {
-                await getLocalStripeClient().charges.create(params, {
+                await localStripeClient.charges.create(params, {
                     idempotency_key: idempotencyKey
                 });
             } catch (err) {
@@ -482,7 +507,7 @@ describe("charges", () => {
 
         it("sends the right error on mismatched idempotent bodies", async () => {
             const idempotencyKey = generateId();
-            await getLocalStripeClient().charges.create({
+            await localStripeClient.charges.create({
                 amount: 1000,
                 currency: "usd",
                 source: "tok_visa"
@@ -492,7 +517,7 @@ describe("charges", () => {
 
             let repeatError: any;
             try {
-                await getLocalStripeClient().charges.create({
+                await localStripeClient.charges.create({
                     amount: 2000,
                     currency: "usd",
                     source: "tok_visa"
@@ -512,7 +537,7 @@ describe("charges", () => {
         it("does not confused two Connected accounts", async () => {
             const idempotencyKey = generateId();
 
-            await getLocalStripeClient().charges.create({
+            await localStripeClient.charges.create({
                 amount: 1000,
                 currency: "usd",
                 source: "tok_visa"
@@ -521,7 +546,7 @@ describe("charges", () => {
                 stripe_account: "acct_uno"
             });
 
-            await getLocalStripeClient().charges.create({
+            await localStripeClient.charges.create({
                 amount: 2000,
                 currency: "usd",
                 source: "tok_visa"

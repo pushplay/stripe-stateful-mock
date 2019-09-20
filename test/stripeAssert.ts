@@ -42,10 +42,10 @@ export type ComparableStripeObject = Error
     | Stripe.refunds.IRefund;
 
 export function assertObjectsAreBasicallyEqual(actual: ComparableStripeObject, expected: ComparableStripeObject, message?: string): void {
-    chai.assert.isDefined(actual, message);
-    chai.assert.isNotNull(actual, message);
-    chai.assert.isDefined(expected, message);
-    chai.assert.isNotNull(expected, message);
+    chai.assert.isDefined(actual, `actual ${message}`);
+    chai.assert.isNotNull(actual, `actual ${message}`);
+    chai.assert.isDefined(expected, `expected ${message}`);
+    chai.assert.isNotNull(expected, `expected ${message}`);
 
     if (actual instanceof Error) {
         chai.assert.instanceOf(expected, Error, message);

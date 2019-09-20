@@ -2,8 +2,11 @@ import * as chai from "chai";
 import * as stripe from "stripe";
 import {generateId} from "../src/api/utils";
 import {buildStripeParityTest} from "./buildStripeParityTest";
+import {getLocalStripeClient} from "./stripeUtils";
 
 describe("customers", () => {
+
+    const localStripeClient = getLocalStripeClient();
 
     it("supports basic creation with no params", buildStripeParityTest(
         async (stripeClient) => {
@@ -198,6 +201,27 @@ describe("customers", () => {
             return [customer, retrieveError, connectRetrieveCustomer, connectRetrieveCard];
         }
     ));
+
+    describe("unofficial token support", () => {
+        describe("tok_forget", () => {
+            it("forgets the customer when specified on customer create", async () => {
+                const customer = await localStripeClient.customers.create({
+                    source: "tok_forget"
+                });
+                chai.assert.isString(customer.id);
+
+                let getCustomerError: any;
+                try {
+                    await localStripeClient.customers.retrieve(customer.id);
+                } catch (err) {
+                    getCustomerError = err;
+                }
+
+                chai.assert.isDefined(getCustomerError);
+                chai.assert.equal(getCustomerError.statusCode, 404);
+            });
+        });
+    });
 
     describe("deleting", () => {
         it("supports deleting the only source", buildStripeParityTest(
