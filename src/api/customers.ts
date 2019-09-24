@@ -1,11 +1,11 @@
 import * as stripe from "stripe";
 import log = require("loglevel");
-import StripeError from "./StripeError";
+import {StripeError} from "./StripeError";
 import {generateId, stringifyMetadata} from "./utils";
-import cards from "./cards";
+import {cards} from "./cards";
 import {AccountData} from "./AccountData";
 
-namespace customers {
+export namespace customers {
 
     const accountCustomers = new AccountData<stripe.customers.ICustomer>();
 
@@ -260,5 +260,3 @@ namespace customers {
         };
     }
 }
-
-export default customers;

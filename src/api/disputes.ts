@@ -2,9 +2,9 @@ import * as stripe from "stripe";
 import log = require("loglevel");
 import {AccountData} from "./AccountData";
 import {generateId} from "./utils";
-import StripeError from "./StripeError";
+import {StripeError} from "./StripeError";
 
-namespace disputes {
+export namespace disputes {
 
     const accountDisputes = new AccountData<stripe.disputes.IDispute>();
 
@@ -145,5 +145,3 @@ namespace disputes {
         return d;
     }
 }
-
-export default disputes;

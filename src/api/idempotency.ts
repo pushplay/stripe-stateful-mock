@@ -2,7 +2,7 @@ import express from "express";
 import deepEqual = require("deep-equal");
 import log = require("loglevel");
 import {generateId} from "./utils";
-import StripeError from "./StripeError";
+import {StripeError} from "./StripeError";
 import {AccountData} from "./AccountData";
 import {getRequestAccountId} from "../routes";
 

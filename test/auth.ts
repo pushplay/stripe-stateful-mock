@@ -23,7 +23,7 @@ describe("auth", () => {
         );
     });
 
-    it("matches the server error when the Stripe-Account header is acct_invalid", async () => {
+    it("matches the server error when the Stripe-Account header is invalid", async () => {
         await assertErrorThunksAreEqual(
             () => getLocalStripeClient().charges.create(testChargeParams, {stripe_account: "acct_invalid"}),
             () => getLiveStripeClient().charges.create(testChargeParams, {stripe_account: "acct_invalid"})

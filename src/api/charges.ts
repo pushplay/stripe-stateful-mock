@@ -1,14 +1,14 @@
 import * as stripe from "stripe";
 import log = require("loglevel");
-import StripeError from "./StripeError";
+import {StripeError} from "./StripeError";
 import {generateId, stringifyMetadata} from "./utils";
 import {getEffectiveSourceTokenFromChain, isSourceTokenChain} from "./sourceTokenChains";
-import cards from "./cards";
-import customers from "./customers";
+import {cards} from "./cards";
 import {AccountData} from "./AccountData";
-import disputes from "./disputes";
+import {customers} from "./customers";
+import {disputes} from "./disputes";
 
-namespace charges {
+export namespace charges {
 
     const accountCharges = new AccountData<stripe.charges.ICharge>();
 
@@ -646,5 +646,3 @@ namespace charges {
         }
     }
 }
-
-export default charges;

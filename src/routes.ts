@@ -1,7 +1,9 @@
 import express from "express";
-import charges from "./api/charges";
-import customers from "./api/customers";
-import disputes from "./api/disputes";
+import {auth} from "./api/auth";
+import {accounts} from "./api/accounts";
+import {charges} from "./api/charges";
+import {customers} from "./api/customers";
+import {disputes} from "./api/disputes";
 
 const routes = express.Router();
 
@@ -9,6 +11,23 @@ routes.get("/", (req, res) => {
     return res.status(200).json({
         message: "Hello world",
     });
+});
+
+routes.post("/v1/accounts", (req, res) => {
+    const account = accounts.create(getRequestAccountId(req), req.body);
+    return res.status(200).json(account);
+});
+
+routes.get("/v1/accounts/:id", (req, res) => {
+    accounts.retrieve("acct_default", req.params.id, auth.getCensoredAccessTokenFromRequest(req));
+    const account = accounts.retrieve(getRequestAccountId(req), req.params.id, auth.getCensoredAccessTokenFromRequest(req));
+    return res.status(200).json(account);
+});
+
+routes.delete("/v1/accounts/:id", (req, res) => {
+    accounts.retrieve("acct_default", req.params.id, auth.getCensoredAccessTokenFromRequest(req));
+    const account = accounts.del(getRequestAccountId(req), req.params.id);
+    return res.status(200).json(account);
 });
 
 routes.post("/v1/charges", (req, res) => {
@@ -97,6 +116,7 @@ routes.get("/v1/refunds/:id", (req, res) => {
 export function getRequestAccountId(req: express.Request): string {
     const connectAccountId = req.header("stripe-account");
     if (connectAccountId) {
+        accounts.retrieve("acct_default", connectAccountId, auth.getCensoredAccessTokenFromRequest(req));
         return connectAccountId;
     }
     return "acct_default";

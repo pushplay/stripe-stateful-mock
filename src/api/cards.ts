@@ -1,9 +1,8 @@
 import * as stripe from "stripe";
 import log = require("loglevel");
 import {generateId} from "./utils";
-import {AccountData} from "./AccountData";
 
-namespace cards {
+export namespace cards {
 
     export interface CardExtra {
         sourceToken: string;
@@ -141,5 +140,3 @@ namespace cards {
         return cardExtras[cardId];
     }
 }
-
-export default cards;

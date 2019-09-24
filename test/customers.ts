@@ -175,14 +175,17 @@ describe("customers", () => {
     ));
 
     it("supports Stripe-Account header (Connect account)", buildStripeParityTest(
-        async (stripeClient) => {
-            const params: stripe.customers.ICustomerCreationOptions =  {
-                source: "tok_visa"
-            };
+        async (stripeClient, mode) => {
+            let connectedAccountId: string;
+            if (mode === "live") {
+                chai.assert.isString(process.env["STRIPE_CONNECTED_ACCOUNT_ID"], "connected account ID is set");
+                connectedAccountId = process.env["STRIPE_CONNECTED_ACCOUNT_ID"];
+            } else {
+                const account = await stripeClient.accounts.create({type: "standard"});
+                connectedAccountId = account.id;
+            }
 
-            chai.assert.isString(process.env["STRIPE_CONNECTED_ACCOUNT_ID"], "connected account ID is set");
-
-            const customer = await stripeClient.customers.create(params, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
+            const customer = await stripeClient.customers.create({source: "tok_visa"}, {stripe_account: connectedAccountId});
 
             let retrieveError: any;
             try {
@@ -192,10 +195,10 @@ describe("customers", () => {
             }
             chai.assert.isDefined(retrieveError, "customer should not be in the account, but should be in the connected account");
 
-            const connectRetrieveCustomer = await stripeClient.customers.retrieve(customer.id, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
+            const connectRetrieveCustomer = await stripeClient.customers.retrieve(customer.id, {stripe_account: connectedAccountId});
             chai.assert.deepEqual(connectRetrieveCustomer, customer);
 
-            const connectRetrieveCard = await stripeClient.customers.retrieveSource(customer.id, customer.default_source as string, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]}) as stripe.cards.ICard;
+            const connectRetrieveCard = await stripeClient.customers.retrieveSource(customer.id, customer.default_source as string, {stripe_account: connectedAccountId}) as stripe.cards.ICard;
             chai.assert.equal(connectRetrieveCard.id, customer.default_source as string);
 
             return [customer, retrieveError, connectRetrieveCustomer, connectRetrieveCard];

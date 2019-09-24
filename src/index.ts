@@ -2,9 +2,9 @@ import express from "express";
 import bodyParser from "body-parser";
 import log = require("loglevel");
 import {routes} from "./routes";
-import StripeError from "./api/StripeError";
+import {StripeError} from "./api/StripeError";
 import {idempotencyRoute} from "./api/idempotency";
-import {authRoute} from "./api/auth";
+import {auth} from "./api/auth";
 
 if (process.env.hasOwnProperty("LOG_LEVEL")) {
     log.setLevel(process.env["LOG_LEVEL"] as any);
@@ -13,7 +13,7 @@ if (process.env.hasOwnProperty("LOG_LEVEL")) {
 const app = express();
 
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(authRoute);
+app.use(auth.authRoute);
 app.use(idempotencyRoute);
 app.use("/", routes);
 

@@ -141,6 +141,9 @@ describe("charges", () => {
             });
             chai.assert.isNull(charge.dispute, mode);
 
+            // Because the dispute is created after the charge is returned there's a race condition.
+            await new Promise((resolve => setTimeout(resolve)));
+
             const chargeGet = await stripeClient.charges.retrieve(charge.id);
             chai.assert.isString(chargeGet.dispute, mode);
             return [charge, chargeGet];
@@ -155,6 +158,9 @@ describe("charges", () => {
                 source: "tok_createDisputeInquiry"
             });
             chai.assert.isNull(charge.dispute, mode);
+
+            // Because the dispute is created after the charge is returned there's a race condition.
+            await new Promise((resolve => setTimeout(resolve)));
 
             const chargeGet = await stripeClient.charges.retrieve(charge.id);
             chai.assert.isString(chargeGet.dispute, mode);
@@ -243,8 +249,15 @@ describe("charges", () => {
     }));
 
     it("supports Stripe-Account header (Connect account)", buildStripeParityTest(
-        async stripeClient => {
-            chai.assert.isString(process.env["STRIPE_CONNECTED_ACCOUNT_ID"], "connected account ID is set");
+        async (stripeClient, mode) => {
+            let connectedAccountId: string;
+            if (mode === "live") {
+                chai.assert.isString(process.env["STRIPE_CONNECTED_ACCOUNT_ID"], "connected account ID is set");
+                connectedAccountId = process.env["STRIPE_CONNECTED_ACCOUNT_ID"];
+            } else {
+                const account = await stripeClient.accounts.create({type: "standard"});
+                connectedAccountId = account.id;
+            }
 
             const charge = await stripeClient.charges.create(
                 {
@@ -253,7 +266,7 @@ describe("charges", () => {
                     source: "tok_visa"
                 },
                 {
-                    stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]
+                    stripe_account: connectedAccountId
                 }
             );
 
@@ -265,7 +278,7 @@ describe("charges", () => {
             }
             chai.assert.isDefined(retrieveError, "charge should not be in the account, but should be in the connected account");
 
-            const connectRetrieveCharge = await stripeClient.charges.retrieve(charge.id, {stripe_account: process.env["STRIPE_CONNECTED_ACCOUNT_ID"]});
+            const connectRetrieveCharge = await stripeClient.charges.retrieve(charge.id, {stripe_account: connectedAccountId});
             chai.assert.deepEqual(connectRetrieveCharge, charge);
 
             return [charge, retrieveError, connectRetrieveCharge];
@@ -537,13 +550,16 @@ describe("charges", () => {
         it("does not confused two Connected accounts", async () => {
             const idempotencyKey = generateId();
 
+            const account1 = await localStripeClient.accounts.create({type: "standard"});
+            const account2 = await localStripeClient.accounts.create({type: "standard"});
+
             await localStripeClient.charges.create({
                 amount: 1000,
                 currency: "usd",
                 source: "tok_visa"
             }, {
                 idempotency_key: idempotencyKey,
-                stripe_account: "acct_uno"
+                stripe_account: account1.id
             });
 
             await localStripeClient.charges.create({
@@ -552,7 +568,7 @@ describe("charges", () => {
                 source: "tok_visa"
             }, {
                 idempotency_key: idempotencyKey,
-                stripe_account: "acct_dos"
+                stripe_account: account2.id
             });
         });
     });
