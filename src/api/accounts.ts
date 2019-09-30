@@ -26,7 +26,7 @@ export namespace accounts {
             });
         }
 
-        const connectedAccountId = `acct_${generateId(16)}`;
+        const connectedAccountId = (params as any).id || `acct_${generateId(16)}`;
         const now = new Date();
         const account: stripe.accounts.IAccount & any = {   // The d.ts is out of date on this object and I don't want to bother.
             id: connectedAccountId,

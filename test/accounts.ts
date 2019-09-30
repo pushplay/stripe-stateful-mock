@@ -33,6 +33,18 @@ describe("accounts", () => {
         chai.assert.equal(getError.type, "StripePermissionError");
     });
 
+    it("can create an account with a specific ID", async () => {
+        const accountReq: any = {
+            type: "standard",
+            id: generateId()    // This does not work in the live server.
+        };
+        const account = await localStripeClient.accounts.create(accountReq);
+        chai.assert.equal(account.id, accountReq.id);
+
+        const getAccount = await localStripeClient.accounts.retrieve(account.id);
+        chai.assert.deepEqual(getAccount, account);
+    });
+
     it("cannot create an account from a connect account", async () => {
         const account = await localStripeClient.accounts.create({type: "standard"});
         chai.assert.isString(account.id);
