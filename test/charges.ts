@@ -255,7 +255,7 @@ describe("charges", () => {
                 chai.assert.isString(process.env["STRIPE_CONNECTED_ACCOUNT_ID"], "connected account ID is set");
                 connectedAccountId = process.env["STRIPE_CONNECTED_ACCOUNT_ID"];
             } else {
-                const account = await stripeClient.accounts.create({type: "standard"});
+                const account = await stripeClient.accounts.create({type: "custom"});
                 connectedAccountId = account.id;
             }
 
@@ -550,8 +550,8 @@ describe("charges", () => {
         it("does not confused two Connected accounts", async () => {
             const idempotencyKey = generateId();
 
-            const account1 = await localStripeClient.accounts.create({type: "standard"});
-            const account2 = await localStripeClient.accounts.create({type: "standard"});
+            const account1 = await localStripeClient.accounts.create({type: "custom"});
+            const account2 = await localStripeClient.accounts.create({type: "custom"});
 
             await localStripeClient.charges.create({
                 amount: 1000,
