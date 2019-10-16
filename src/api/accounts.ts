@@ -127,6 +127,25 @@ export namespace accounts {
             type: params.type
         };
         accounts[connectedAccountId] = account;
+
+        if (params.type as any === "standard") {
+            // Can't create standard accounts in the real API but this is a useful thing for
+            // a mock server to do.  Standard accounts are missing these properties.
+            delete account.company;
+            delete account.created;
+            delete account.external_accounts;
+            delete account.individual;
+            delete account.requirements;
+            delete account.tos_acceptance;
+        }
+        if (params.type as any === "express") {
+            // Can't create express accounts in the real API but this is a useful thing for
+            // a mock server to do.  Express accounts are missing these properties.
+            delete account.company;
+            delete account.individual;
+            delete account.tos_acceptance;
+        }
+
         return account;
     }
 
