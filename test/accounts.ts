@@ -127,4 +127,13 @@ describe("accounts", () => {
         chai.assert.equal(delError.rawType, "invalid_request_error");
         chai.assert.equal(delError.type, "StripePermissionError");
     });
+
+    it("can list accounts", async () => {
+        const listStart = await localStripeClient.accounts.list();
+
+        const anotherAccount = await localStripeClient.accounts.create({type: "custom"});
+        const listOneMore = await localStripeClient.accounts.list();
+        chai.assert.lengthOf(listOneMore.data, listStart.data.length + 1);
+        chai.assert.deepInclude(listOneMore.data, anotherAccount);
+    });
 });

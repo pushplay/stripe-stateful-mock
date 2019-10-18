@@ -1,6 +1,6 @@
 import * as stripe from "stripe";
 import log = require("loglevel");
-import {generateId} from "./utils";
+import {applyListOptions, generateId} from "./utils";
 import {StripeError} from "./StripeError";
 
 export namespace accounts {
@@ -166,6 +166,11 @@ export namespace accounts {
             });
         }
         return accounts[connectedAccountId];
+    }
+
+    export function list(accountId: string, params: stripe.IListOptions): stripe.IList<stripe.accounts.IAccount> {
+        let data = Object.values(accounts);
+        return applyListOptions(data, params, (id, paramName) => retrieve(accountId, id, paramName));
     }
 
     export function del(accountId: string, connectedAccountId: string): stripe.IDeleteConfirmation {

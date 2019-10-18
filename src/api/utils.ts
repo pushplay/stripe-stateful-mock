@@ -17,7 +17,7 @@ export function stringifyMetadata(metadata?: {[key: string]: string | number}): 
     return resp;
 }
 
-export function applyListOptions<T extends {id: string, created: number}>(data: T[], params: stripe.IListOptions, retriever: (id: string, paramName: string) => T): stripe.IList<T> {
+export function applyListOptions<T extends {id: string}>(data: T[], params: stripe.IListOptions, retriever: (id: string, paramName: string) => T): stripe.IList<T> {
     let hasMore = false;
     if (params.starting_after) {
         const startingAfter = retriever(params.starting_after, "starting_after");

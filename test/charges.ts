@@ -289,33 +289,33 @@ describe("charges", () => {
         // Create a fresh account to get a clean slate.
         const account = await localStripeClient.accounts.create({type: "custom"});
 
-        const list0 = await localStripeClient.customers.list({stripe_account: account.id});
-        chai.assert.lengthOf(list0.data, 0);
+        const listEmpty = await localStripeClient.customers.list({stripe_account: account.id});
+        chai.assert.lengthOf(listEmpty.data, 0);
 
         const charge0 = await localStripeClient.charges.create({
             amount: 1234,
             currency: "usd",
             source: "tok_visa"
         }, {stripe_account: account.id});
-        const list1 = await localStripeClient.charges.list({stripe_account: account.id});
-        chai.assert.lengthOf(list1.data, 1);
-        chai.assert.sameDeepMembers(list1.data, [charge0]);
+        const listOne = await localStripeClient.charges.list({stripe_account: account.id});
+        chai.assert.lengthOf(listOne.data, 1);
+        chai.assert.sameDeepMembers(listOne.data, [charge0]);
 
         const charge1 = await localStripeClient.charges.create({
             amount: 5678,
             currency: "usd",
             source: "tok_visa"
         }, {stripe_account: account.id});
-        const list2 = await localStripeClient.charges.list({stripe_account: account.id});
-        chai.assert.lengthOf(list2.data, 2);
-        chai.assert.sameDeepMembers(list2.data, [charge1, charge0]);
+        const listTwo = await localStripeClient.charges.list({stripe_account: account.id});
+        chai.assert.lengthOf(listTwo.data, 2);
+        chai.assert.sameDeepMembers(listTwo.data, [charge1, charge0]);
 
-        const list3 = await localStripeClient.charges.list({limit: 1}, {stripe_account: account.id});
-        chai.assert.lengthOf(list3.data, 1);
+        const listLimit1 = await localStripeClient.charges.list({limit: 1}, {stripe_account: account.id});
+        chai.assert.lengthOf(listLimit1.data, 1);
 
-        const list4 = await localStripeClient.charges.list({limit: 1, starting_after: list3.data[0].id}, {stripe_account: account.id});
-        chai.assert.lengthOf(list3.data, 1);
-        chai.assert.sameDeepMembers([...list4.data, ...list3.data], list2.data);
+        const listLimit2 = await localStripeClient.charges.list({limit: 1, starting_after: listLimit1.data[0].id}, {stripe_account: account.id});
+        chai.assert.lengthOf(listLimit1.data, 1);
+        chai.assert.sameDeepMembers([...listLimit2.data, ...listLimit1.data], listTwo.data);
     });
 
     describe("unofficial token support", () => {

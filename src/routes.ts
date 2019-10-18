@@ -19,6 +19,11 @@ routes.post("/v1/accounts", (req, res) => {
     return res.status(200).json(account);
 });
 
+routes.get("/v1/accounts", (req, res) => {
+    const accountList = accounts.list(getRequestAccountId(req), req.query);
+    return res.status(200).json(accountList);
+});
+
 routes.get("/v1/accounts/:id", (req, res) => {
     accounts.retrieve("acct_default", req.params.id, auth.getCensoredAccessTokenFromRequest(req));
     const account = accounts.retrieve(getRequestAccountId(req), req.params.id, auth.getCensoredAccessTokenFromRequest(req));
