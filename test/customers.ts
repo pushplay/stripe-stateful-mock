@@ -205,6 +205,31 @@ describe("customers", () => {
         }
     ));
 
+    it("can list customers", async () => {
+        // Create a fresh account to get a clean slate.
+        const account = await localStripeClient.accounts.create({type: "custom"});
+
+        const list0 = await localStripeClient.customers.list({stripe_account: account.id});
+        chai.assert.lengthOf(list0.data, 0);
+
+        const customer0 = await localStripeClient.customers.create({email: "luser0@example.com"}, {stripe_account: account.id});
+        const list1 = await localStripeClient.customers.list({stripe_account: account.id});
+        chai.assert.lengthOf(list1.data, 1);
+        chai.assert.sameDeepMembers(list1.data, [customer0]);
+
+        const charge1 = await localStripeClient.customers.create({email: "luser1@example.com"}, {stripe_account: account.id});
+        const list2 = await localStripeClient.customers.list({stripe_account: account.id});
+        chai.assert.lengthOf(list2.data, 2);
+        chai.assert.sameDeepMembers(list2.data, [charge1, customer0]);
+
+        const list3 = await localStripeClient.customers.list({limit: 1}, {stripe_account: account.id});
+        chai.assert.lengthOf(list3.data, 1);
+
+        const list4 = await localStripeClient.customers.list({limit: 1, starting_after: list3.data[0].id}, {stripe_account: account.id});
+        chai.assert.lengthOf(list3.data, 1);
+        chai.assert.sameDeepMembers([...list4.data, ...list3.data], list2.data);
+    });
+
     describe("unofficial token support", () => {
         describe("tok_forget", () => {
             it("forgets the customer when specified on customer create", async () => {

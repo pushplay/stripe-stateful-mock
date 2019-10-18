@@ -31,6 +31,11 @@ routes.delete("/v1/accounts/:id", (req, res) => {
     return res.status(200).json(account);
 });
 
+routes.get("/v1/charges", (req, res) => {
+    const chargeList = charges.list(getRequestAccountId(req), req.query);
+    return res.status(200).json(chargeList);
+});
+
 routes.post("/v1/charges", (req, res) => {
     const charge = charges.create(getRequestAccountId(req), req.body);
     return res.status(200).json(charge);
@@ -60,6 +65,11 @@ routes.get("/v1/charges/:id/refunds", (req, res) => {
 routes.post("/v1/customers", (req, res) => {
     const customer = customers.create(getRequestAccountId(req), req.body);
     return res.status(200).json(customer);
+});
+
+routes.get("/v1/customers", (req, res) => {
+    const customerList = customers.list(getRequestAccountId(req), req.query);
+    return res.status(200).json(customerList);
 });
 
 routes.get("/v1/customers/:id", (req, res) => {

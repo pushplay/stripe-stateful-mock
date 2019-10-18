@@ -3,7 +3,7 @@ import log = require("loglevel");
 import {AccountData} from "./AccountData";
 import {StripeError} from "./StripeError";
 import {disputes} from "./disputes";
-import {generateId, stringifyMetadata} from "./utils";
+import {applyListOptions, generateId, stringifyMetadata} from "./utils";
 import {charges} from "./charges";
 
 export namespace refunds {
@@ -113,36 +113,11 @@ export namespace refunds {
 
     export function list(accountId: string, params: stripe.refunds.IRefundListOptions): stripe.IList<stripe.refunds.IRefund> {
         log.debug("refunds.list", accountId, params);
-        let refunds: stripe.refunds.IRefund[] = accountRefunds.getAll(accountId);
-        let hasMore = false;
+
+        let data: stripe.refunds.IRefund[] = accountRefunds.getAll(accountId);
         if (params.charge) {
-            refunds = refunds.filter(refund => refund.charge === params.charge);
+            data = data.filter(d => d.charge === params.charge);
         }
-        if (params.starting_after) {
-            const startingAfter = retrieve(accountId, params.starting_after, "starting_after");
-            const startingAfterIx = refunds.indexOf(startingAfter);
-            refunds = refunds.slice(startingAfterIx + 1);
-            if (params.limit && refunds.length > params.limit) {
-                refunds = refunds.slice(0, params.limit);
-                hasMore = true;
-            }
-        } else if (params.ending_before) {
-            const endingBefore = retrieve(accountId, params.ending_before, "ending_before");
-            const endingBeforeIx = refunds.indexOf(endingBefore);
-            refunds = refunds.slice(0, endingBeforeIx);
-            if (params.limit && refunds.length > params.limit) {
-                refunds = refunds.slice(refunds.length - params.limit);
-                hasMore = true;
-            }
-        } else if (params.limit && refunds.length > params.limit) {
-            refunds = refunds.slice(0, params.limit);
-            hasMore = true;
-        }
-        return {
-            object: "list",
-            data: refunds,
-            has_more: hasMore,
-            url: "/v1/refunds"
-        };
+        return applyListOptions(data, params, (id, paramName) => retrieve(accountId, id, paramName));
     }
 }

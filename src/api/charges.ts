@@ -1,7 +1,7 @@
 import * as stripe from "stripe";
 import log = require("loglevel");
 import {StripeError} from "./StripeError";
-import {generateId, stringifyMetadata} from "./utils";
+import {applyListOptions, generateId, stringifyMetadata} from "./utils";
 import {getEffectiveSourceTokenFromChain, isSourceTokenChain} from "./sourceTokenChains";
 import {cards} from "./cards";
 import {AccountData} from "./AccountData";
@@ -155,6 +155,14 @@ export namespace charges {
             });
         }
         return charge;
+    }
+
+    export function list(accountId: string, params: stripe.charges.IChargeListOptions): stripe.IList<stripe.charges.ICharge> {
+        let data = accountCharges.getAll(accountId);
+        if (params.customer) {
+            data = data.filter(d => d.customer === params.customer);
+        }
+        return applyListOptions(data, params, (id, paramName) => retrieve(accountId, id, paramName));
     }
 
     export function update(accountId: string, chargeId: string, params: stripe.charges.IChargeUpdateOptions): stripe.charges.ICharge {

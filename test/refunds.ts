@@ -21,7 +21,8 @@ describe("refunds", () => {
                 charge: charge.id
             });
             const refundedCharge = await stripeClient.charges.retrieve(charge.id);
-            return [charge, refund, refundedCharge];
+            const retrievedRefund = await stripeClient.refunds.retrieve(refund.id);
+            return [charge, refund, refundedCharge, retrievedRefund];
         }
     ));
 

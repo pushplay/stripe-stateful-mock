@@ -285,6 +285,39 @@ describe("charges", () => {
         }
     ));
 
+    it("can list charges", async () => {
+        // Create a fresh account to get a clean slate.
+        const account = await localStripeClient.accounts.create({type: "custom"});
+
+        const list0 = await localStripeClient.customers.list({stripe_account: account.id});
+        chai.assert.lengthOf(list0.data, 0);
+
+        const charge0 = await localStripeClient.charges.create({
+            amount: 1234,
+            currency: "usd",
+            source: "tok_visa"
+        }, {stripe_account: account.id});
+        const list1 = await localStripeClient.charges.list({stripe_account: account.id});
+        chai.assert.lengthOf(list1.data, 1);
+        chai.assert.sameDeepMembers(list1.data, [charge0]);
+
+        const charge1 = await localStripeClient.charges.create({
+            amount: 5678,
+            currency: "usd",
+            source: "tok_visa"
+        }, {stripe_account: account.id});
+        const list2 = await localStripeClient.charges.list({stripe_account: account.id});
+        chai.assert.lengthOf(list2.data, 2);
+        chai.assert.sameDeepMembers(list2.data, [charge1, charge0]);
+
+        const list3 = await localStripeClient.charges.list({limit: 1}, {stripe_account: account.id});
+        chai.assert.lengthOf(list3.data, 1);
+
+        const list4 = await localStripeClient.charges.list({limit: 1, starting_after: list3.data[0].id}, {stripe_account: account.id});
+        chai.assert.lengthOf(list3.data, 1);
+        chai.assert.sameDeepMembers([...list4.data, ...list3.data], list2.data);
+    });
+
     describe("unofficial token support", () => {
         describe("tok_429", () => {
             it("throws a 429 error", async () => {
