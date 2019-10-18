@@ -22,14 +22,13 @@ export namespace customers {
         }
 
         const customerId = (params as any).id || `cus_${generateId(14)}`;
-        const now = new Date();
         const customer: stripe.customers.ICustomer = {
             id: customerId,
             object: "customer",
             account_balance: +params.account_balance || +params.balance || 0,
             address: params.address || null,
             balance: +params.balance || +params.account_balance || 0,
-            created: (now.getTime() / 1000) | 0,
+            created: (Date.now() / 1000) | 0,
             currency: null,
             default_source: null,
             delinquent: false,

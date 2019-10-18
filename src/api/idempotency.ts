@@ -8,6 +8,7 @@ import {getRequestAccountId} from "../routes";
 
 interface StoredRequest {
     id: string;
+    created: number;
     requestId: string;
     requestBody: any;
     responseCode: number;
@@ -46,6 +47,7 @@ export function idempotencyRoute(req: express.Request, res: express.Response, ne
     } else {
         const storedRequest: StoredRequest = {
             id: storedRequestKey,
+            created: (Date.now() / 1000) | 0,
             requestId: "req_" + generateId(14),
             requestBody: req.body,
             responseCode: 0,

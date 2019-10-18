@@ -4,6 +4,7 @@ import {accounts} from "./api/accounts";
 import {charges} from "./api/charges";
 import {customers} from "./api/customers";
 import {disputes} from "./api/disputes";
+import {refunds} from "./api/refunds";
 
 const routes = express.Router();
 
@@ -52,8 +53,8 @@ routes.post("/v1/charges/:id/capture", (req, res) => {
 
 // Old API.
 routes.get("/v1/charges/:id/refunds", (req, res) => {
-    const refunds = charges.listChargeRefunds(getRequestAccountId(req), req.params.id, req.body);
-    return res.status(200).json(refunds);
+    const refundList = refunds.list(getRequestAccountId(req), {...req.query, charge: req.params.id});
+    return res.status(200).json(refundList);
 });
 
 routes.post("/v1/customers", (req, res) => {
@@ -99,17 +100,17 @@ routes.get("/v1/disputes/:id", (req, res) => {
 });
 
 routes.post("/v1/refunds", (req, res) => {
-    const refund = charges.createRefund(getRequestAccountId(req), req.body);
+    const refund = refunds.create(getRequestAccountId(req), req.body);
     return res.status(200).json(refund);
 });
 
 routes.get("/v1/refunds", (req, res) => {
-    const refunds = charges.listRefunds(getRequestAccountId(req), req.body);
-    return res.status(200).json(refunds);
+    const refundList = refunds.list(getRequestAccountId(req), req.query);
+    return res.status(200).json(refundList);
 });
 
 routes.get("/v1/refunds/:id", (req, res) => {
-    const refund = charges.retrieveRefund(getRequestAccountId(req), req.params.id, "id");
+    const refund = refunds.retrieve(getRequestAccountId(req), req.params.id, "id");
     return res.status(200).json(refund);
 });
 

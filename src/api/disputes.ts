@@ -21,7 +21,6 @@ export namespace disputes {
         transactionAvailableDate.setHours(17);
         transactionAvailableDate.setMinutes(0, 0, -1);
 
-        const now = new Date();
         const disputeId = `dp_${generateId(24)}`;
         const disputeTxnId = `txn_${generateId(24)}`;
         const dispute: stripe.disputes.IDispute = {
@@ -34,7 +33,7 @@ export namespace disputes {
                     object: "balance_transaction",
                     amount: -charge.amount,
                     available_on: (transactionAvailableDate.getTime() / 1000) | 0,
-                    created: (now.getTime() / 1000) | 0,
+                    created: (Date.now() / 1000) | 0,
                     currency: charge.currency,
                     description: `Chargeback withdrawal for ${charge.id}`,
                     exchange_rate: null,
@@ -55,7 +54,7 @@ export namespace disputes {
                 }
             ],
             charge: charge.id,
-            created: (now.getTime() / 1000) | 0,
+            created: (Date.now() / 1000) | 0,
             currency: charge.currency,
             evidence: {
                 access_activity_log: null,
