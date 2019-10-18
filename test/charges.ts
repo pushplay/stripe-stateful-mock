@@ -1,4 +1,4 @@
-import stripe, {charges} from "stripe";
+import * as stripe from "stripe";
 import chaiExclude from "chai-exclude";
 import {getLocalStripeClient} from "./stripeUtils";
 import {assertErrorsAreEqual} from "./stripeAssert";
@@ -284,6 +284,39 @@ describe("charges", () => {
             return [charge, retrieveError, connectRetrieveCharge];
         }
     ));
+
+    it("can list charges", async () => {
+        // Create a fresh account to get a clean slate.
+        const account = await localStripeClient.accounts.create({type: "custom"});
+
+        const listEmpty = await localStripeClient.customers.list({stripe_account: account.id});
+        chai.assert.lengthOf(listEmpty.data, 0);
+
+        const charge0 = await localStripeClient.charges.create({
+            amount: 1234,
+            currency: "usd",
+            source: "tok_visa"
+        }, {stripe_account: account.id});
+        const listOne = await localStripeClient.charges.list({stripe_account: account.id});
+        chai.assert.lengthOf(listOne.data, 1);
+        chai.assert.sameDeepMembers(listOne.data, [charge0]);
+
+        const charge1 = await localStripeClient.charges.create({
+            amount: 5678,
+            currency: "usd",
+            source: "tok_visa"
+        }, {stripe_account: account.id});
+        const listTwo = await localStripeClient.charges.list({stripe_account: account.id});
+        chai.assert.lengthOf(listTwo.data, 2);
+        chai.assert.sameDeepMembers(listTwo.data, [charge1, charge0]);
+
+        const listLimit1 = await localStripeClient.charges.list({limit: 1}, {stripe_account: account.id});
+        chai.assert.lengthOf(listLimit1.data, 1);
+
+        const listLimit2 = await localStripeClient.charges.list({limit: 1, starting_after: listLimit1.data[0].id}, {stripe_account: account.id});
+        chai.assert.lengthOf(listLimit1.data, 1);
+        chai.assert.sameDeepMembers([...listLimit2.data, ...listLimit1.data], listTwo.data);
+    });
 
     describe("unofficial token support", () => {
         describe("tok_429", () => {
@@ -761,184 +794,6 @@ describe("charges", () => {
                 }
 
                 return [charge, voidError];
-            }
-        ));
-    });
-
-    describe("refund", () => {
-        it("can refund a whole charge", buildStripeParityTest(
-            async stripeClient => {
-                const charge = await stripeClient.charges.create({
-                    amount: 4300,
-                    currency: "usd",
-                    source: "tok_visa",
-                });
-                const refund = await stripeClient.refunds.create({
-                    charge: charge.id
-                });
-                const refundedCharge = await stripeClient.charges.retrieve(charge.id);
-                return [charge, refund, refundedCharge];
-            }
-        ));
-
-        it("can partial refund a charge", buildStripeParityTest(
-            async stripeClient => {
-                const charge = await stripeClient.charges.create({
-                    amount: 4300,
-                    currency: "usd",
-                    source: "tok_visa",
-                });
-                const refund = await stripeClient.refunds.create({
-                    charge: charge.id,
-                    amount: 1200
-                });
-                const refundedCharge = await stripeClient.charges.retrieve(charge.id);
-                return [charge, refund, refundedCharge];
-            }
-        ));
-
-        it("can partial refund then whole refund a charge", buildStripeParityTest(
-            async stripeClient => {
-                const charge = await stripeClient.charges.create({
-                    amount: 4300,
-                    currency: "usd",
-                    source: "tok_visa",
-                });
-                const refund1 = await stripeClient.refunds.create({
-                    charge: charge.id,
-                    amount: 1200,
-                    metadata: {
-                        extra: "info"
-                    }
-                });
-                const refund2 = await stripeClient.refunds.create({
-                    charge: charge.id,
-                    metadata: {
-                        extra: "even more info"
-                    }
-                });
-                const refundedCharge = await stripeClient.charges.retrieve(charge.id);
-                return [charge, refund1, refund2, refundedCharge];
-            }
-        ));
-
-        it("can refund a charge with metadata and a reason", buildStripeParityTest(
-            async stripeClient => {
-                const charge = await stripeClient.charges.create({
-                    amount: 4300,
-                    currency: "usd",
-                    source: "tok_visa",
-                });
-                const refund = await stripeClient.refunds.create({
-                    charge: charge.id,
-                    reason: "fraudulent",
-                    metadata: {
-                        extra: "info"
-                    }
-                });
-                const refundedCharge = await stripeClient.charges.retrieve(charge.id);
-                return [charge, refund, refundedCharge];
-            }
-        ));
-
-        it("can refund a captured charge", buildStripeParityTest(
-            async stripeClient => {
-                const charge = await stripeClient.charges.create({
-                    amount: 4300,
-                    currency: "usd",
-                    source: "tok_visa",
-                    capture: false
-                });
-                const capture = await stripeClient.charges.capture(charge.id, {amount: 1300});
-                const refund = await stripeClient.refunds.create({
-                    charge: charge.id,
-                    reason: "fraudulent",
-                    metadata: {
-                        extra: "info"
-                    }
-                });
-                const refundedCharge = await stripeClient.charges.retrieve(charge.id);
-                return [charge, capture, refund, refundedCharge];
-            }
-        ));
-
-        it("can't refund a non-existent charge", buildStripeParityTest(
-            async stripeClient => {
-                let refundError: any = null;
-                try {
-                    await stripeClient.refunds.create({charge: generateId()});
-                } catch (err) {
-                    refundError = err;
-                }
-                return [refundError];
-            }
-        ));
-
-        it("can't refund more than the amount on the charge", buildStripeParityTest(
-            async stripeClient => {
-                const charge = await stripeClient.charges.create({
-                    amount: 4300,
-                    currency: "usd",
-                    source: "tok_visa"
-                });
-
-                let refundError: any = null;
-                try {
-                    await stripeClient.refunds.create({charge: charge.id, amount: 4500});
-                } catch (err) {
-                    refundError = err;
-                }
-                return [charge, refundError];
-            }
-        ));
-
-        it("can't refund an already refunded charge", buildStripeParityTest(
-            async stripeClient => {
-                const charge = await stripeClient.charges.create({
-                    amount: 4300,
-                    currency: "usd",
-                    source: "tok_visa"
-                });
-
-                const refund = await stripeClient.refunds.create({charge: charge.id});
-
-                let refundError: any = null;
-                try {
-                    await stripeClient.refunds.create({charge: charge.id});
-                } catch (err) {
-                    refundError = err;
-                }
-                return [charge, refund, refundError];
-            }
-        ));
-
-        it("can't refund a disputed charge with is_charge_refundable=false", buildStripeParityTest(
-            async stripeClient => {
-                const charge = await stripeClient.charges.create({
-                    amount: 4300,
-                    currency: "usd",
-                    source: "tok_createDispute"
-                });
-
-                let refundError: any = null;
-                try {
-                    await stripeClient.refunds.create({charge: charge.id});
-                } catch (err) {
-                    refundError = err;
-                }
-                return [charge, refundError];
-            }
-        ));
-
-        it("can refund a disputed charge with is_charge_refundable=true", buildStripeParityTest(
-            async stripeClient => {
-                const charge = await stripeClient.charges.create({
-                    amount: 4300,
-                    currency: "usd",
-                    source: "tok_createDisputeInquiry"
-                });
-                const refund = await stripeClient.refunds.create({charge: charge.id});
-                return [charge, refund];
             }
         ));
     });

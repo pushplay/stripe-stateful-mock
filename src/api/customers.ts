@@ -1,7 +1,7 @@
 import * as stripe from "stripe";
 import log = require("loglevel");
 import {StripeError} from "./StripeError";
-import {generateId, stringifyMetadata} from "./utils";
+import {applyListOptions, generateId, stringifyMetadata} from "./utils";
 import {cards} from "./cards";
 import {AccountData} from "./AccountData";
 
@@ -22,14 +22,13 @@ export namespace customers {
         }
 
         const customerId = (params as any).id || `cus_${generateId(14)}`;
-        const now = new Date();
         const customer: stripe.customers.ICustomer = {
             id: customerId,
             object: "customer",
             account_balance: +params.account_balance || +params.balance || 0,
             address: params.address || null,
             balance: +params.balance || +params.account_balance || 0,
-            created: (now.getTime() / 1000) | 0,
+            created: (Date.now() / 1000) | 0,
             currency: null,
             default_source: null,
             delinquent: false,
@@ -99,6 +98,14 @@ export namespace customers {
             });
         }
         return customer;
+    }
+
+    export function list(accountId: string, params: stripe.customers.ICustomerListOptions): stripe.IList<stripe.customers.ICustomer> {
+        let data = accountCustomers.getAll(accountId);
+        if (params.email) {
+            data = data.filter(d => d.email === params.email);
+        }
+        return applyListOptions(data, params, (id, paramName) => retrieve(accountId, id, paramName));
     }
 
     export function update(accountId: string, customerId: string, params: stripe.customers.ICustomerUpdateOptions) {

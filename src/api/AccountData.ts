@@ -1,4 +1,4 @@
-export class AccountData<T extends {id: string}> {
+export class AccountData<T extends {id: string, created: number}> {
 
     private data: {[accountId: string]: {[id: string]: T}} = {};
 
@@ -12,7 +12,9 @@ export class AccountData<T extends {id: string}> {
         if (!this.data[accountId]) {
             return [];
         }
-        return Object.keys(this.data[accountId]).map(key => this.data[accountId][key]);
+        return Object.keys(this.data[accountId])
+            .map(key => this.data[accountId][key])
+            .sort((a, b) => b.created - a.created);
     }
 
     contains(accountId: string, objectId: string): boolean {
