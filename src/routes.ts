@@ -5,6 +5,7 @@ import {charges} from "./api/charges";
 import {customers} from "./api/customers";
 import {disputes} from "./api/disputes";
 import {refunds} from "./api/refunds";
+import {subscriptions} from "./api/subscriptions"
 
 const routes = express.Router();
 
@@ -87,6 +88,26 @@ routes.post("/v1/customers/:id", (req, res) => {
     return res.status(200).json(customer);
 });
 
+routes.post("/v1/subscriptions", (req, res) => {
+    const subscription = subscriptions.create(getRequestAccountId(req), req.body);
+    return res.status(200).json(subscription);
+});
+
+routes.get("/v1/subscriptions", (req, res) => {
+    const subscriptionList = subscriptions.list(getRequestAccountId(req), req.query);
+    return res.status(200).json(subscriptionList);
+});
+
+routes.get("/v1/subscriptions/:id", (req, res) => {
+    const subscription = subscriptions.retrieve(getRequestAccountId(req), req.params.id, "id");
+    return res.status(200).json(subscription);
+});
+
+routes.post("/v1/subscriptions/:id", (req, res) => {
+    const subscription = subscriptions.update(getRequestAccountId(req), req.params.id, req.body);
+    return res.status(200).json(subscription);
+})
+
 // Old API.
 routes.get("/v1/customers/:customerId/cards/:cardId", (req, res) => {
     const card = customers.retrieveCard(getRequestAccountId(req), req.params.customerId, req.params.cardId, "card");
@@ -128,6 +149,17 @@ routes.get("/v1/refunds/:id", (req, res) => {
     const refund = refunds.retrieve(getRequestAccountId(req), req.params.id, "id");
     return res.status(200).json(refund);
 });
+
+// TODO: add /v1/subscriptions
+
+routes.all('*', (req, res) => {
+    return res.status(404).json({
+        error: {
+            type: 'invalid_request_error',
+            message: '404 Not Found, ' + req.path
+        }
+    })
+})
 
 export function getRequestAccountId(req: express.Request): string {
     const connectAccountId = req.header("stripe-account");
