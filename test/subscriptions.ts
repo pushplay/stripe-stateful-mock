@@ -93,7 +93,15 @@ describe("subscriptions", function () {
                 5
             );
 
-            return [updated, subscriptionGet]
+            const customerGet = await stripeClient.customers
+                .retrieve(customer.id)
+
+            chai.assert.equal(
+                customerGet.subscriptions.data[0].quantity,
+                5
+            );
+
+            return [updated, subscriptionGet, customerGet]
         }
     ))
 
@@ -107,7 +115,7 @@ describe("subscriptions", function () {
                     customer: customer.id,
                     items: [{
                         plan: TEST_PLAN,
-                        quantity: 1
+                        quantity: 2
                     }]
                 })
 
@@ -118,6 +126,10 @@ describe("subscriptions", function () {
             chai.assert.equal(
                 customerGet.subscriptions.data[0].id,
                 subscription.id
+            );
+            chai.assert.equal(
+                customerGet.subscriptions.data[0].quantity,
+                2
             );
 
             return [customerGet]

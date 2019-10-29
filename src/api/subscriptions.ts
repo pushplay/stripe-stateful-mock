@@ -52,6 +52,12 @@ export namespace subscriptions {
         const now = Math.floor((Date.now() / 1000))
         const nextMonth = new Date()
         nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+        let paramQuantity = +params.quantity
+        if (!params.quantity && params.items.length === 1) {
+            paramQuantity = +params.items[0].quantity
+        }
+
         const subscription: stripe.subscriptions.ISubscription = {
             id: subscriptionId,
             object: "subscription",
@@ -85,7 +91,7 @@ export namespace subscriptions {
             livemode: false,
             metadata: stringifyMetadata(params.metadata),
             plan: createPlanObj(plan),
-            quantity: +params.quantity || 1,
+            quantity: paramQuantity || 1,
             start: Math.floor(Date.now() / 1000),
             start_date: Math.floor(Date.now() / 1000),
             status: 'active',
