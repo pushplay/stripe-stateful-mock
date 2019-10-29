@@ -108,6 +108,22 @@ routes.post("/v1/subscriptions/:id", (req, res) => {
     return res.status(200).json(subscription);
 })
 
+routes.get("/v1/subscription_items", (req, res) => {
+    const subscriptionItemList = subscriptions.listItem(getRequestAccountId(req), req.query);
+    return res.status(200).json(subscriptionItemList);
+});
+
+routes.get("/v1/subscription_items/:id", (req, res) => {
+    const subscriptionItem = subscriptions.retrieveItem(getRequestAccountId(req), req.params.id, "id");
+    return res.status(200).json(subscriptionItem);
+});
+
+routes.post("/v1/subscription_items/:id", (req, res) => {
+    const subscriptionItem = subscriptions.updateItem(getRequestAccountId(req), req.params.id, req.body);
+    return res.status(200).json(subscriptionItem);
+});
+
+
 // Old API.
 routes.get("/v1/customers/:customerId/cards/:cardId", (req, res) => {
     const card = customers.retrieveCard(getRequestAccountId(req), req.params.customerId, req.params.cardId, "card");

@@ -38,6 +38,7 @@ export type ComparableStripeObject = Error
     | Stripe.charges.ICharge
     | Stripe.customers.ICustomer
     | Stripe.subscriptions.ISubscription
+    | Stripe.subscriptionItems.ISubscriptionItem
     | Stripe.disputes.IDispute
     | Stripe.paymentIntents.IPaymentIntent
     | Stripe.refunds.IRefund;
@@ -71,6 +72,9 @@ export function assertObjectsAreBasicallyEqual(actual: ComparableStripeObject, e
             break;
         case "subscription":
             assertSubscriptionsAreBasicallyEqual(actual as Stripe.subscriptions.ISubscription, expected as Stripe.subscriptions.ISubscription, message);
+            break;
+        case "subscription_item":
+            assertSubscriptionItemsAreBasicallyEqual(actual as Stripe.subscriptionItems.ISubscriptionItem, expected as Stripe.subscriptionItems.ISubscriptionItem, message);
             break;
         case "dispute":
             assertDisputesAreBasicallyEqual(actual as Stripe.disputes.IDispute, expected as Stripe.disputes.IDispute, message);
@@ -153,19 +157,17 @@ export function assertSubscriptionsAreBasicallyEqual(
     expected: Stripe.subscriptions.ISubscription,
     message?: string
 ): void {
-    assertEqualOnKeys(
-        actual, expected, [
-            "object", "application_fee_percent", "billing",
-            "collection_method",
-            "billing_thresholds", "cancel_at", "cancel_at_period_end",
-            "canceled_at",
-            "days_until_due", "default_payment_method",
-            "default_source", "discount", "ended_at",
-            "livemode", "metadata",
-            "quantity", "status",
-            "tax_percent", "trial_end", "trial_start"
-        ], message
-    )
+    assertEqualOnKeys(actual, expected, [
+        "object", "application_fee_percent", "billing",
+        "collection_method",
+        "billing_thresholds", "cancel_at", "cancel_at_period_end",
+        "canceled_at",
+        "days_until_due", "default_payment_method",
+        "default_source", "discount", "ended_at",
+        "livemode", "metadata",
+        "quantity", "status",
+        "tax_percent", "trial_end", "trial_start"
+    ], message)
     assertSetOrUnsetOnKeys(actual, expected, [
         "id", "items", "plan", "billing_cycle_anchor", "created",
         "current_period_end", "current_period_start", "customer",
@@ -177,7 +179,35 @@ export function assertSubscriptionsAreBasicallyEqual(
     for (let itemIx = 0; itemIx < expected.items.total_count; itemIx++) {
         chai.assert.equal(actual.items.data[itemIx].object, "subscription_item")
         chai.assert.equal(expected.items.data[itemIx].object, "subscription_item")
+        chai.assert.equal(
+            actual.items.data[itemIx].subscription, actual.id
+        )
+        chai.assert.equal(
+            expected.items.data[itemIx].subscription, expected.id
+        )
+
+        assertSubscriptionItemsAreBasicallyEqual(
+            actual.items.data[itemIx],
+            expected.items.data[itemIx],
+            message
+        )
     }
+    chai.assert.ok(actual.plan.id)
+    chai.assert.ok(expected.plan.id)
+}
+
+export function assertSubscriptionItemsAreBasicallyEqual(
+    actual: Stripe.subscriptionItems.ISubscriptionItem,
+    expected: Stripe.subscriptionItems.ISubscriptionItem,
+    message: string
+): void {
+    assertEqualOnKeys(actual, expected, [
+        "object", "billing_thresholds", "metadata", "quantity"
+    ], message)
+    assertSetOrUnsetOnKeys(actual, expected, [
+        "created", "subscription", "plan"
+    ], message)
+
     chai.assert.ok(actual.plan.id)
     chai.assert.ok(expected.plan.id)
 }

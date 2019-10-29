@@ -12,7 +12,7 @@ describe("subscriptions", function () {
 
     this.timeout(30 * 1000);
 
-    it.skip("supports basic creation with no params", buildStripeParityTest(
+    it("supports basic creation with no params", buildStripeParityTest(
         async (stripeClient) => {
             const customer = await stripeClient
                 .customers.create({
@@ -44,12 +44,11 @@ describe("subscriptions", function () {
         }
     ))
 
-    it("supports updating the quantity", buildStripeParityTest(
+    it("supports getting the subscriptionItem", buildStripeParityTest(
         async (stripeClient) => {
             const customer = await stripeClient.customers.create({
                 source: "tok_visa"
             })
-            console.log('attempt create')
             const subscription = await stripeClient.subscriptions
                 .create({
                     customer: customer.id,
@@ -59,18 +58,40 @@ describe("subscriptions", function () {
                     }]
                 })
 
-            console.log('attempt update')
-            const updated = await stripeClient.subscriptions
-                .update(subscription.id, {
+            const siGet = await stripeClient.subscriptionItems
+                .retrieve(subscription.items.data[0].id)
+
+            return [siGet]
+        }
+    ))
+
+    it("supports updating the quantity", buildStripeParityTest(
+        async (stripeClient) => {
+            const customer = await stripeClient.customers.create({
+                source: "tok_visa"
+            })
+            const subscription = await stripeClient.subscriptions
+                .create({
+                    customer: customer.id,
                     items: [{
-                        quantity: 5
+                        plan: TEST_PLAN,
+                        quantity: 1
                     }]
                 })
+
+            const si = subscription.items.data[0]
+            const updated = await stripeClient.subscriptionItems
+                .update(si.id, {
+                    quantity: 5
+                });
 
             const subscriptionGet = await stripeClient.subscriptions
                 .retrieve(subscription.id);
 
-            chai.assert.equal(subscriptionGet.items.data[0].quantity, 5);
+            chai.assert.equal(
+                subscriptionGet.items.data[0].quantity,
+                5
+            );
 
             return [updated, subscriptionGet]
         }
@@ -93,10 +114,11 @@ describe("subscriptions", function () {
             const customerGet = await stripeClient.customers
                 .retrieve(customer.id);
 
-            console.log("customerGet", customerGet);
-
             chai.assert.equal(customerGet.subscriptions.total_count, 1)
-            chai.assert.equal(customerGet.subscriptions.data[0].id, subscription.id);
+            chai.assert.equal(
+                customerGet.subscriptions.data[0].id,
+                subscription.id
+            );
 
             return [customerGet]
         }
