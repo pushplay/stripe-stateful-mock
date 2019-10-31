@@ -230,6 +230,16 @@ describe("charges", () => {
         }
     ));
 
+    it("checks required amount", buildChargeFailureParityTest({
+        currency: "usd",
+        source: "tok_visa"
+    } as any));
+
+    it("checks required currency", buildChargeFailureParityTest({
+        amount: 5000,
+        source: "tok_visa"
+    } as any));
+
     it("checks amount is positive", buildChargeFailureParityTest({
         amount: -1,
         currency: "usd",

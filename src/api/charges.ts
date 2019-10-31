@@ -1,7 +1,7 @@
 import * as stripe from "stripe";
 import log = require("loglevel");
 import {StripeError} from "./StripeError";
-import {applyListOptions, generateId, stringifyMetadata} from "./utils";
+import {applyListOptions, generateId, requireParams, stringifyMetadata} from "./utils";
 import {getEffectiveSourceTokenFromChain, isSourceTokenChain} from "./sourceTokenChains";
 import {cards} from "./cards";
 import {AccountData} from "./AccountData";
@@ -46,6 +46,7 @@ export namespace charges {
         log.debug("charges.create", accountId, params);
 
         handlePrechargeSpecialTokens(params.source);
+        requireParams(params, ["amount", "currency"]);
         if (params.amount < 1) {
             throw new StripeError(400, {
                 code: "parameter_invalid_integer",
