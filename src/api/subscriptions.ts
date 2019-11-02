@@ -5,14 +5,15 @@ import { StripeError } from "./StripeError";
 import { applyListOptions, generateId, stringifyMetadata } from "./utils";
 import { customers } from "./customers"
 
-const FILE_START = Date.now()
-
 export namespace subscriptions {
     const accountSubscriptions = new AccountData<
         stripe.subscriptions.ISubscription
     >();
     const accountSubscriptionItems = new AccountData<
         stripe.subscriptionItems.ISubscriptionItem
+    >();
+    const accountPlans = new AccountData<
+        stripe.plans.IPlan
     >();
 
     export function create(
@@ -90,7 +91,7 @@ export namespace subscriptions {
             latest_invoice: `in_${generateId(14)}`,
             livemode: false,
             metadata: stringifyMetadata(params.metadata),
-            plan: createPlanObj(plan),
+            plan: getOrCreatePlanObj(accountId, plan),
             quantity: paramQuantity || 1,
             start: Math.floor(Date.now() / 1000),
             start_date: Math.floor(Date.now() / 1000),
@@ -119,7 +120,14 @@ export namespace subscriptions {
         return subscription
     }
 
-    function createPlanObj(planName: string): stripe.plans.IPlan {
+    function getOrCreatePlanObj(
+        accountId: string,
+        planName: string
+    ): stripe.plans.IPlan {
+        if (accountPlans.contains(accountId, planName)) {
+            return accountPlans.get(accountId, planName)
+        }
+
         const plan: stripe.plans.IPlan = {
             id: planName,
             object: 'plan',
@@ -127,7 +135,7 @@ export namespace subscriptions {
             aggregate_usage: null,
             amount: 10 * 100,
             billing_scheme: 'per_unit',
-            created: Math.floor(FILE_START / 1000),
+            created: Math.floor(Date.now() / 1000),
             currency: 'usd',
             interval: 'month',
             interval_count: 1,
@@ -141,6 +149,7 @@ export namespace subscriptions {
             trial_period_days: null,
             usage_type: 'licensed'
         }
+        accountPlans.put(accountId, plan);
 
         return plan
     }
@@ -159,7 +168,7 @@ export namespace subscriptions {
             billing_thresholds: null,
             created: Math.floor(Date.now() / 1000),
             metadata: stringifyMetadata(item.metadata),
-            plan: createPlanObj(item.plan),
+            plan: getOrCreatePlanObj(accountId, item.plan),
             quantity: +item.quantity || 1,
             subscription: subscriptionId
         }
@@ -168,17 +177,9 @@ export namespace subscriptions {
         return subscriptionItem
     }
 
-    export function update(
-        accountId: string, subscriptionId: string, params: stripe.subscriptions.ISubscriptionUpdateOptions
-    ): stripe.subscriptions.ISubscription {
-        log.debug("subscriptions.update", accountId, subscriptionId, params);
-
-        const subscription = retrieve(accountId, subscriptionId, "id");
-
-        /* TODO: support update */
-
-        return subscription;
-    }
+    /**
+     * TODO: export function update()
+     */
 
     export function updateItem(
         accountId: string, subscriptionItemId: string,
@@ -279,8 +280,4 @@ export namespace subscriptions {
             return retrieveItem(accountId, id, paramName)
         })
     }
-
-    /**
-     * TODO: export function update()
-     */
 }

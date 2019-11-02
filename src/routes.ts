@@ -103,10 +103,7 @@ routes.get("/v1/subscriptions/:id", (req, res) => {
     return res.status(200).json(subscription);
 });
 
-routes.post("/v1/subscriptions/:id", (req, res) => {
-    const subscription = subscriptions.update(getRequestAccountId(req), req.params.id, req.body);
-    return res.status(200).json(subscription);
-})
+// TODO: routes.post("/v1/subscriptions/:id")
 
 routes.get("/v1/subscription_items", (req, res) => {
     const subscriptionItemList = subscriptions.listItem(getRequestAccountId(req), req.query);
@@ -165,8 +162,6 @@ routes.get("/v1/refunds/:id", (req, res) => {
     const refund = refunds.retrieve(getRequestAccountId(req), req.params.id, "id");
     return res.status(200).json(refund);
 });
-
-// TODO: add /v1/subscriptions
 
 routes.all('*', (req, res) => {
     return res.status(404).json({
