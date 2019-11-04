@@ -5,6 +5,7 @@ import {charges} from "./api/charges";
 import {customers} from "./api/customers";
 import {disputes} from "./api/disputes";
 import {refunds} from "./api/refunds";
+import {subscriptions} from "./api/subscriptions"
 
 const routes = express.Router();
 
@@ -87,6 +88,39 @@ routes.post("/v1/customers/:id", (req, res) => {
     return res.status(200).json(customer);
 });
 
+routes.post("/v1/subscriptions", (req, res) => {
+    const subscription = subscriptions.create(getRequestAccountId(req), req.body);
+    return res.status(200).json(subscription);
+});
+
+routes.get("/v1/subscriptions", (req, res) => {
+    const subscriptionList = subscriptions.list(getRequestAccountId(req), req.query);
+    return res.status(200).json(subscriptionList);
+});
+
+routes.get("/v1/subscriptions/:id", (req, res) => {
+    const subscription = subscriptions.retrieve(getRequestAccountId(req), req.params.id, "id");
+    return res.status(200).json(subscription);
+});
+
+// TODO: routes.post("/v1/subscriptions/:id")
+
+routes.get("/v1/subscription_items", (req, res) => {
+    const subscriptionItemList = subscriptions.listItem(getRequestAccountId(req), req.query);
+    return res.status(200).json(subscriptionItemList);
+});
+
+routes.get("/v1/subscription_items/:id", (req, res) => {
+    const subscriptionItem = subscriptions.retrieveItem(getRequestAccountId(req), req.params.id, "id");
+    return res.status(200).json(subscriptionItem);
+});
+
+routes.post("/v1/subscription_items/:id", (req, res) => {
+    const subscriptionItem = subscriptions.updateItem(getRequestAccountId(req), req.params.id, req.body);
+    return res.status(200).json(subscriptionItem);
+});
+
+
 // Old API.
 routes.get("/v1/customers/:customerId/cards/:cardId", (req, res) => {
     const card = customers.retrieveCard(getRequestAccountId(req), req.params.customerId, req.params.cardId, "card");
@@ -128,6 +162,15 @@ routes.get("/v1/refunds/:id", (req, res) => {
     const refund = refunds.retrieve(getRequestAccountId(req), req.params.id, "id");
     return res.status(200).json(refund);
 });
+
+routes.all('*', (req, res) => {
+    return res.status(404).json({
+        error: {
+            type: 'invalid_request_error',
+            message: '404 Not Found, ' + req.path
+        }
+    })
+})
 
 export function getRequestAccountId(req: express.Request): string {
     const connectAccountId = req.header("stripe-account");
