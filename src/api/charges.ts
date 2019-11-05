@@ -1,19 +1,22 @@
 import * as stripe from "stripe";
 import log = require("loglevel");
 import {StripeError} from "./StripeError";
-import {applyListOptions, generateId, requireParams, stringifyMetadata} from "./utils";
+import {
+    applyListOptions,
+    generateId,
+    stringifyMetadata
+} from "./utils";
 import {getEffectiveSourceTokenFromChain, isSourceTokenChain} from "./sourceTokenChains";
 import {cards} from "./cards";
 import {AccountData} from "./AccountData";
 import {customers} from "./customers";
 import {disputes} from "./disputes";
 import {refunds} from "./refunds";
+import {verify} from "./verify";
 
 export namespace charges {
 
     const accountCharges = new AccountData<stripe.charges.ICharge>();
-
-    const validCurrencies = ["usd", "aed", "afn", "all", "amd", "ang", "aoa", "ars", "aud", "awg", "azn", "bam", "bbd", "bdt", "bgn", "bif", "bmd", "bnd", "bob", "brl", "bsd", "bwp", "bzd", "cad", "cdf", "chf", "clp", "cny", "cop", "crc", "cve", "czk", "djf", "dkk", "dop", "dzd", "egp", "etb", "eur", "fjd", "fkp", "gbp", "gel", "gip", "gmd", "gnf", "gtq", "gyd", "hkd", "hnl", "hrk", "htg", "huf", "idr", "ils", "inr", "isk", "jmd", "jpy", "kes", "kgs", "khr", "kmf", "krw", "kyd", "kzt", "lak", "lbp", "lkr", "lrd", "lsl", "mad", "mdl", "mga", "mkd", "mmk", "mnt", "mop", "mro", "mur", "mvr", "mwk", "mxn", "myr", "mzn", "nad", "ngn", "nio", "nok", "npr", "nzd", "pab", "pen", "pgk", "php", "pkr", "pln", "pyg", "qar", "ron", "rsd", "rub", "rwf", "sar", "sbd", "scr", "sek", "sgd", "shp", "sll", "sos", "srd", "std", "szl", "thb", "tjs", "top", "try", "ttd", "twd", "tzs", "uah", "ugx", "uyu", "uzs", "vnd", "vuv", "wst", "xaf", "xcd", "xof", "xpf", "yer", "zar", "zmw", "eek", "lvl", "svc", "vef"];
 
     const minChargeAmount: { [code: string]: number } = {
         usd: 50,
@@ -46,7 +49,7 @@ export namespace charges {
         log.debug("charges.create", accountId, params);
 
         handlePrechargeSpecialTokens(params.source);
-        requireParams(params, ["amount", "currency"]);
+        verify.requiredParams(params, ["amount", "currency"]);
         if (params.amount < 1) {
             throw new StripeError(400, {
                 code: "parameter_invalid_integer",
@@ -65,13 +68,7 @@ export namespace charges {
                 type: "invalid_request_error"
             });
         }
-        if (validCurrencies.indexOf(params.currency.toLowerCase()) === -1) {
-            throw new StripeError(400, {
-                message: `Invalid currency: ${params.currency.toLowerCase()}. Stripe currently supports these currencies: ${validCurrencies.join(", ")}`,
-                param: "currency",
-                type: "invalid_request_error"
-            });
-        }
+        verify.currency(params.currency.toLowerCase(), "currency");
         if (minChargeAmount[params.currency.toLowerCase()] && +params.amount < minChargeAmount[params.currency.toLowerCase()]) {
             throw new StripeError(400, {
                 code: "amount_too_small",

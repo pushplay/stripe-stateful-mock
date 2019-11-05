@@ -1,18 +1,21 @@
 import * as chai from "chai";
 import {buildStripeParityTest} from "./buildStripeParityTest";
-import { getLocalStripeClient } from "./stripeUtils"
 
 describe("subscriptions", function () {
-
-    const TEST_PLAN = process.env.STRIPE_TEST_PLAN_ID;
-    if (!TEST_PLAN) {
-        throw new Error('STRIPE_TEST_PLAN_ID is not set...')
-    }
 
     this.timeout(30 * 1000);
 
     it("supports basic creation with no params", buildStripeParityTest(
         async (stripeClient) => {
+            const plan = await stripeClient.plans.create({
+                currency: "usd",
+                interval: "month",
+                amount: 1500,
+                product: {
+                    name: "subscription plan"
+                }
+            });
+
             const customer = await stripeClient
                 .customers.create({
                     source: "tok_visa"
@@ -22,7 +25,7 @@ describe("subscriptions", function () {
                 .subscriptions.create({
                     customer: customer.id,
                     items: [{
-                        plan: TEST_PLAN,
+                        plan: plan.id,
                         quantity: 1
                     }]
                 });
@@ -45,6 +48,14 @@ describe("subscriptions", function () {
 
     it("supports getting the subscriptionItem", buildStripeParityTest(
         async (stripeClient) => {
+            const plan = await stripeClient.plans.create({
+                currency: "usd",
+                interval: "month",
+                amount: 1500,
+                product: {
+                    name: "subscription plan"
+                }
+            });
             const customer = await stripeClient.customers.create({
                 source: "tok_visa"
             });
@@ -52,7 +63,7 @@ describe("subscriptions", function () {
                 .create({
                     customer: customer.id,
                     items: [{
-                        plan: TEST_PLAN,
+                        plan: plan.id,
                         quantity: 1
                     }]
                 });
@@ -66,6 +77,14 @@ describe("subscriptions", function () {
 
     it("supports updating the quantity", buildStripeParityTest(
         async (stripeClient) => {
+            const plan = await stripeClient.plans.create({
+                currency: "usd",
+                interval: "month",
+                amount: 1500,
+                product: {
+                    name: "subscription plan"
+                }
+            });
             const customer = await stripeClient.customers.create({
                 source: "tok_visa"
             });
@@ -73,7 +92,7 @@ describe("subscriptions", function () {
                 .create({
                     customer: customer.id,
                     items: [{
-                        plan: TEST_PLAN,
+                        plan: plan.id,
                         quantity: 1
                     }]
                 });
@@ -106,6 +125,14 @@ describe("subscriptions", function () {
 
     it("supports fetching subscriptions from customer", buildStripeParityTest(
         async (stripeClient) => {
+            const plan = await stripeClient.plans.create({
+                currency: "usd",
+                interval: "month",
+                amount: 1500,
+                product: {
+                    name: "subscription plan"
+                }
+            });
             const customer = await stripeClient.customers.create({
                 source: "tok_visa"
             });
@@ -113,7 +140,7 @@ describe("subscriptions", function () {
                 .create({
                     customer: customer.id,
                     items: [{
-                        plan: TEST_PLAN,
+                        plan: plan.id,
                         quantity: 2
                     }]
                 });

@@ -55,26 +55,3 @@ export function applyListOptions<T extends {id: string}>(data: T[], params: stri
         url: "/v1/refunds"
     };
 }
-
-/**
- * Supports the form "param" and "param[child]".  There is an array form like
- * "paramArray[][child]" but I haven't needed it yet.
- */
-export function requireParams(obj: any, paramNames: string[]): void {
-    for (const paramName of paramNames) {
-        const paramNameParts = /^([a-zA-Z_]+)(?:\[([a-zA-Z_]+)\])?$/.exec(paramName);
-        if (!paramNameParts || !paramNameParts[1]) {
-            throw new Error("Unexpected paramName.  Must be \"foo\" or \"foo[bar]\".");
-        }
-
-        if (!obj.hasOwnProperty(paramNameParts[1]) || (paramNameParts[2] && !obj[paramNameParts[1]].hasOwnProperty(paramNameParts[2]))) {
-            throw new StripeError(400, {
-                code: "parameter_missing",
-                doc_url: "https://stripe.com/docs/error-codes/parameter-missing",
-                message: `Missing required param: ${paramName}.`,
-                param: paramName,
-                type: "invalid_request_error"
-            });
-        }
-    }
-}

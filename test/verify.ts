@@ -1,22 +1,22 @@
 import * as chai from "chai";
 import * as Stripe from "stripe";
-import {requireParams} from "../src/api/utils";
 import {StripeError} from "../src/api/StripeError";
+import {verify} from "../src/api/verify";
 
-describe("utils", () => {
-    describe("requireParams", () => {
+describe("verify", () => {
+    describe("requiredParams", () => {
         it("doesn't throw an error if all required params are present", () => {
             const params: Stripe.customers.ICustomerSourceCreationOptions = {
                 source: "tok_visa"
             };
-            requireParams(params, ["source"]);
+            verify.requiredParams(params, ["source"]);
         });
 
         it("throws an error if a required param is missing", () => {
             const params: any = {};
             let error: StripeError = null;
             try {
-                requireParams(params, ["source"]);
+                verify.requiredParams(params, ["source"]);
             } catch (e) {
                 error = e;
             }
@@ -33,7 +33,7 @@ describe("utils", () => {
                     exp_year: 1999
                 }
             };
-            requireParams(params, ["source", "source[object]", "source[number]", "source[exp_month]", "source[exp_year]"]);
+            verify.requiredParams(params, ["source", "source[object]", "source[number]", "source[exp_month]", "source[exp_year]"]);
         });
 
         it("throws an error if a nested param is missing", () => {
@@ -46,7 +46,7 @@ describe("utils", () => {
             };
             let error: StripeError = null;
             try {
-                requireParams(params, ["source", "source[object]", "source[number]", "source[exp_month]", "source[exp_year]"]);
+                verify.requiredParams(params, ["source", "source[object]", "source[number]", "source[exp_month]", "source[exp_year]"]);
             } catch (e) {
                 error = e;
             }

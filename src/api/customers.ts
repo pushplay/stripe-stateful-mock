@@ -1,9 +1,10 @@
 import * as stripe from "stripe";
 import log = require("loglevel");
 import {StripeError} from "./StripeError";
-import {applyListOptions, generateId, requireParams, stringifyMetadata} from "./utils";
+import {applyListOptions, generateId, stringifyMetadata} from "./utils";
 import {cards} from "./cards";
 import {AccountData} from "./AccountData";
+import {verify} from "./verify";
 
 export namespace customers {
 
@@ -178,7 +179,7 @@ export namespace customers {
     export function createCard(accountId: string, customerOrId: string | stripe.customers.ICustomer, params: stripe.customers.ICustomerSourceCreationOptions): stripe.cards.ICard {
         log.debug("customers.createCard", accountId, customerOrId, params);
 
-        requireParams(params, ["source"]);
+        verify.requiredParams(params, ["source"]);
 
         const customer = typeof customerOrId === "object" ? customerOrId : retrieve(accountId, customerOrId, "customer");
         if (typeof params.source === "string") {

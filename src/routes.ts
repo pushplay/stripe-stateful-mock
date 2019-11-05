@@ -4,8 +4,10 @@ import {accounts} from "./api/accounts";
 import {charges} from "./api/charges";
 import {customers} from "./api/customers";
 import {disputes} from "./api/disputes";
+import {products} from "./api/products";
 import {refunds} from "./api/refunds";
 import {subscriptions} from "./api/subscriptions";
+import {plans} from "./api/plans";
 
 const routes = express.Router();
 
@@ -145,6 +147,36 @@ routes.post("/v1/customers/:customerId/sources", (req, res) => {
 routes.get("/v1/disputes/:id", (req, res) => {
     const dispute = disputes.retrieve(getRequestAccountId(req), req.params.id, "dispute");
     return res.status(200).json(dispute);
+});
+
+routes.post("/v1/plans", (req, res) => {
+    const plan = plans.create(getRequestAccountId(req), req.body);
+    return res.status(200).json(plan);
+});
+
+routes.get("/v1/plans", (req, res) => {
+    const planList = plans.list(getRequestAccountId(req), req.query);
+    return res.status(200).json(planList);
+});
+
+routes.get("/v1/plans/:id", (req, res) => {
+    const plan = plans.retrieve(getRequestAccountId(req), req.params.id, "id");
+    return res.status(200).json(plan);
+});
+
+routes.post("/v1/products", (req, res) => {
+    const product = products.create(getRequestAccountId(req), req.body);
+    return res.status(200).json(product);
+});
+
+routes.get("/v1/products", (req, res) => {
+    const productList = products.list(getRequestAccountId(req), req.query);
+    return res.status(200).json(productList);
+});
+
+routes.get("/v1/products/:id", (req, res) => {
+    const product = products.retrieve(getRequestAccountId(req), req.params.id, "id");
+    return res.status(200).json(product);
 });
 
 routes.post("/v1/refunds", (req, res) => {

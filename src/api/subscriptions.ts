@@ -6,6 +6,7 @@ import {customers} from "./customers";
 import log = require("loglevel");
 
 export namespace subscriptions {
+
     const accountSubscriptions = new AccountData<stripe.subscriptions.ISubscription>();
     const accountSubscriptionItems = new AccountData<stripe.subscriptionItems.ISubscriptionItem>();
     const accountPlans = new AccountData<stripe.plans.IPlan>();
