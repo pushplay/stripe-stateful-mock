@@ -170,9 +170,9 @@ export namespace customers {
     }
 
     export function addSubscription(accountId: string, customerId: string, subscription: stripe.subscriptions.ISubscription): void {
-        const customer = retrieve(accountId, customerId, "customer")
-        customer.subscriptions.data.push(subscription)
-        customer.subscriptions.total_count++
+        const customer = retrieve(accountId, customerId, "customer");
+        customer.subscriptions.data.push(subscription);
+        customer.subscriptions.total_count++;
     }
 
     export function createCard(accountId: string, customerOrId: string | stripe.customers.ICustomer, params: stripe.customers.ICustomerSourceCreationOptions): stripe.cards.ICard {

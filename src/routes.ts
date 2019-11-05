@@ -5,7 +5,7 @@ import {charges} from "./api/charges";
 import {customers} from "./api/customers";
 import {disputes} from "./api/disputes";
 import {refunds} from "./api/refunds";
-import {subscriptions} from "./api/subscriptions"
+import {subscriptions} from "./api/subscriptions";
 
 const routes = express.Router();
 
@@ -120,7 +120,6 @@ routes.post("/v1/subscription_items/:id", (req, res) => {
     return res.status(200).json(subscriptionItem);
 });
 
-
 // Old API.
 routes.get("/v1/customers/:customerId/cards/:cardId", (req, res) => {
     const card = customers.retrieveCard(getRequestAccountId(req), req.params.customerId, req.params.cardId, "card");
@@ -163,14 +162,14 @@ routes.get("/v1/refunds/:id", (req, res) => {
     return res.status(200).json(refund);
 });
 
-routes.all('*', (req, res) => {
+routes.all("*", (req, res) => {
     return res.status(404).json({
         error: {
-            type: 'invalid_request_error',
-            message: '404 Not Found, ' + req.path
+            type: "invalid_request_error",
+            message: `No matching path: ${req.path}`
         }
-    })
-})
+    });
+});
 
 export function getRequestAccountId(req: express.Request): string {
     const connectAccountId = req.header("stripe-account");
