@@ -1,6 +1,6 @@
 {
   "name": "stripe-stateful-mock",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "A half-baked, stateful Stripe mock server",
   "main": "dist/index.js",
   "scripts": {
@@ -8,11 +8,12 @@
     "clean": "rimraf ./dist",
     "lint": "tslint --project tsconfig.json",
     "prepublishOnly": "npm run clean && npm run build && npm run lint && npm run test",
-    "run": "LOG_LEVEL=info node dist/index.js",
-    "run:debug": "LOG_LEVEL=debug node dist/index.js",
-    "test": "npm run lint && LOG_LEVEL=silent mocha --recursive --timeout 5000 --require ts-node/register --require ./test/requireDotEnv.ts --exit \"test/**/*.ts\"",
-    "test:debug": "LOG_LEVEL=trace mocha --recursive --timeout 5000 --require ts-node/register --require ./test/requireDotEnv.ts --exit \"test/**/*.ts\""
+    "run": "LOG_LEVEL=${LOG_LEVEL:=info} node dist/index.js",
+    "run:debug": "LOG_LEVEL=debug npm run run",
+    "test": "npm run lint && LOG_LEVEL=${LOG_LEVEL:=silent} mocha --recursive --timeout 5000 --require ts-node/register --require ./test/requireDotEnv.ts --exit \"test/**/*.ts\"",
+    "test:debug": "LOG_LEVEL=trace npm run test"
   },
+  "bin": "./dist/cli.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Giftbit/stripe-stateful-mock.git"

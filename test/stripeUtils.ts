@@ -1,5 +1,8 @@
 import Stripe = require("stripe");
-import {port} from "../src";
+import {port} from "../src/autoStart";
+
+// That import above is enough to ensure the server gets started for testing.
+// That's a bit obtuse but it's good enough.
 
 let liveClient: Stripe;
 let localClient: Stripe;
