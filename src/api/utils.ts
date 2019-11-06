@@ -17,6 +17,14 @@ export function stringifyMetadata(metadata?: {[key: string]: string | number}): 
     return resp;
 }
 
+/**
+ * Applies query parameters common to all "list" endpoints (IListOptions) to the results.
+ * @param data The result of the list endpoint.
+ * @param params The list endpoint params.
+ * @param retriever A function that retrieves an item from the list with the given ID.
+ *                  When an object with the given ID is not in the list a StripeError
+ *                  should be thrown that matches the error when using the `retrieve` endpoint.
+ */
 export function applyListOptions<T extends {id: string}>(data: T[], params: stripe.IListOptions, retriever: (id: string, paramName: string) => T): stripe.IList<T> {
     let hasMore = false;
     if (params.starting_after) {

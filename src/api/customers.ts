@@ -4,6 +4,7 @@ import {StripeError} from "./StripeError";
 import {applyListOptions, generateId, stringifyMetadata} from "./utils";
 import {cards} from "./cards";
 import {AccountData} from "./AccountData";
+import {verify} from "./verify";
 
 export namespace customers {
 
@@ -170,13 +171,15 @@ export namespace customers {
     }
 
     export function addSubscription(accountId: string, customerId: string, subscription: stripe.subscriptions.ISubscription): void {
-        const customer = retrieve(accountId, customerId, "customer")
-        customer.subscriptions.data.push(subscription)
-        customer.subscriptions.total_count++
+        const customer = retrieve(accountId, customerId, "customer");
+        customer.subscriptions.data.push(subscription);
+        customer.subscriptions.total_count++;
     }
 
     export function createCard(accountId: string, customerOrId: string | stripe.customers.ICustomer, params: stripe.customers.ICustomerSourceCreationOptions): stripe.cards.ICard {
         log.debug("customers.createCard", accountId, customerOrId, params);
+
+        verify.requiredParams(params, ["source"]);
 
         const customer = typeof customerOrId === "object" ? customerOrId : retrieve(accountId, customerOrId, "customer");
         if (typeof params.source === "string") {

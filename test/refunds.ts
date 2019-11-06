@@ -197,6 +197,9 @@ describe("refunds", () => {
                 source: "tok_createDispute"
             });
 
+            // Because the dispute is created after the charge is returned there's a race condition.
+            await new Promise(resolve => setTimeout(resolve));
+
             let refundError: any = null;
             try {
                 await stripeClient.refunds.create({charge: charge.id});

@@ -2,6 +2,7 @@ import * as stripe from "stripe";
 import log = require("loglevel");
 import {applyListOptions, generateId} from "./utils";
 import {StripeError} from "./StripeError";
+import {verify} from "./verify";
 
 export namespace accounts {
 
@@ -16,15 +17,7 @@ export namespace accounts {
                 type: "invalid_request_error"
             });
         }
-        if (!params.type) {
-            throw new StripeError(400, {
-                code: "parameter_missing",
-                doc_url: "https://stripe.com/docs/error-codes/parameter-missing",
-                message: "Missing required param: type.",
-                param: "type",
-                type: "invalid_request_error"
-            });
-        }
+        verify.requiredParams(params, ["type"]);
 
         const connectedAccountId = (params as any).id || `acct_${generateId(16)}`;
         const account: stripe.accounts.IAccount & any = {   // The d.ts is out of date on this object and I don't want to bother.

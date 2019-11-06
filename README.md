@@ -1,14 +1,22 @@
 # stripe-stateful-mock
 
-Simulates a stateful Stripe server for local unit testing.  Makes Stripe calls 50-100x faster than testing against the official server.  Supports: charging with the most common [test tokens](https://stripe.com/docs/testing); capture and refund charges; creating and charging customers; adding cards by source token to customers; creating, deleting and using connect accounts; idempotency.
+Simulates a stateful Stripe server for local unit testing.  Makes Stripe calls 50-100x faster than testing against the official server.
+
+Supported features:
+- charges: create with the most common [test tokens](https://stripe.com/docs/testing) or customer card, retrieve, list, update, capture
+- refunds: create, retrieve, list
+- customers: create, retrieve, list, update, create card, retrieve card, delete card
+- products: create, retrieve, list
+- plans: create, retrieve, list
+- subscriptions: create, retrieve, list
+- connect accounts: create and delete
+- idempotency
 
 Correctness of this test server is not guaranteed!  Set up unit testing to work against either the Stripe server with a test account or this mock server with a flag to switch between them.  Test against the official Stripe server occasionally to ensure correctness on the fine details.
 
 ## Usage
 
-`node stripe-stateful-mock`
-
-Starts an HTTP server (default port is 8000).  This can be connected to with any Stripe client.  For example in JavaScript...
+The server can be started in multiple ways but in each case it starts an HTTP server (default port is 8000) which can be connected to with any Stripe client.  For example in JavaScript...
 
 ```javascript
 const Stripe = require("stripe");
@@ -20,6 +28,32 @@ The server supports the following settings through environment variables:
 
 - `LOG_LEVEL` sets the log output verbosity.  Values are: `silent`, `error`, `warn`, `info`, `debug`.
 - `PORT` the port to start the server on.  Defaults to 8000.
+
+### As a shell command
+
+Install globally: `npm i -g stripe-stateful-mock`
+
+Run: `node stripe-stateful-mock`
+
+### As part of a Mocha unit test
+
+Install as a development dependency: `npm i -D stripe-stateful-mock`
+
+In your NPM test script: `mocha --require stripe-stateful-mock/autostart`
+
+### Custom
+
+The server is implemented as an Express 4 application and can be fully controlled.  This does not start the server by default.
+
+```javascript
+const http = require("http");
+const https = require("https");
+const stripeStatefulMock = require("stripe-stateful-mock");
+
+const app = stripeStatefulMock.createExpressApp();
+http.createServer(app).listen(80);
+https.createServer(options, app).listen(443);
+```
 
 ## Bonus features
 

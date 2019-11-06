@@ -1,6 +1,6 @@
 import Stripe = require("stripe");
 import {assertErrorThunksAreEqual} from "./stripeAssert";
-import {port} from "../src";
+import {port} from "../src/autoStart";
 import {getLiveStripeClient, getLocalStripeClient} from "./stripeUtils";
 
 describe("auth", () => {
