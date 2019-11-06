@@ -29,4 +29,20 @@ describe("products", () => {
             return [product, productGet, productListById];
         }
     ));
+
+    it("verifies the product type is valid", buildStripeParityTest(
+        async (stripeClient) => {
+            let err;
+            try {
+                await stripeClient.products.create({
+                    name: "creating a soul test",
+                    type: "soul"
+                } as any);
+            } catch (e) {
+                err = e;
+            }
+
+            return [err];
+        }
+    ));
 });

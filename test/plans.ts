@@ -35,4 +35,44 @@ describe("plan", () => {
             return [plan, planGet, productGet];
         }
     ));
+
+    it("verifies the plan interval is valid", buildStripeParityTest(
+        async (stripeClient) => {
+            let err;
+            try {
+                await stripeClient.plans.create({
+                    currency: "cad",
+                    interval: "day-o",
+                    amount: 500,
+                    product: {
+                        name: "brand new service"
+                    }
+                } as any);
+            } catch (e) {
+                err = e;
+            }
+
+            return [err];
+        }
+    ));
+
+    it("verifies the plan currency is valid", buildStripeParityTest(
+        async (stripeClient) => {
+            let err;
+            try {
+                await stripeClient.plans.create({
+                    currency: "souls",
+                    interval: "day",
+                    amount: 500,
+                    product: {
+                        name: "brand new service"
+                    }
+                } as any);
+            } catch (e) {
+                err = e;
+            }
+
+            return [err];
+        }
+    ));
 });

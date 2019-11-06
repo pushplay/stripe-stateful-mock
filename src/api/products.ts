@@ -13,9 +13,18 @@ export namespace products {
         log.debug("products.create", accountId, params);
 
         verify.requiredParams(params, ["name", "type"]);
+        verify.requiredValue(params, "type", ["service", "good"]);
 
         const productId = params.id || `prod_${generateId()}`;
-        verify.notExists(accountProducts, accountId, productId, "Product");
+        if (accountProducts.contains(accountId, productId)) {
+            throw new StripeError(400, {
+                code: "resource_already_exists",
+                doc_url: "https://stripe.com/docs/error-codes/resource-already-exists",
+                message: `Product already exists.`,
+                type: "invalid_request_error"
+            });
+        }
+
         const product: stripe.products.IProduct = {
             id: productId,
             object: "product",

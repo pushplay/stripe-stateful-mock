@@ -14,6 +14,9 @@ export namespace plans {
         log.debug("plans.create", accountId, params);
 
         verify.requiredParams(params, ["currency", "interval", "product"]);
+        verify.requiredValue(params, "billing_scheme", ["per_unit", "tiered", null, undefined]);
+        verify.requiredValue(params, "interval", ["day", "month", "week", "year"]);
+        verify.requiredValue(params, "usage_type", ["licensed", "metered", null, undefined]);
         verify.currency(params.currency, "currency");
 
         const planId = params.id || `plan_${generateId(14)}`;

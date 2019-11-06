@@ -1,5 +1,4 @@
 import * as stripe from "stripe";
-import {StripeError} from "./StripeError";
 
 export function generateId(length: number = 20): string {
     const chars = "0123456789abcfedghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
