@@ -1,12 +1,12 @@
 import * as chai from "chai";
-import * as Stripe from "stripe";
+import Stripe from "stripe";
 import {StripeError} from "../src/api/StripeError";
 import {verify} from "../src/api/verify";
 
 describe("verify", () => {
     describe("requiredParams", () => {
         it("doesn't throw an error if all required params are present", () => {
-            const params: Stripe.customers.ICustomerSourceCreationOptions = {
+            const params: Stripe.CustomerCreateParams = {
                 source: "tok_visa"
             };
             verify.requiredParams(params, ["source"]);
@@ -25,7 +25,7 @@ describe("verify", () => {
         });
 
         it("doesn't throw an error if all required nested params are present", () => {
-            const params: Stripe.customers.ICustomerSourceCreationOptions = {
+            const params: Stripe.CustomerSourceCreateParams = {
                 source: {
                     object: "card",
                     number: "1234",

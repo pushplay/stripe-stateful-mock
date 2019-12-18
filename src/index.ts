@@ -1,10 +1,10 @@
-import express from "express";
-import bodyParser from "body-parser";
+import express = require("express");
+import bodyParser = require("body-parser");
+import log = require("loglevel");
 import {routes} from "./routes";
 import {StripeError} from "./api/StripeError";
 import {idempotencyRoute} from "./api/idempotency";
 import {auth} from "./api/auth";
-import log = require("loglevel");
 
 export function createExpressApp(): express.Application {
     const app = express();

@@ -1,11 +1,6 @@
-import * as stripe from "stripe";
-import log = require("loglevel");
+import Stripe from "stripe";
 import {StripeError} from "./StripeError";
-import {
-    applyListOptions,
-    generateId,
-    stringifyMetadata
-} from "./utils";
+import {applyListParams, generateId, optionalsToNulls, stringifyMetadata} from "./utils";
 import {getEffectiveSourceTokenFromChain, isSourceTokenChain} from "./sourceTokenChains";
 import {cards} from "./cards";
 import {AccountData} from "./AccountData";
@@ -13,10 +8,11 @@ import {customers} from "./customers";
 import {disputes} from "./disputes";
 import {refunds} from "./refunds";
 import {verify} from "./verify";
+import log = require("loglevel");
 
 export namespace charges {
 
-    const accountCharges = new AccountData<stripe.charges.ICharge>();
+    const accountCharges = new AccountData<Stripe.Charge>();
 
     const minChargeAmount: { [code: string]: number } = {
         usd: 50,
@@ -35,7 +31,7 @@ export namespace charges {
         sgd: 50
     };
 
-    const bigBrandToSmallBrandMap: {[brand: string]: stripe.paymentMethods.CardBrand} = {
+    const bigBrandToSmallBrandMap: { [brand: string]: string } = {
         "Visa": "visa",
         "American Express": "amex",
         "MasterCard": "mastercard",
@@ -45,7 +41,7 @@ export namespace charges {
         "Unknown": "unknown"
     };
 
-    export function create(accountId: string, params: stripe.charges.IChargeCreationOptions): stripe.charges.ICharge {
+    export function create(accountId: string, params: Stripe.ChargeCreateParams): Stripe.Charge {
         log.debug("charges.create", accountId, params);
 
         handlePrechargeSpecialTokens(params.source);
@@ -79,7 +75,7 @@ export namespace charges {
             });
         }
 
-        let charge: stripe.charges.ICharge;
+        let charge: Stripe.Charge;
         if (typeof params.customer === "string") {
             const customer = customers.retrieve(accountId, params.customer, "customer");
             let cardId: string;
@@ -139,7 +135,7 @@ export namespace charges {
         return charge;
     }
 
-    export function retrieve(accountId: string, chargeId: string, paramName: string): stripe.charges.ICharge {
+    export function retrieve(accountId: string, chargeId: string, paramName: string): Stripe.Charge {
         log.debug("charges.retrieve", accountId, chargeId);
 
         const charge = accountCharges.get(accountId, chargeId);
@@ -155,15 +151,15 @@ export namespace charges {
         return charge;
     }
 
-    export function list(accountId: string, params: stripe.charges.IChargeListOptions): stripe.IList<stripe.charges.ICharge> {
+    export function list(accountId: string, params: Stripe.ChargeListParams): Stripe.ApiList<Stripe.Charge> {
         let data = accountCharges.getAll(accountId);
         if (params.customer) {
             data = data.filter(d => d.customer === params.customer);
         }
-        return applyListOptions(data, params, (id, paramName) => retrieve(accountId, id, paramName));
+        return applyListParams(data, params, (id, paramName) => retrieve(accountId, id, paramName));
     }
 
-    export function update(accountId: string, chargeId: string, params: stripe.charges.IChargeUpdateOptions): stripe.charges.ICharge {
+    export function update(accountId: string, chargeId: string, params: Stripe.ChargeUpdateParams): Stripe.Charge {
         log.debug("charges.update", accountId, chargeId, params);
 
         const charge = retrieve(accountId, chargeId, "id");
@@ -181,13 +177,20 @@ export namespace charges {
             charge.receipt_email = params.receipt_email;
         }
         if (params.hasOwnProperty("shipping")) {
-            charge.shipping = params.shipping;
+            charge.shipping = optionalsToNulls(params.shipping, {
+                city: null,
+                country: null,
+                line1: null,
+                line2: null,
+                postal_code: null,
+                state: null
+            });
         }
 
         return charge;
     }
 
-    export function capture(accountId: string, chargeId: string, params: stripe.charges.IChargeCaptureOptions): stripe.charges.ICharge {
+    export function capture(accountId: string, chargeId: string, params: Stripe.ChargeCaptureParams): Stripe.Charge {
         log.debug("charges.capture", accountId, chargeId, params);
 
         const charge = accountCharges.get(accountId, chargeId);
@@ -243,7 +246,7 @@ export namespace charges {
         return charge;
     }
 
-    function getChargeFromCard(params: stripe.charges.IChargeCreationOptions, source: stripe.cards.ICard): stripe.charges.ICharge {
+    function getChargeFromCard(params: Stripe.ChargeCreateParams, source: Stripe.Card): Stripe.Charge {
         const chargeId = "ch_" + generateId();
         return {
             id: chargeId,
@@ -274,6 +277,7 @@ export namespace charges {
             description: params.description || null,
             destination: null,
             dispute: null,
+            disputed: false,
             failure_code: null,
             failure_message: null,
             fraud_details: {},
@@ -306,7 +310,9 @@ export namespace charges {
                     exp_year: source.exp_year,
                     fingerprint: generateId(16),
                     funding: source.funding,
+                    installments: null,
                     last4: source.last4,
+                    network: "unknown",
                     three_d_secure: null,
                     wallet: null
                 },
@@ -320,11 +326,17 @@ export namespace charges {
                 object: "list",
                 data: [],
                 has_more: false,
-                total_count: 0,
                 url: `/v1/charges/${chargeId}/refunds`
             },
             review: null,
-            shipping: params.shipping || null,
+            shipping: params.shipping ? optionalsToNulls(params.shipping, {
+                city: null,
+                country: null,
+                line1: null,
+                line2: null,
+                postal_code: null,
+                state: null
+            }) : null,
             source: source,
             source_transfer: null,
             statement_descriptor: params.statement_descriptor || null,
@@ -353,7 +365,7 @@ export namespace charges {
         }
     }
 
-    function handleSpecialChargeTokens(accountId: string, charge: stripe.charges.ICharge, sourceToken: string): void {
+    function handleSpecialChargeTokens(accountId: string, charge: Stripe.Charge, sourceToken: string): void {
         switch (sourceToken) {
             case "tok_chargeCustomerFail":
                 charge.failure_code = "card_declined";

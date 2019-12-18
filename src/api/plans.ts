@@ -1,16 +1,16 @@
-import * as stripe from "stripe";
-import log = require("loglevel");
+import Stripe from "stripe";
 import {AccountData} from "./AccountData";
-import {applyListOptions, generateId, stringifyMetadata} from "./utils";
+import {applyListParams, arrayOptionalsToNulls, generateId, stringifyMetadata} from "./utils";
 import {StripeError} from "./StripeError";
 import {verify} from "./verify";
 import {products} from "./products";
+import log = require("loglevel");
 
 export namespace plans {
 
-    const accountPlans = new AccountData<stripe.plans.IPlan>();
+    const accountPlans = new AccountData<Stripe.Plan>();
 
-    export function create(accountId: string, params: stripe.plans.IPlanCreationOptions): stripe.plans.IPlan {
+    export function create(accountId: string, params: Stripe.PlanCreateParams): Stripe.Plan {
         log.debug("plans.create", accountId, params);
 
         verify.requiredParams(params, ["currency", "interval", "product"]);
@@ -29,7 +29,7 @@ export namespace plans {
             });
         }
 
-        let product: stripe.products.IProduct;
+        let product: Stripe.Product;
         if (typeof params.product === "string") {
             product = products.retrieve(accountId, params.product, "product");
             if (product.type !== "service") {
@@ -48,12 +48,13 @@ export namespace plans {
 
         const billingScheme = params.billing_scheme || "per_unit";
         const usageType = params.usage_type || "licensed";
-        const plan: stripe.plans.IPlan = {
+        const plan: Stripe.Plan = {
             id: planId,
             object: "plan",
             active: params.hasOwnProperty("active") ? (params as any).active : true,
             aggregate_usage: usageType === "metered" ? params.aggregate_usage || "sum" : null,
             amount: billingScheme === "per_unit" ? +params.amount : null,
+            amount_decimal: billingScheme === "per_unit" ? params.amount + "" : null,
             billing_scheme: billingScheme,
             created: (Date.now() / 1000) | 0,
             currency: params.currency,
@@ -63,7 +64,13 @@ export namespace plans {
             metadata: stringifyMetadata(params.metadata),
             nickname: params.nickname || null,
             product: product.id,
-            tiers: params.tiers || null,
+            tiers: arrayOptionalsToNulls(params.tiers || null, {
+                flat_amount: null,
+                flat_amount_decimal: null,
+                unit_amount: null,
+                unit_amount_decimal: null,
+                up_to: null
+            }),
             tiers_mode: params.tiers_mode || null,
             transform_usage: params.transform_usage || null,
             trial_period_days: params.trial_period_days || null,
@@ -73,7 +80,7 @@ export namespace plans {
         return plan;
     }
 
-    export function retrieve(accountId: string, planId: string, paramName: string): stripe.plans.IPlan {
+    export function retrieve(accountId: string, planId: string, paramName: string): Stripe.Plan {
         log.debug("plans.retrieve", accountId, planId);
 
         const plan = accountPlans.get(accountId, planId);
@@ -89,10 +96,10 @@ export namespace plans {
         return plan;
     }
 
-    export function list(accountId: string, params: stripe.IListOptions): stripe.IList<stripe.plans.IPlan> {
+    export function list(accountId: string, params: Stripe.PlanListParams): Stripe.ApiList<Stripe.Plan> {
         log.debug("plans.list", accountId, params);
 
         let data = accountPlans.getAll(accountId);
-        return applyListOptions(data, params, (id, paramName) => retrieve(accountId, id, paramName));
+        return applyListParams(data, params, (id, paramName) => retrieve(accountId, id, paramName));
     }
 }

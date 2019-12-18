@@ -1,16 +1,16 @@
-import * as stripe from "stripe";
-import log = require("loglevel");
+import Stripe from "stripe";
 import {AccountData} from "./AccountData";
 import {StripeError} from "./StripeError";
 import {disputes} from "./disputes";
-import {applyListOptions, generateId, stringifyMetadata} from "./utils";
+import {applyListParams, generateId, stringifyMetadata} from "./utils";
 import {charges} from "./charges";
+import log = require("loglevel");
 
 export namespace refunds {
 
-    const accountRefunds = new AccountData<stripe.refunds.IRefund>();
+    const accountRefunds = new AccountData<Stripe.Refund>();
 
-    export function create(accountId: string, params: stripe.refunds.IRefundCreationOptionsWithCharge): stripe.refunds.IRefund {
+    export function create(accountId: string, params: Stripe.RefundCreateParams): Stripe.Refund {
         log.debug("refunds.create", accountId, params);
 
         if (params.hasOwnProperty("amount")) {
@@ -72,7 +72,7 @@ export namespace refunds {
             });
         }
 
-        const refund: stripe.refunds.IRefund = {
+        const refund: Stripe.Refund = {
             id: "re_" + generateId(24),
             object: "refund",
             amount: refundAmount,
@@ -81,6 +81,7 @@ export namespace refunds {
             created: (Date.now() / 1000) | 0,
             currency: charge.currency.toLowerCase(),
             metadata: stringifyMetadata(params.metadata),
+            payment_intent: null,
             reason: params.reason || null,
             receipt_number: null,
             source_transfer_reversal: null,
@@ -95,7 +96,7 @@ export namespace refunds {
         return refund;
     }
 
-    export function retrieve(accountId: string, refundId: string, paramName: string): stripe.refunds.IRefund {
+    export function retrieve(accountId: string, refundId: string, paramName: string): Stripe.Refund {
         log.debug("refunds.retrieve", accountId, refundId);
 
         const refund = accountRefunds.get(accountId, refundId);
@@ -111,13 +112,13 @@ export namespace refunds {
         return refund;
     }
 
-    export function list(accountId: string, params: stripe.refunds.IRefundListOptions): stripe.IList<stripe.refunds.IRefund> {
+    export function list(accountId: string, params: Stripe.RefundListParams): Stripe.ApiList<Stripe.Refund> {
         log.debug("refunds.list", accountId, params);
 
-        let data: stripe.refunds.IRefund[] = accountRefunds.getAll(accountId);
+        let data: Stripe.Refund[] = accountRefunds.getAll(accountId);
         if (params.charge) {
             data = data.filter(d => d.charge === params.charge);
         }
-        return applyListOptions(data, params, (id, paramName) => retrieve(accountId, id, paramName));
+        return applyListParams(data, params, (id, paramName) => retrieve(accountId, id, paramName));
     }
 }

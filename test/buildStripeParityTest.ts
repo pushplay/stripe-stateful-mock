@@ -1,5 +1,5 @@
 import * as chai from "chai";
-import Stripe = require("stripe");
+import Stripe from "stripe";
 import log = require("loglevel");
 import {getLiveStripeClient, getLocalStripeClient} from "./stripeUtils";
 import {assertObjectsAreBasicallyEqual, ComparableStripeObject} from "./stripeAssert";

@@ -1,4 +1,4 @@
-import * as stripe from "stripe";
+import Stripe from "stripe";
 import log = require("loglevel");
 import {AccountData} from "./AccountData";
 import {generateId} from "./utils";
@@ -6,9 +6,9 @@ import {StripeError} from "./StripeError";
 
 export namespace disputes {
 
-    const accountDisputes = new AccountData<stripe.disputes.IDispute>();
+    const accountDisputes = new AccountData<Stripe.Dispute>();
 
-    export function createFromSource(accountId: string, token: string, charge: stripe.charges.ICharge): stripe.disputes.IDispute {
+    export function createFromSource(accountId: string, token: string, charge: Stripe.Charge): Stripe.Dispute {
         log.debug("disputes.createFromSource", accountId, token);
 
         // Something like 4 business days at 5pm.  May not be exactly right.
@@ -23,7 +23,7 @@ export namespace disputes {
 
         const disputeId = `dp_${generateId(24)}`;
         const disputeTxnId = `txn_${generateId(24)}`;
-        const dispute: stripe.disputes.IDispute = {
+        const dispute: Stripe.Dispute = {
             id: disputeId,
             object: "dispute",
             amount: +charge.amount,
@@ -95,6 +95,7 @@ export namespace disputes {
             livemode: false,
             metadata: {
             },
+            payment_intent: null,
             reason: "fraudulent",
             status: "needs_response"
         };
@@ -118,7 +119,7 @@ export namespace disputes {
         return dispute;
     }
 
-    export function retrieve(accountId: string, disputeId: string, paramName: string): stripe.disputes.IDispute {
+    export function retrieve(accountId: string, disputeId: string, paramName: string): Stripe.Dispute {
         log.debug("dispute.retrieve", accountId, disputeId, paramName);
 
         const dispute = accountDisputes.get(accountId, disputeId);

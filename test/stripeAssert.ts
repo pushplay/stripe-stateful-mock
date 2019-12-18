@@ -1,4 +1,4 @@
-import Stripe = require("stripe");
+import Stripe from "stripe";
 import chai = require("chai");
 
 export async function assertErrorThunksAreEqual(actual: () => Promise<any>, expected: () => Promise<any>, message?: string): Promise<void> {
@@ -23,6 +23,7 @@ export async function assertErrorThunksAreEqual(actual: () => Promise<any>, expe
 
 const comparableErrorKeys = ["code", "rawType", "statusCode", "type"];
 const comparableRawErrorKeys = ["code", "decline_code", "doc_url", "param", "type"];
+
 export function assertErrorsAreEqual(actual: any, expected: any, message?: string): void {
     for (const key of comparableErrorKeys) {
         chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}' ${message || ""}`);
@@ -33,17 +34,17 @@ export function assertErrorsAreEqual(actual: any, expected: any, message?: strin
 }
 
 export type ComparableStripeObject = Error
-    | Stripe.IList<any>
-    | Stripe.cards.ICard
-    | Stripe.charges.ICharge
-    | Stripe.customers.ICustomer
-    | Stripe.subscriptions.ISubscription
-    | Stripe.subscriptionItems.ISubscriptionItem
-    | Stripe.disputes.IDispute
-    | Stripe.paymentIntents.IPaymentIntent
-    | Stripe.plans.IPlan
-    | Stripe.products.IProduct
-    | Stripe.refunds.IRefund;
+    | Stripe.ApiList<any>
+    | Stripe.Card
+    | Stripe.Charge
+    | Stripe.Customer
+    | Stripe.Subscription
+    | Stripe.SubscriptionItem
+    | Stripe.Dispute
+    | Stripe.PaymentIntent
+    | Stripe.Plan
+    | Stripe.Product
+    | Stripe.Refund;
 
 export function assertObjectsAreBasicallyEqual(actual: ComparableStripeObject, expected: ComparableStripeObject, message?: string): void {
     chai.assert.isDefined(actual, `actual ${message}`);
@@ -64,44 +65,44 @@ export function assertObjectsAreBasicallyEqual(actual: ComparableStripeObject, e
     chai.assert.equal(actual.object, expected.object, message);
     switch (actual.object) {
         case "card":
-            assertCardsAreBasicallyEqual(actual as Stripe.cards.ICard, expected as Stripe.cards.ICard, message);
+            assertCardsAreBasicallyEqual(actual as Stripe.Card, expected as Stripe.Card, message);
             break;
         case "charge":
-            assertChargesAreBasicallyEqual(actual as Stripe.charges.ICharge, expected as Stripe.charges.ICharge, message);
+            assertChargesAreBasicallyEqual(actual as Stripe.Charge, expected as Stripe.Charge, message);
             break;
         case "customer":
-            assertCustomersAreBasicallyEqual(actual as Stripe.customers.ICustomer, expected as Stripe.customers.ICustomer, message);
+            assertCustomersAreBasicallyEqual(actual as Stripe.Customer, expected as Stripe.Customer, message);
             break;
         case "subscription":
-            assertSubscriptionsAreBasicallyEqual(actual as Stripe.subscriptions.ISubscription, expected as Stripe.subscriptions.ISubscription, message);
+            assertSubscriptionsAreBasicallyEqual(actual as Stripe.Subscription, expected as Stripe.Subscription, message);
             break;
         case "subscription_item":
-            assertSubscriptionItemsAreBasicallyEqual(actual as Stripe.subscriptionItems.ISubscriptionItem, expected as Stripe.subscriptionItems.ISubscriptionItem, message);
+            assertSubscriptionItemsAreBasicallyEqual(actual as Stripe.SubscriptionItem, expected as Stripe.SubscriptionItem, message);
             break;
         case "dispute":
-            assertDisputesAreBasicallyEqual(actual as Stripe.disputes.IDispute, expected as Stripe.disputes.IDispute, message);
+            assertDisputesAreBasicallyEqual(actual as Stripe.Dispute, expected as Stripe.Dispute, message);
             break;
         case "list":
-            assertListsAreBasicallyEqual(actual as Stripe.IList<any>, expected as Stripe.IList<any>, message);
+            assertListsAreBasicallyEqual(actual as Stripe.ApiList<any>, expected as Stripe.ApiList<any>, message);
             break;
         case "payment_intent":
-            assertPaymentIntentsAreBasicallyEqual(actual as Stripe.paymentIntents.IPaymentIntent, expected as Stripe.paymentIntents.IPaymentIntent, message);
+            assertPaymentIntentsAreBasicallyEqual(actual as Stripe.PaymentIntent, expected as Stripe.PaymentIntent, message);
             break;
         case "plan":
-            assertPlansAreBasicallyEqual(actual as Stripe.plans.IPlan, expected as Stripe.plans.IPlan, message);
+            assertPlansAreBasicallyEqual(actual as Stripe.Plan, expected as Stripe.Plan, message);
             break;
         case "product":
-            assertProductsAreBasicallyEqual(actual as Stripe.products.IProduct, expected as Stripe.products.IProduct, message);
+            assertProductsAreBasicallyEqual(actual as Stripe.Product, expected as Stripe.Product, message);
             break;
         case "refund":
-            assertRefundsAreBasicallyEqual(actual as Stripe.refunds.IRefund, expected as Stripe.refunds.IRefund, message);
+            assertRefundsAreBasicallyEqual(actual as Stripe.Refund, expected as Stripe.Refund, message);
             break;
         default:
             throw new Error(`Unhandle Stripe object type: ${actual.object}`);
     }
 }
 
-export function assertListsAreBasicallyEqual<T extends ComparableStripeObject>(actual: Stripe.IList<T>, expected: Stripe.IList<T>, message?: string): void {
+export function assertListsAreBasicallyEqual<T extends ComparableStripeObject>(actual: Stripe.ApiList<T>, expected: Stripe.ApiList<T>, message?: string): void {
     chai.assert.lengthOf(actual.data, expected.data.length, message);
     chai.assert.equal(actual.has_more, expected.has_more, message);
     chai.assert.equal(actual.object, expected.object, message);
@@ -112,7 +113,7 @@ export function assertListsAreBasicallyEqual<T extends ComparableStripeObject>(a
     }
 }
 
-export function assertChargesAreBasicallyEqual(actual: Stripe.charges.ICharge, expected: Stripe.charges.ICharge, message?: string): void {
+export function assertChargesAreBasicallyEqual(actual: Stripe.Charge, expected: Stripe.Charge, message?: string): void {
     chai.assert.match(actual.id, /^ch_/, `actual charge ID is formatted correctly ${message}`);
 
     assertEqualOnKeys(actual, expected, ["object", "amount", "amount_refunded", "application_fee", "application_fee_amount", "billing_details", "captured", "currency", "description", "failure_code", "failure_message", "metadata", "paid", "receipt_email", "refunded", "statement_descriptor", "statement_descriptor_suffix", "status", "transfer_group"], message);
@@ -124,15 +125,15 @@ export function assertChargesAreBasicallyEqual(actual: Stripe.charges.ICharge, e
     assertListsAreBasicallyEqual(actual.refunds, expected.refunds, message);
 }
 
-function assertOutcomesAreBasicallyEqual(actual: Stripe.charges.IOutcome, expected: Stripe.charges.IOutcome, message?: string): void {
+function assertOutcomesAreBasicallyEqual(actual: Stripe.Charge.Outcome, expected: Stripe.Charge.Outcome, message?: string): void {
     assertEqualOnKeys(actual, expected, ["network_status", "reason", "risk_level", "rule", "seller_message", "type"], message);
 }
 
-export function assertRefundsAreBasicallyEqual(actual: Stripe.refunds.IRefund, expected: Stripe.refunds.IRefund, message?: string): void {
+export function assertRefundsAreBasicallyEqual(actual: Stripe.Refund, expected: Stripe.Refund, message?: string): void {
     assertEqualOnKeys(actual, expected, ["object", "amount", "currency", "description", "metadata", "reason", "status"], message);
 }
 
-export function assertCustomersAreBasicallyEqual(actual: Stripe.customers.ICustomer, expected: Stripe.customers.ICustomer, message?: string): void {
+export function assertCustomersAreBasicallyEqual(actual: Stripe.Customer, expected: Stripe.Customer, message?: string): void {
     assertEqualOnKeys(
         actual, expected, [
             "object", "account_balance", "address",
@@ -150,19 +151,19 @@ export function assertCustomersAreBasicallyEqual(actual: Stripe.customers.ICusto
     for (let sourceIx = 0; sourceIx < expected.sources.total_count; sourceIx++) {
         chai.assert.equal(actual.sources.data[sourceIx].object, "card", "only card checking is supported");
         chai.assert.equal(expected.sources.data[sourceIx].object, "card", "only card checking is supported");
-        chai.assert.equal((actual.sources.data[sourceIx] as Stripe.cards.ICard).customer, actual.id);
-        chai.assert.equal((expected.sources.data[sourceIx] as Stripe.cards.ICard).customer, expected.id);
+        chai.assert.equal((actual.sources.data[sourceIx] as Stripe.Card).customer, actual.id);
+        chai.assert.equal((expected.sources.data[sourceIx] as Stripe.Card).customer, expected.id);
         assertCardsAreBasicallyEqual(
-            actual.sources.data[sourceIx] as Stripe.cards.ICard,
-            expected.sources.data[sourceIx] as Stripe.cards.ICard,
+            actual.sources.data[sourceIx] as Stripe.Card,
+            expected.sources.data[sourceIx] as Stripe.Card,
             `of refund ${sourceIx} ${message || ""}`
         );
     }
 }
 
 export function assertSubscriptionsAreBasicallyEqual(
-    actual: Stripe.subscriptions.ISubscription,
-    expected: Stripe.subscriptions.ISubscription,
+    actual: Stripe.Subscription,
+    expected: Stripe.Subscription,
     message?: string
 ): void {
     assertEqualOnKeys(actual, expected, [
@@ -205,8 +206,8 @@ export function assertSubscriptionsAreBasicallyEqual(
 }
 
 export function assertSubscriptionItemsAreBasicallyEqual(
-    actual: Stripe.subscriptionItems.ISubscriptionItem,
-    expected: Stripe.subscriptionItems.ISubscriptionItem,
+    actual: Stripe.SubscriptionItem,
+    expected: Stripe.SubscriptionItem,
     message: string
 ): void {
     assertEqualOnKeys(actual, expected, [
@@ -220,27 +221,27 @@ export function assertSubscriptionItemsAreBasicallyEqual(
     chai.assert.ok(expected.plan.id)
 }
 
-export function assertCardsAreBasicallyEqual(actual: Stripe.cards.ICard, expected: Stripe.cards.ICard, message?: string): void {
+export function assertCardsAreBasicallyEqual(actual: Stripe.Card, expected: Stripe.Card, message?: string): void {
     assertEqualOnKeys(actual, expected, ["object", "address_city", "address_country", "address_line1", "address_line1_check", "address_line2", "address_state", "address_zip", "address_zip_check", "brand", "country", "cvc_check", "dynamic_last4", "exp_month", "exp_year", "funding", "last4", "metadata", "name", "tokenization_method"], message);
     assertSetOrUnsetOnKeys(actual, expected, ["fingerprint", "id"], message);
 }
 
-export function assertDisputesAreBasicallyEqual(actual: Stripe.disputes.IDispute, expected: Stripe.disputes.IDispute, message?: string): void {
+export function assertDisputesAreBasicallyEqual(actual: Stripe.Dispute, expected: Stripe.Dispute, message?: string): void {
     assertEqualOnKeys(actual, expected, ["object", "amount", "currency", "is_charge_refundable", "livemode", "metadata", "reason", "status"], message);
     assertSetOrUnsetOnKeys(actual, expected, ["id"], message);
 }
 
-export function assertPaymentIntentsAreBasicallyEqual(actual: Stripe.paymentIntents.IPaymentIntent, expected: Stripe.paymentIntents.IPaymentIntent, message?: string): void {
+export function assertPaymentIntentsAreBasicallyEqual(actual: Stripe.PaymentIntent, expected: Stripe.PaymentIntent, message?: string): void {
     assertEqualOnKeys(actual, expected, ["object", "amount", "amount_capturable", "amount_received", "application_fee_amount", "canceled_at", "cancellation_reason", "capture_method", "confirmation_method", "currency", "description", "livemode", "metadata", "on_behalf_of", "payment_method_types", "receipt_email", "setup_future_usage", "shipping", "statement_descriptor", "status"], message);
     assertSetOrUnsetOnKeys(actual, expected, ["customer", "last_payment_error", "next_action", "payment_method", "review", "transfer_data", "transfer_group"], message);
 }
 
-export function assertPlansAreBasicallyEqual(actual: Stripe.plans.IPlan, expected: Stripe.plans.IPlan, message?: string): void {
+export function assertPlansAreBasicallyEqual(actual: Stripe.Plan, expected: Stripe.Plan, message?: string): void {
     assertEqualOnKeys(actual, expected, ["object", "active", "aggregate_usage", "amount", "billing_scheme", "currency", "interval", "interval_count", "livemode", "metadata", "nickname", "tiers", "tiers_mode", "transform_usage", "trial_period_days", "usage_type"], message);
     assertSetOrUnsetOnKeys(actual, expected, ["id", "product"], message);
 }
 
-export function assertProductsAreBasicallyEqual(actual: Stripe.products.IProduct, expected: Stripe.products.IProduct, message?: string): void {
+export function assertProductsAreBasicallyEqual(actual: Stripe.Product, expected: Stripe.Product, message?: string): void {
     assertEqualOnKeys(actual, expected, ["object", "name", "type", "active", "attributes", "caption", "deactivated_on", "description", "images", "metadata", "package_dimensions", "shippable", "url"], message);
     assertSetOrUnsetOnKeys(actual, expected, ["id"], message);
 }

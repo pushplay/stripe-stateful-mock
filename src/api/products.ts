@@ -1,15 +1,15 @@
-import * as stripe from "stripe";
-import log = require("loglevel");
+import Stripe from "stripe";
 import {AccountData} from "./AccountData";
-import {applyListOptions, generateId, stringifyMetadata} from "./utils";
+import {applyListParams, generateId, stringifyMetadata} from "./utils";
 import {verify} from "./verify";
 import {StripeError} from "./StripeError";
+import log = require("loglevel");
 
 export namespace products {
 
-    const accountProducts = new AccountData<stripe.products.IProduct>();
+    const accountProducts = new AccountData<Stripe.Product>();
 
-    export function create(accountId: string, params: stripe.products.IProductCreationOptions): stripe.products.IProduct {
+    export function create(accountId: string, params: Stripe.ProductCreateParams): Stripe.Product {
         log.debug("products.create", accountId, params);
 
         verify.requiredParams(params, ["name", "type"]);
@@ -25,14 +25,14 @@ export namespace products {
             });
         }
 
-        const product: stripe.products.IProduct = {
+        const product: Stripe.Product = {
             id: productId,
             object: "product",
             active: params.hasOwnProperty("active") ? params.active : true,
             attributes: params.attributes || [],
             created: (Date.now() / 1000) | 0,
             caption: params.caption || null,
-            deactivated_on: params.deactivate_on || undefined,
+            deactivate_on: params.deactivate_on || undefined,
             description: params.description || null,
             images: params.images || [],
             livemode: false,
@@ -40,8 +40,8 @@ export namespace products {
             name: params.name,
             package_dimensions: params.package_dimensions || null,
             shippable: params.type === "good" ? params.shippable || true : null,
-            statement_descriptor: undefined,
-            skus: undefined,
+            statement_descriptor: params.statement_descriptor || null,
+            unit_label: params.unit_label || null,
             type: params.type,
             updated: (Date.now() / 1000) | 0,
             url: params.url || null
@@ -51,7 +51,7 @@ export namespace products {
         return product;
     }
 
-    export function retrieve(accountId: string, productId: string, paramName: string): stripe.products.IProduct {
+    export function retrieve(accountId: string, productId: string, paramName: string): Stripe.Product {
         log.debug("products.retrieve", accountId, productId);
 
         const product = accountProducts.get(accountId, productId);
@@ -67,7 +67,7 @@ export namespace products {
         return product;
     }
 
-    export function list(accountId: string, params: stripe.products.IProductListOptions): stripe.IList<stripe.products.IProduct> {
+    export function list(accountId: string, params: Stripe.ProductListParams): Stripe.ApiList<Stripe.Product> {
         log.debug("products.list", accountId, params);
 
         let data = accountProducts.getAll(accountId);
@@ -86,6 +86,6 @@ export namespace products {
         if (params.type) {
             data = data.filter(d => d.type === params.type);
         }
-        return applyListOptions(data, params, (id, paramName) => retrieve(accountId, id, paramName));
+        return applyListParams(data, params, (id, paramName) => retrieve(accountId, id, paramName));
     }
 }

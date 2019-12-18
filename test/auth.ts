@@ -1,21 +1,26 @@
-import Stripe = require("stripe");
+import Stripe from "stripe";
 import {assertErrorThunksAreEqual} from "./stripeAssert";
 import {port} from "../src/autoStart";
 import {getLiveStripeClient, getLocalStripeClient} from "./stripeUtils";
 
 describe("auth", () => {
 
-    const testChargeParams: Stripe.charges.IChargeCreationOptions = {
+    const testChargeParams: Stripe.ChargeCreateParams = {
         currency: "usd",
         amount: 2000,
         source: "tok_visa"
     };
 
     it("matches the server error when the API key does not start with sk_test_", async () => {
-        const localClient = new Stripe("foobar");
-        localClient.setHost("localhost", port, "http");
+        const localClient = new Stripe(process.env["STRIPE_TEST_SECRET_KEY"], {
+            apiVersion: "2019-12-03",
+            host: "localhost",
+            port: port
+        });
 
-        const liveClient = new Stripe("foobar");
+        const liveClient = new Stripe(process.env["STRIPE_TEST_SECRET_KEY"], {
+            apiVersion: "2019-12-03"
+        });
 
         await assertErrorThunksAreEqual(
             () => localClient.charges.create(testChargeParams),

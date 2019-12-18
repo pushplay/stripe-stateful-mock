@@ -1,4 +1,4 @@
-import Stripe = require("stripe");
+import Stripe from "stripe";
 import {port} from "../src/autoStart";
 
 // That import above is enough to ensure the server gets started for testing.
@@ -9,17 +9,21 @@ let localClient: Stripe;
 
 export function getLiveStripeClient(): Stripe {
     if (!liveClient) {
-        liveClient = new Stripe(process.env["STRIPE_TEST_SECRET_KEY"]);
-        liveClient.setApiVersion(process.env["STRIPE_API_VERSION"]);
+        liveClient = new Stripe(process.env["STRIPE_TEST_SECRET_KEY"], {
+            apiVersion: "2019-12-03"
+        });
     }
     return liveClient;
 }
 
 export function getLocalStripeClient(): Stripe {
     if (!localClient) {
-        localClient = new Stripe("sk_test_foobar");
-        localClient.setHost("localhost", port, "http");
-        localClient.setApiVersion(process.env["STRIPE_API_VERSION"]);
+        localClient = new Stripe(process.env["STRIPE_TEST_SECRET_KEY"], {
+            apiVersion: "2019-12-03",
+            host: "localhost",
+            port: port
+        });
+        localClient.setProtocol("http");
     }
     return localClient;
 }

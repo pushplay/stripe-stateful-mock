@@ -1,4 +1,4 @@
-import * as stripe from "stripe";
+import Stripe from "stripe";
 import chaiExclude from "chai-exclude";
 import {getLocalStripeClient} from "./stripeUtils";
 import {assertErrorsAreEqual} from "./stripeAssert";
@@ -12,7 +12,7 @@ describe("charges", () => {
 
     const localStripeClient = getLocalStripeClient();
 
-    const buildChargeParityTest = (params: stripe.charges.IChargeCreationOptions) =>
+    const buildChargeParityTest = (params: Stripe.ChargeCreateParams) =>
         buildStripeParityTest(
             async stripeClient => {
                 const charge = await stripeClient.charges.create(params);
@@ -20,7 +20,7 @@ describe("charges", () => {
             }
         );
 
-    const buildChargeFailureParityTest = (params: stripe.charges.IChargeCreationOptions) =>
+    const buildChargeFailureParityTest = (params: Stripe.ChargeCreateParams) =>
         buildStripeParityTest(
             async stripeClient => {
                 let chargeError: any;
@@ -394,7 +394,7 @@ describe("charges", () => {
 
         describe("source token chains", async () => {
             it("supports test case tok_chargeDeclinedInsufficientFunds|tok_visa", async () => {
-                const chargeParams: stripe.charges.IChargeCreationOptions = {
+                const chargeParams: Stripe.ChargeCreateParams = {
                     amount: 5000,
                     currency: "usd",
                     source: "tok_chargeDeclinedInsufficientFunds|tok_visa"
@@ -414,7 +414,7 @@ describe("charges", () => {
             });
 
             it("supports test case tok_500|tok_500|tok_visa", async () => {
-                const chargeParams: stripe.charges.IChargeCreationOptions = {
+                const chargeParams: Stripe.ChargeCreateParams = {
                     amount: 5000,
                     currency: "usd",
                     source: "tok_500|tok_500|tok_visa"
@@ -445,12 +445,12 @@ describe("charges", () => {
             });
 
             it("does not confuse 2 chains that are not identical", async () => {
-                const chargeParams1: stripe.charges.IChargeCreationOptions = {
+                const chargeParams1: Stripe.ChargeCreateParams = {
                     amount: 5000,
                     currency: "usd",
                     source: `tok_500|tok_visa|${generateId(8)}`
                 };
-                const chargeParams2: stripe.charges.IChargeCreationOptions = {
+                const chargeParams2: Stripe.ChargeCreateParams = {
                     amount: 5000,
                     currency: "usd",
                     source: `tok_500|tok_visa|${generateId(8)}`
@@ -488,7 +488,7 @@ describe("charges", () => {
     describe("idempotency", () => {
         it("replays idempotent successes", async () => {
             const idempotencyKey = generateId();
-            const params: stripe.charges.IChargeCreationOptions = {
+            const params: Stripe.ChargeCreateParams = {
                 amount: 50000,
                 currency: "usd",
                 source: "tok_visa"
@@ -501,7 +501,7 @@ describe("charges", () => {
 
         it("replays idempotent errors", async () => {
             const idempotencyKey = generateId();
-            const params: stripe.charges.IChargeCreationOptions = {
+            const params: Stripe.ChargeCreateParams = {
                 amount: 5,
                 currency: "usd",
                 source: "tok_visa"
@@ -529,7 +529,7 @@ describe("charges", () => {
         });
 
         it("replays 500s (yes Stripe really does that)", async () => {
-            const params: stripe.charges.IChargeCreationOptions = {
+            const params: Stripe.ChargeCreateParams = {
                 amount: 5,          // This amount is too small but tok_500 takes precedence.
                 currency: "usd",
                 source: "tok_500"

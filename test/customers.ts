@@ -1,5 +1,5 @@
 import * as chai from "chai";
-import * as stripe from "stripe";
+import Stripe from "stripe";
 import {generateId} from "../src/api/utils";
 import {buildStripeParityTest} from "./buildStripeParityTest";
 import {getLocalStripeClient} from "./stripeUtils";
@@ -49,7 +49,7 @@ describe("customers", () => {
             });
             const additionalSource = await stripeClient.customers.createSource(customer.id, {
                 source: "tok_visa"
-            }) as stripe.cards.ICard;
+            }) as Stripe.Card;
             const customerWithAdditionalSource = await stripeClient.customers.retrieve(customer.id);
             const charge = await stripeClient.charges.create({
                 amount: 1000,
@@ -198,7 +198,7 @@ describe("customers", () => {
             const connectRetrieveCustomer = await stripeClient.customers.retrieve(customer.id, {stripe_account: connectedAccountId});
             chai.assert.deepEqual(connectRetrieveCustomer, customer);
 
-            const connectRetrieveCard = await stripeClient.customers.retrieveSource(customer.id, customer.default_source as string, {stripe_account: connectedAccountId}) as stripe.cards.ICard;
+            const connectRetrieveCard = await stripeClient.customers.retrieveSource(customer.id, customer.default_source as string, {stripe_account: connectedAccountId}) as Stripe.Card;
             chai.assert.equal(connectRetrieveCard.id, customer.default_source as string);
 
             return [customer, retrieveError, connectRetrieveCustomer, connectRetrieveCard];
@@ -271,7 +271,7 @@ describe("customers", () => {
                 const secondSource = await stripeClient.customers.createSource(customerBeforeDelete.id, {source: "tok_visa"});
                 await stripeClient.customers.deleteSource(customerBeforeDelete.id, secondSource.id);
                 const customerAfterDelete = await stripeClient.customers.retrieve(customerBeforeDelete.id);
-                return [customerBeforeDelete, secondSource as stripe.cards.ICard, customerAfterDelete];
+                return [customerBeforeDelete, secondSource as Stripe.Card, customerAfterDelete];
             }
         ));
 
@@ -283,7 +283,7 @@ describe("customers", () => {
                 const secondSource = await stripeClient.customers.createSource(customerBeforeDelete.id, {source: "tok_visa"});
                 await stripeClient.customers.deleteSource(customerBeforeDelete.id, customerBeforeDelete.default_source as string);
                 const customerAfterDelete = await stripeClient.customers.retrieve(customerBeforeDelete.id);
-                return [customerBeforeDelete, secondSource as stripe.cards.ICard, customerAfterDelete];
+                return [customerBeforeDelete, secondSource as Stripe.Card, customerAfterDelete];
             }
         ));
     });
@@ -311,7 +311,7 @@ describe("customers", () => {
                 const secondSource = await stripeClient.customers.createSource(customer.id, {source: "tok_visa"});
                 const customerAfterUpdate = await stripeClient.customers.update(customer.id, {default_source: secondSource.id});
                 chai.assert.equal(customerAfterUpdate.default_source, secondSource.id);
-                return [customer, secondSource as stripe.cards.ICard, customerAfterUpdate];
+                return [customer, secondSource as Stripe.Card, customerAfterUpdate];
             }
         ));
 

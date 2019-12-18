@@ -1,4 +1,4 @@
-import * as stripe from "stripe";
+import Stripe from "stripe";
 import log = require("loglevel");
 import {generateId} from "./utils";
 
@@ -10,15 +10,16 @@ export namespace cards {
 
     const cardExtras: {[cardId: string]: CardExtra} = {};
 
-    export function createFromSource(token: string): stripe.cards.ICard {
+    export function createFromSource(token: string): Stripe.Card {
         log.debug("cards.createFromSource", token);
 
         let saveCard = true;
         const cardId = `card_${generateId(24)}`;
         const now = new Date();
-        const card: stripe.cards.ICard = {
+        const card: Stripe.Card = {
             id: cardId,
             object: "card",
+            account: null,  // TODO custom only
             address_city: null,
             address_country: null,
             address_line1: null,
@@ -27,8 +28,10 @@ export namespace cards {
             address_state: null,
             address_zip: null,
             address_zip_check: null,
+            available_payout_methods: null, // TODO no?
             brand: "Unknown",
             country: "US",
+            currency: null,     // TODO custom only
             customer: null,
             cvc_check: null,
             dynamic_last4: null,

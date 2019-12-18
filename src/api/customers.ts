@@ -1,16 +1,16 @@
-import * as stripe from "stripe";
-import log = require("loglevel");
+import Stripe from "stripe";
 import {StripeError} from "./StripeError";
-import {applyListOptions, generateId, stringifyMetadata} from "./utils";
+import {applyListParams, generateId, optionalsToNulls, stringifyMetadata} from "./utils";
 import {cards} from "./cards";
 import {AccountData} from "./AccountData";
 import {verify} from "./verify";
+import log = require("loglevel");
 
 export namespace customers {
 
-    const accountCustomers = new AccountData<stripe.customers.ICustomer>();
+    const accountCustomers = new AccountData<Stripe.Customer>();
 
-    export function create(accountId: string, params: stripe.customers.ICustomerCreationOptions): stripe.customers.ICustomer {
+    export function create(accountId: string, params: Stripe.CustomerCreateParams): Stripe.Customer {
         log.debug("customers.create", accountId, params);
 
         if ((params as any).id && accountCustomers.contains(accountId, (params as any).id)) {
@@ -23,7 +23,7 @@ export namespace customers {
         }
 
         const customerId = (params as any).id || `cus_${generateId(14)}`;
-        const customer: stripe.customers.ICustomer = {
+        const customer: Stripe.Customer = {
             id: customerId,
             object: "customer",
             account_balance: +params.account_balance || +params.balance || 0,
@@ -85,7 +85,7 @@ export namespace customers {
         return customer;
     }
 
-    export function retrieve(accountId: string, customerId: string, paramName: string): stripe.customers.ICustomer {
+    export function retrieve(accountId: string, customerId: string, paramName: string): Stripe.Customer {
         log.debug("customers.retrieve", accountId, customerId);
 
         const customer = accountCustomers.get(accountId, customerId);
@@ -101,15 +101,15 @@ export namespace customers {
         return customer;
     }
 
-    export function list(accountId: string, params: stripe.customers.ICustomerListOptions): stripe.IList<stripe.customers.ICustomer> {
+    export function list(accountId: string, params: Stripe.CustomerListParams): Stripe.ApiList<Stripe.Customer> {
         let data = accountCustomers.getAll(accountId);
         if (params.email) {
             data = data.filter(d => d.email === params.email);
         }
-        return applyListOptions(data, params, (id, paramName) => retrieve(accountId, id, paramName));
+        return applyListParams(data, params, (id, paramName) => retrieve(accountId, id, paramName));
     }
 
-    export function update(accountId: string, customerId: string, params: stripe.customers.ICustomerUpdateOptions) {
+    export function update(accountId: string, customerId: string, params: Stripe.CustomerUpdateParams) {
         log.debug("customers.update", accountId, customerId, params);
 
         const customer = retrieve(accountId, customerId, "id");
@@ -131,7 +131,14 @@ export namespace customers {
             customer.balance = +params.account_balance || +params.balance;
         }
         if (params.hasOwnProperty("address")) {
-            customer.address = params.address;
+            customer.address = optionalsToNulls(params.address, {
+                city: null,
+                country: null,
+                line1: null,
+                line2: null,
+                postal_code: null,
+                state: null
+            });
         }
         if (params.hasOwnProperty("default_source")) {
             customer.default_source = params.default_source;
@@ -170,13 +177,13 @@ export namespace customers {
         return customer;
     }
 
-    export function addSubscription(accountId: string, customerId: string, subscription: stripe.subscriptions.ISubscription): void {
+    export function addSubscription(accountId: string, customerId: string, subscription: Stripe.Subscription): void {
         const customer = retrieve(accountId, customerId, "customer");
         customer.subscriptions.data.push(subscription);
         customer.subscriptions.total_count++;
     }
 
-    export function createCard(accountId: string, customerOrId: string | stripe.customers.ICustomer, params: stripe.customers.ICustomerSourceCreationOptions): stripe.cards.ICard {
+    export function createCard(accountId: string, customerOrId: string | Stripe.Customer, params: Stripe.CustomerSourceCreateParams): Stripe.Card {
         log.debug("customers.createCard", accountId, customerOrId, params);
 
         verify.requiredParams(params, ["source"]);
@@ -235,11 +242,11 @@ export namespace customers {
         }
     }
 
-    export function retrieveCard(accountId: string, customerId: string, cardId: string, paramName: string): stripe.cards.ICard {
+    export function retrieveCard(accountId: string, customerId: string, cardId: string, paramName: string): Stripe.Card {
         log.debug("customers.retrieveCard", accountId, customerId, cardId);
 
         const customer = retrieve(accountId, customerId, "customer");
-        const card = customer.sources.data.find(card => card.id === cardId && card.object === "card") as stripe.cards.ICard;
+        const card = customer.sources.data.find(card => card.id === cardId && card.object === "card") as Stripe.Card;
         if (!card) {
             throw new StripeError(404, {
                 code: "resource_missing",

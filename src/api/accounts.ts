@@ -1,14 +1,14 @@
-import * as stripe from "stripe";
+import Stripe from "stripe";
 import log = require("loglevel");
-import {applyListOptions, generateId} from "./utils";
+import {applyListParams, generateId} from "./utils";
 import {StripeError} from "./StripeError";
 import {verify} from "./verify";
 
 export namespace accounts {
 
-    const accounts: {[accountId: string]: stripe.accounts.IAccount} = {};
+    const accounts: {[accountId: string]: Stripe.Account} = {};
 
-    export function create(accountId: string, params: stripe.accounts.IAccountCreationOptions): stripe.accounts.IAccount {
+    export function create(accountId: string, params: Stripe.AccountCreateParams): Stripe.Account {
         log.debug("accounts.create", accountId, params);
 
         if (accountId !== "acct_default") {
@@ -20,14 +20,14 @@ export namespace accounts {
         verify.requiredParams(params, ["type"]);
 
         const connectedAccountId = (params as any).id || `acct_${generateId(16)}`;
-        const account: stripe.accounts.IAccount & any = {   // The d.ts is out of date on this object and I don't want to bother.
+        const account: Stripe.Account = {
             id: connectedAccountId,
             object: "account",
             business_profile: {
                 mcc: (params.business_profile && params.business_profile.mcc) || null,
                 name: (params.business_profile && params.business_profile.name) || "Stripe.com",
                 product_description: (params.business_profile && params.business_profile.product_description) || null,
-                support_address: (params.business_profile && params.business_profile.support_address) || null,
+                support_address: null,
                 support_email: (params.business_profile && params.business_profile.support_email) || null,
                 support_phone: (params.business_profile && params.business_profile.support_phone) || null,
                 support_url: (params.business_profile && params.business_profile.support_url) || null,
@@ -36,6 +36,7 @@ export namespace accounts {
             business_type: params.business_type || null,
             capabilities: {},
             charges_enabled: false,
+            company: null,      // More work to support than its worth.
             country: params.country || "US",
             created: (Date.now() / 1000) | 0,
             default_currency: params.default_currency || "usd",
@@ -48,6 +49,7 @@ export namespace accounts {
                 total_count: 0,
                 url: `/v1/accounts/${connectedAccountId}/external_accounts`
             },
+            individual: null,   // More work to support than its worth.
             metadata: params.metadata || {},
             payouts_enabled: false,
             requirements: {
@@ -141,7 +143,7 @@ export namespace accounts {
         return account;
     }
 
-    export function retrieve(accountId: string, connectedAccountId: string, censoredAccessToken: string): stripe.accounts.IAccount {
+    export function retrieve(accountId: string, connectedAccountId: string, censoredAccessToken: string): Stripe.Account {
         log.debug("accounts.retrieve", accountId, connectedAccountId);
 
         if (accountId !== "acct_default" && accountId !== connectedAccountId) {
@@ -161,12 +163,12 @@ export namespace accounts {
         return accounts[connectedAccountId];
     }
 
-    export function list(accountId: string, params: stripe.IListOptions): stripe.IList<stripe.accounts.IAccount> {
+    export function list(accountId: string, params: Stripe.AccountListParams): Stripe.ApiList<Stripe.Account> {
         let data = Object.values(accounts);
-        return applyListOptions(data, params, (id, paramName) => retrieve(accountId, id, paramName));
+        return applyListParams(data, params, (id, paramName) => retrieve(accountId, id, paramName));
     }
 
-    export function del(accountId: string, connectedAccountId: string): stripe.IDeleteConfirmation {
+    export function del(accountId: string, connectedAccountId: string): Stripe.DeletedAccount {
         log.debug("accounts.delete", accountId, connectedAccountId);
 
         delete accounts[connectedAccountId];
