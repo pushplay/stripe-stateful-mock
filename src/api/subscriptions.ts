@@ -75,7 +75,6 @@ export namespace subscriptions {
             ended_at: null,
             items: {
                 object: "list",
-                total_count: params.items ? params.items.length : 0,
                 data: [],
                 has_more: false,
                 url: `/v1/subscription_items?subscription=${subscriptionId}`

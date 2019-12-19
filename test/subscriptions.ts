@@ -148,7 +148,7 @@ describe("subscriptions", function () {
             const customerGet = await stripeClient.customers
                 .retrieve(customer.id);
 
-            chai.assert.equal(customerGet.subscriptions.total_count, 1);
+            chai.assert.lengthOf(customerGet.subscriptions.data, 1);
             chai.assert.equal(
                 customerGet.subscriptions.data[0].id,
                 subscription.id

@@ -106,7 +106,6 @@ export function assertListsAreBasicallyEqual<T extends ComparableStripeObject>(a
     chai.assert.lengthOf(actual.data, expected.data.length, message);
     chai.assert.equal(actual.has_more, expected.has_more, message);
     chai.assert.equal(actual.object, expected.object, message);
-    chai.assert.equal(actual.total_count, expected.total_count, message);
 
     for (let ix = 0; ix < actual.data.length; ix++) {
         assertObjectsAreBasicallyEqual(actual.data[ix], expected.data[ix], message);
@@ -118,8 +117,6 @@ export function assertChargesAreBasicallyEqual(actual: Stripe.Charge, expected: 
 
     assertEqualOnKeys(actual, expected, ["object", "amount", "amount_refunded", "application_fee", "application_fee_amount", "billing_details", "captured", "currency", "description", "failure_code", "failure_message", "metadata", "paid", "receipt_email", "refunded", "statement_descriptor", "statement_descriptor_suffix", "status", "transfer_group"], message);
     assertSetOrUnsetOnKeys(actual, expected, ["balance_transaction", "id", "payment_intent", "payment_method", "receipt_url"], message);
-    chai.assert.equal(actual.refunds.total_count, expected.refunds.total_count, message);
-    chai.assert.lengthOf(actual.refunds.data, actual.refunds.total_count, message);
 
     assertOutcomesAreBasicallyEqual(actual.outcome, expected.outcome, message);
     assertListsAreBasicallyEqual(actual.refunds, expected.refunds, message);
@@ -145,10 +142,9 @@ export function assertCustomersAreBasicallyEqual(actual: Stripe.Customer, expect
         ], message
     );
     assertSetOrUnsetOnKeys(actual, expected, ["default_source"], message);
-    chai.assert.equal(actual.sources.total_count, expected.sources.total_count, message);
-    chai.assert.lengthOf(actual.sources.data, actual.sources.total_count, message);
+    chai.assert.lengthOf(actual.sources.data, expected.sources.data.length, message);
 
-    for (let sourceIx = 0; sourceIx < expected.sources.total_count; sourceIx++) {
+    for (let sourceIx = 0; sourceIx < expected.sources.data.length; sourceIx++) {
         chai.assert.equal(actual.sources.data[sourceIx].object, "card", "only card checking is supported");
         chai.assert.equal(expected.sources.data[sourceIx].object, "card", "only card checking is supported");
         chai.assert.equal((actual.sources.data[sourceIx] as Stripe.Card).customer, actual.id);
@@ -182,10 +178,9 @@ export function assertSubscriptionsAreBasicallyEqual(
         "current_period_end", "current_period_start", "customer",
         "latest_invoice", "start", "start_date"
     ], message);
-    chai.assert.equal(actual.items.total_count, expected.items.total_count, message);
-    chai.assert.lengthOf(actual.items.data, actual.items.total_count, message);
+    chai.assert.lengthOf(actual.items.data, expected.items.data.length, message);
 
-    for (let itemIx = 0; itemIx < expected.items.total_count; itemIx++) {
+    for (let itemIx = 0; itemIx < expected.items.data.length; itemIx++) {
         chai.assert.equal(actual.items.data[itemIx].object, "subscription_item");
         chai.assert.equal(expected.items.data[itemIx].object, "subscription_item");
         chai.assert.equal(

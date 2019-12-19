@@ -52,14 +52,12 @@ export namespace customers {
                 object: "list",
                 data: [],
                 has_more: false,
-                total_count: 0,
                 url: `/v1/customers/${customerId}/sources`
             },
             subscriptions: {
                 object: "list",
                 data: [],
                 has_more: false,
-                total_count: 0,
                 url: `/v1/customers/${customerId}/subscriptions`
             } as any,
             tax_exempt: params.tax_exempt || "none",
@@ -67,7 +65,6 @@ export namespace customers {
                 object: "list",
                 data: [],
                 has_more: false,
-                total_count: 0,
                 url: "/v1/customers/cus_FhFu67G2pEu5wW/tax_ids"
             },
             tax_info: null,
@@ -184,7 +181,6 @@ export namespace customers {
     export function addSubscription(accountId: string, customerId: string, subscription: Stripe.Subscription): void {
         const customer = retrieve(accountId, customerId, "customer");
         customer.subscriptions.data.push(subscription);
-        customer.subscriptions.total_count++;
     }
 
     export function createCard(accountId: string, customerOrId: string | Stripe.Customer, params: Stripe.CustomerSourceCreateParams): Stripe.Card {
@@ -200,7 +196,6 @@ export namespace customers {
                 customer.default_source = card.id;
             }
             customer.sources.data.push(card);
-            customer.sources.total_count++;
 
             // Special token handling.
             switch (params.source) {
@@ -273,7 +268,6 @@ export namespace customers {
             throw new Error("The world does not make sense.");
         }
         customer.sources.data.splice(cardIx, 1);
-        customer.sources.total_count--;
 
         if (customer.default_source === cardId) {
             customer.default_source = customer.sources.data.length ? customer.sources.data[0].id : null;

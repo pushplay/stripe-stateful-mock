@@ -89,7 +89,6 @@ export namespace refunds {
             transfer_reversal: null
         };
         charge.refunds.data.unshift(refund);
-        charge.refunds.total_count++;
         charge.amount_refunded += refundAmount;
         charge.refunded = charge.amount_refunded === charge.amount;
         accountRefunds.put(accountId, refund);

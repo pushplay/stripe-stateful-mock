@@ -1,12 +1,12 @@
 import Stripe from "stripe";
-import log = require("loglevel");
 import {applyListParams, generateId} from "./utils";
 import {StripeError} from "./StripeError";
 import {verify} from "./verify";
+import log = require("loglevel");
 
 export namespace accounts {
 
-    const accounts: {[accountId: string]: Stripe.Account} = {};
+    const accounts: { [accountId: string]: Stripe.Account } = {};
 
     export function create(accountId: string, params: Stripe.AccountCreateParams): Stripe.Account {
         log.debug("accounts.create", accountId, params);
@@ -46,7 +46,6 @@ export namespace accounts {
                 object: "list",
                 data: [],
                 has_more: false,
-                total_count: 0,
                 url: `/v1/accounts/${connectedAccountId}/external_accounts`
             },
             individual: null,   // More work to support than its worth.
