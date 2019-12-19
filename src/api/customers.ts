@@ -131,14 +131,10 @@ export namespace customers {
             customer.balance = +params.account_balance || +params.balance;
         }
         if (params.hasOwnProperty("address")) {
-            customer.address = optionalsToNulls(params.address, {
-                city: null,
-                country: null,
-                line1: null,
-                line2: null,
-                postal_code: null,
-                state: null
-            });
+            if (!params.address) {
+                customer.address = null;
+            } else {
+                customer.address = params.address;
         }
         if (params.hasOwnProperty("default_source")) {
             customer.default_source = params.default_source;
@@ -168,10 +164,18 @@ export namespace customers {
             customer.preferred_locales = params.preferred_locales;
         }
         if (params.hasOwnProperty("shipping")) {
-            customer.shipping = params.shipping;
+            if (!params.shipping) {
+                customer.shipping = null;
+            } else {
+                customer.shipping = params.shipping;
+            }
         }
         if (params.hasOwnProperty("tax_exempt")) {
-            customer.tax_exempt = params.tax_exempt;
+            if (!params.tax_exempt) {
+                customer.tax_exempt = null;
+            } else {
+                customer.tax_exempt = params.tax_exempt;
+            }
         }
 
         return customer;

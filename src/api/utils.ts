@@ -27,10 +27,6 @@ export function optionalsToNulls<T extends object, U extends { [key: string]: nu
     return res;
 }
 
-export function arrayOptionalsToNulls<T extends object, U extends { [key: string]: null }>(params: T[], nulls: U): (T & U)[] {
-    return params.map(e => optionalsToNulls(e, nulls));
-}
-
 /**
  * Applies query parameters common to all "list" endpoints (IListParams) to the results.
  * @param data The result of the list endpoint.

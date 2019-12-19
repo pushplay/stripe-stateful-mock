@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 import {AccountData} from "./AccountData";
-import {applyListParams, arrayOptionalsToNulls, generateId, stringifyMetadata} from "./utils";
+import {applyListParams, generateId, stringifyMetadata} from "./utils";
 import {StripeError} from "./StripeError";
 import {verify} from "./verify";
 import {products} from "./products";
@@ -64,13 +64,7 @@ export namespace plans {
             metadata: stringifyMetadata(params.metadata),
             nickname: params.nickname || null,
             product: product.id,
-            tiers: arrayOptionalsToNulls(params.tiers || null, {
-                flat_amount: null,
-                flat_amount_decimal: null,
-                unit_amount: null,
-                unit_amount_decimal: null,
-                up_to: null
-            }),
+            tiers: params.tiers?.map(createPlanTier) ?? null,
             tiers_mode: params.tiers_mode || null,
             transform_usage: params.transform_usage || null,
             trial_period_days: params.trial_period_days || null,
@@ -78,6 +72,16 @@ export namespace plans {
         };
         accountPlans.put(accountId, plan);
         return plan;
+    }
+
+    function createPlanTier(params: Stripe.PlanCreateParams.Tier): Stripe.Plan.Tier {
+        return {
+            flat_amount: params.flat_amount ?? null,
+            flat_amount_decimal: params.flat_amount_decimal ?? null,
+            unit_amount: params.unit_amount ?? null,
+            unit_amount_decimal: params.unit_amount_decimal ?? null,
+            up_to: params.up_to == "inf" ? Infinity : params.up_to ?? null
+        }
     }
 
     export function retrieve(accountId: string, planId: string, paramName: string): Stripe.Plan {

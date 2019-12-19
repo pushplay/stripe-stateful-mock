@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 import {StripeError} from "./StripeError";
-import {applyListParams, generateId, optionalsToNulls, stringifyMetadata} from "./utils";
+import {applyListParams, generateId, stringifyMetadata} from "./utils";
 import {getEffectiveSourceTokenFromChain, isSourceTokenChain} from "./sourceTokenChains";
 import {cards} from "./cards";
 import {AccountData} from "./AccountData";
@@ -177,14 +177,7 @@ export namespace charges {
             charge.receipt_email = params.receipt_email;
         }
         if (params.hasOwnProperty("shipping")) {
-            charge.shipping = optionalsToNulls(params.shipping, {
-                city: null,
-                country: null,
-                line1: null,
-                line2: null,
-                postal_code: null,
-                state: null
-            });
+            charge.shipping = params.shipping;
         }
 
         return charge;
@@ -329,14 +322,7 @@ export namespace charges {
                 url: `/v1/charges/${chargeId}/refunds`
             },
             review: null,
-            shipping: params.shipping ? optionalsToNulls(params.shipping, {
-                city: null,
-                country: null,
-                line1: null,
-                line2: null,
-                postal_code: null,
-                state: null
-            }) : null,
+            shipping: params.shipping,
             source: source,
             source_transfer: null,
             statement_descriptor: params.statement_descriptor || null,
