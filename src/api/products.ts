@@ -1,9 +1,9 @@
 import * as stripe from "stripe";
-import log = require("loglevel");
 import {AccountData} from "./AccountData";
 import {applyListOptions, generateId, stringifyMetadata} from "./utils";
 import {verify} from "./verify";
 import {StripeError} from "./StripeError";
+import log = require("loglevel");
 
 export namespace products {
 
@@ -31,20 +31,20 @@ export namespace products {
             active: params.hasOwnProperty("active") ? params.active : true,
             attributes: params.attributes || [],
             created: (Date.now() / 1000) | 0,
-            caption: params.caption || null,
+            caption: params.type === "good" ? params.caption || null : undefined,
             deactivated_on: params.deactivate_on || undefined,
             description: params.description || null,
             images: params.images || [],
             livemode: false,
             metadata: stringifyMetadata(params.metadata),
             name: params.name,
-            package_dimensions: params.package_dimensions || null,
-            shippable: params.type === "good" ? params.shippable || true : null,
+            package_dimensions: params.type === "good" ? params.package_dimensions || null : undefined,
+            shippable: params.type === "good" ? params.shippable || true : undefined,
             statement_descriptor: undefined,
             skus: undefined,
             type: params.type,
             updated: (Date.now() / 1000) | 0,
-            url: params.url || null
+            url: params.type === "good" ? params.url || null : undefined
         };
 
         accountProducts.put(accountId, product);

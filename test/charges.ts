@@ -126,6 +126,9 @@ describe("charges", () => {
             });
             chai.assert.isNull(charge.dispute);
 
+            // Because the dispute is created after the charge is returned there's a race condition.
+            await new Promise((resolve => setTimeout(resolve)));
+
             const chargeGet = await stripeClient.charges.retrieve(charge.id);
             chai.assert.isString(chargeGet.dispute);
             return [charge, chargeGet];
@@ -323,7 +326,10 @@ describe("charges", () => {
         const listLimit1 = await localStripeClient.charges.list({limit: 1}, {stripe_account: account.id});
         chai.assert.lengthOf(listLimit1.data, 1);
 
-        const listLimit2 = await localStripeClient.charges.list({limit: 1, starting_after: listLimit1.data[0].id}, {stripe_account: account.id});
+        const listLimit2 = await localStripeClient.charges.list({
+            limit: 1,
+            starting_after: listLimit1.data[0].id
+        }, {stripe_account: account.id});
         chai.assert.lengthOf(listLimit1.data, 1);
         chai.assert.sameDeepMembers([...listLimit2.data, ...listLimit1.data], listTwo.data);
     });
@@ -368,7 +374,7 @@ describe("charges", () => {
                 chai.assert.equal(error.type, "StripeAPIError");
             });
         });
-        
+
         describe("tok_forget", () => {
             it("creates a successful charge that is not saved", async () => {
                 const charge = await localStripeClient.charges.create(

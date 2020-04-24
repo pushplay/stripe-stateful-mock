@@ -1,10 +1,10 @@
 import * as stripe from "stripe";
-import log = require("loglevel");
 import {StripeError} from "./StripeError";
 import {applyListOptions, generateId, stringifyMetadata} from "./utils";
 import {cards} from "./cards";
 import {AccountData} from "./AccountData";
 import {verify} from "./verify";
+import log = require("loglevel");
 
 export namespace customers {
 
@@ -162,6 +162,9 @@ export namespace customers {
         }
         if (params.hasOwnProperty("shipping")) {
             customer.shipping = params.shipping;
+        }
+        if (params.hasOwnProperty("source")) {
+            createCard(accountId, customer, {source: params.source});
         }
         if (params.hasOwnProperty("tax_exempt")) {
             customer.tax_exempt = params.tax_exempt;

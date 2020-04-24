@@ -225,7 +225,10 @@ describe("customers", () => {
         const listLimit1 = await localStripeClient.customers.list({limit: 1}, {stripe_account: account.id});
         chai.assert.lengthOf(listLimit1.data, 1);
 
-        const listLimit2 = await localStripeClient.customers.list({limit: 1, starting_after: listLimit1.data[0].id}, {stripe_account: account.id});
+        const listLimit2 = await localStripeClient.customers.list({
+            limit: 1,
+            starting_after: listLimit1.data[0].id
+        }, {stripe_account: account.id});
         chai.assert.lengthOf(listLimit1.data, 1);
         chai.assert.sameDeepMembers([...listLimit2.data, ...listLimit1.data], listTwo.data);
     });
@@ -328,6 +331,16 @@ describe("customers", () => {
                     updateError = err;
                 }
                 return [customer, updateError];
+            }
+        ));
+
+        it("supports updating the source", buildStripeParityTest(
+            async (stripeClient) => {
+                const customer = await stripeClient.customers.create({});
+                const customerAfterUpdate = await stripeClient.customers.update(customer.id, {source: "tok_visa"});
+                chai.assert.isString(customerAfterUpdate.default_source);
+                chai.assert.lengthOf(customerAfterUpdate.sources.data, 1);
+                return [customer, customerAfterUpdate];
             }
         ));
     });
