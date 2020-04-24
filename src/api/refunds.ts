@@ -1,10 +1,10 @@
 import * as stripe from "stripe";
-import log = require("loglevel");
 import {AccountData} from "./AccountData";
 import {StripeError} from "./StripeError";
 import {disputes} from "./disputes";
 import {applyListOptions, generateId, stringifyMetadata} from "./utils";
 import {charges} from "./charges";
+import log = require("loglevel");
 
 export namespace refunds {
 
@@ -13,7 +13,7 @@ export namespace refunds {
     export function create(accountId: string, params: stripe.refunds.IRefundCreationOptionsWithCharge): stripe.refunds.IRefund {
         log.debug("refunds.create", accountId, params);
 
-        if (params.hasOwnProperty("amount")) {
+        if (Object.prototype.hasOwnProperty.call(params, "amount")) {
             if (params.amount < 1) {
                 throw new StripeError(400, {
                     code: "parameter_invalid_integer",
@@ -55,10 +55,10 @@ export namespace refunds {
             }
         }
 
-        let refundAmount = params.hasOwnProperty("amount") ? +params.amount : charge.amount - charge.amount_refunded;
+        const refundAmount = Object.prototype.hasOwnProperty.call(params, "amount") ? +params.amount : charge.amount - charge.amount_refunded;
         if (refundAmount > charge.amount - charge.amount_refunded) {
             throw new StripeError(400, {
-                message: `Refund amount (\$${refundAmount / 100}) is greater than unrefunded amount on charge (\$${(charge.amount - charge.amount_refunded) / 100})`,
+                message: `Refund amount ($${refundAmount / 100}) is greater than unrefunded amount on charge ($${(charge.amount - charge.amount_refunded) / 100})`,
                 param: "amount",
                 type: "invalid_request_error"
             });

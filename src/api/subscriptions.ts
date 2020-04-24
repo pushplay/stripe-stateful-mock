@@ -3,6 +3,7 @@ import {AccountData} from "./AccountData";
 import {StripeError} from "./StripeError";
 import {applyListOptions, generateId, stringifyMetadata} from "./utils";
 import {customers} from "./customers";
+import {verify} from "./verify";
 import log = require("loglevel");
 
 export namespace subscriptions {
@@ -219,6 +220,8 @@ export namespace subscriptions {
     }
 
     export function list(accountId: string, params: stripe.subscriptions.ISubscriptionListOptions): stripe.IList<stripe.subscriptions.ISubscription> {
+        log.debug("subscriptions.list");
+
         let data = accountSubscriptions.getAll(accountId);
         if (params.customer) {
             data = data.filter(d => {
@@ -235,13 +238,15 @@ export namespace subscriptions {
         });
     }
 
-    export function listItem(accountId: string, params: stripe.subscriptionItems.ISubscriptionItemListOptions): stripe.IList<stripe.subscriptionItems.ISubscriptionItem> {
-        let data = accountSubscriptionItems.getAll(accountId);
-        if (params.subscription) {
-            data = data.filter(d => {
+    export function listItems(accountId: string, params: Partial<stripe.subscriptionItems.ISubscriptionItemListOptions>): stripe.IList<stripe.subscriptionItems.ISubscriptionItem> {
+        log.debug("subscriptionItems.list");
+
+        verify.requiredParams(params, ["subscription"]);
+        const data = accountSubscriptionItems
+            .getAll(accountId)
+            .filter(d => {
                 return d.subscription === params.subscription;
             });
-        }
 
         return applyListOptions(data, params, (id, paramName) => {
             return retrieveItem(accountId, id, paramName);

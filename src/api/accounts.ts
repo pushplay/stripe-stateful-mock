@@ -1,12 +1,12 @@
 import * as stripe from "stripe";
-import log = require("loglevel");
 import {applyListOptions, generateId} from "./utils";
 import {StripeError} from "./StripeError";
 import {verify} from "./verify";
+import log = require("loglevel");
 
 export namespace accounts {
 
-    const accounts: {[accountId: string]: stripe.accounts.IAccount} = {};
+    const accounts: { [accountId: string]: stripe.accounts.IAccount } = {};
 
     export function create(accountId: string, params: stripe.accounts.IAccountCreationOptions): stripe.accounts.IAccount {
         log.debug("accounts.create", accountId, params);
@@ -162,12 +162,21 @@ export namespace accounts {
     }
 
     export function list(accountId: string, params: stripe.IListOptions): stripe.IList<stripe.accounts.IAccount> {
-        let data = Object.values(accounts);
+        const data = Object.values(accounts);
         return applyListOptions(data, params, (id, paramName) => retrieve(accountId, id, paramName));
     }
 
-    export function del(accountId: string, connectedAccountId: string): stripe.IDeleteConfirmation {
+    export function del(accountId: string, connectedAccountId: string, censoredAccessToken: string): stripe.IDeleteConfirmation {
         log.debug("accounts.delete", accountId, connectedAccountId);
+
+        if (!accounts[connectedAccountId]) {
+            throw new StripeError(403, {
+                code: "account_invalid",
+                doc_url: "https://stripe.com/docs/error-codes/account-invalid",
+                message: `The provided key '${censoredAccessToken}' does not have access to account '${connectedAccountId}' (or that account does not exist). Application access may have been revoked.`,
+                type: "invalid_request_error"
+            });
+        }
 
         delete accounts[connectedAccountId];
         return {

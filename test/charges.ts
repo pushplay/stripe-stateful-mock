@@ -12,7 +12,7 @@ describe("charges", () => {
 
     const localStripeClient = getLocalStripeClient();
 
-    const buildChargeParityTest = (params: stripe.charges.IChargeCreationOptions) =>
+    const buildChargeParityTest = (params: stripe.charges.IChargeCreationOptions): () => Promise<void> =>
         buildStripeParityTest(
             async stripeClient => {
                 const charge = await stripeClient.charges.create(params);
@@ -20,7 +20,7 @@ describe("charges", () => {
             }
         );
 
-    const buildChargeFailureParityTest = (params: stripe.charges.IChargeCreationOptions) =>
+    const buildChargeFailureParityTest = (params: stripe.charges.IChargeCreationOptions): () => Promise<void> =>
         buildStripeParityTest(
             async stripeClient => {
                 let chargeError: any;

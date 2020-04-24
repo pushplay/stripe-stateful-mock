@@ -1,10 +1,10 @@
 import * as stripe from "stripe";
-import log = require("loglevel");
 import {AccountData} from "./AccountData";
 import {applyListOptions, generateId, stringifyMetadata} from "./utils";
 import {StripeError} from "./StripeError";
 import {verify} from "./verify";
 import {products} from "./products";
+import log = require("loglevel");
 
 export namespace plans {
 
@@ -51,7 +51,7 @@ export namespace plans {
         const plan: stripe.plans.IPlan = {
             id: planId,
             object: "plan",
-            active: params.hasOwnProperty("active") ? (params as any).active : true,
+            active: Object.prototype.hasOwnProperty.call(params, "active") ? (params as any).active : true,
             aggregate_usage: usageType === "metered" ? params.aggregate_usage || "sum" : null,
             amount: billingScheme === "per_unit" ? +params.amount : null,
             billing_scheme: billingScheme,
@@ -92,7 +92,7 @@ export namespace plans {
     export function list(accountId: string, params: stripe.IListOptions): stripe.IList<stripe.plans.IPlan> {
         log.debug("plans.list", accountId, params);
 
-        let data = accountPlans.getAll(accountId);
+        const data = accountPlans.getAll(accountId);
         return applyListOptions(data, params, (id, paramName) => retrieve(accountId, id, paramName));
     }
 }

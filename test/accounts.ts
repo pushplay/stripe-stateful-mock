@@ -117,12 +117,11 @@ describe("accounts", () => {
     it("cannot delete an account that doesn't exist", async () => {
         let delError: any;
         try {
-            const regetAccount = await localStripeClient.accounts.del(generateId());
-            chai.assert.fail(regetAccount, undefined, "should not delete an account");
+            await localStripeClient.accounts.del(generateId());
         } catch (err) {
             delError = err;
         }
-        chai.assert.isDefined(delError);
+        chai.assert.isDefined(delError, "should not delete an account");
         chai.assert.equal(delError.statusCode, 403);
         chai.assert.equal(delError.rawType, "invalid_request_error");
         chai.assert.equal(delError.type, "StripePermissionError");

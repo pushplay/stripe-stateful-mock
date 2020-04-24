@@ -28,7 +28,7 @@ export namespace products {
         const product: stripe.products.IProduct = {
             id: productId,
             object: "product",
-            active: params.hasOwnProperty("active") ? params.active : true,
+            active: params.active ?? true,
             attributes: params.attributes || [],
             created: (Date.now() / 1000) | 0,
             caption: params.type === "good" ? params.caption || null : undefined,
@@ -71,13 +71,13 @@ export namespace products {
         log.debug("products.list", accountId, params);
 
         let data = accountProducts.getAll(accountId);
-        if (params.hasOwnProperty("active")) {
+        if (Object.prototype.hasOwnProperty.call(params, "active")) {
             data = data.filter(d => d.active === params.active);
         }
         if (params.ids) {
             data = data.filter(d => params.ids.indexOf(d.id) !== -1);
         }
-        if (params.hasOwnProperty("shippable")) {
+        if (Object.prototype.hasOwnProperty.call(params, "shippable")) {
             data = data.filter(d => d.shippable === params.shippable);
         }
         if (params.url) {

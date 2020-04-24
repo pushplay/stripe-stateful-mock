@@ -109,7 +109,7 @@ export namespace customers {
         return applyListOptions(data, params, (id, paramName) => retrieve(accountId, id, paramName));
     }
 
-    export function update(accountId: string, customerId: string, params: stripe.customers.ICustomerUpdateOptions) {
+    export function update(accountId: string, customerId: string, params: stripe.customers.ICustomerUpdateOptions): stripe.customers.ICustomer {
         log.debug("customers.update", accountId, customerId, params);
 
         const customer = retrieve(accountId, customerId, "id");
@@ -126,47 +126,47 @@ export namespace customers {
             });
         }
 
-        if (params.hasOwnProperty("account_balance") || params.hasOwnProperty("balance")) {
+        if (Object.prototype.hasOwnProperty.call(params, "account_balance") || Object.prototype.hasOwnProperty.call(params, "balance")) {
             customer.account_balance = +params.account_balance || +params.balance;
             customer.balance = +params.account_balance || +params.balance;
         }
-        if (params.hasOwnProperty("address")) {
+        if (Object.prototype.hasOwnProperty.call(params, "address")) {
             customer.address = params.address;
         }
-        if (params.hasOwnProperty("default_source")) {
+        if (Object.prototype.hasOwnProperty.call(params, "default_source")) {
             customer.default_source = params.default_source;
         }
-        if (params.hasOwnProperty("description")) {
+        if (Object.prototype.hasOwnProperty.call(params, "description")) {
             customer.description = params.description;
         }
-        if (params.hasOwnProperty("email")) {
+        if (Object.prototype.hasOwnProperty.call(params, "email")) {
             customer.email = params.email;
         }
-        if (params.hasOwnProperty("invoice_prefix")) {
+        if (Object.prototype.hasOwnProperty.call(params, "invoice_prefix")) {
             customer.invoice_prefix = params.invoice_prefix;
         }
-        if (params.hasOwnProperty("invoice_settings")) {
+        if (Object.prototype.hasOwnProperty.call(params, "invoice_settings")) {
             customer.invoice_settings = params.invoice_settings;
         }
-        if (params.hasOwnProperty("metadata")) {
+        if (Object.prototype.hasOwnProperty.call(params, "metadata")) {
             customer.metadata = stringifyMetadata(params.metadata);
         }
-        if (params.hasOwnProperty("name")) {
+        if (Object.prototype.hasOwnProperty.call(params, "name")) {
             customer.name = params.name;
         }
-        if (params.hasOwnProperty("phone")) {
+        if (Object.prototype.hasOwnProperty.call(params, "phone")) {
             customer.phone = params.phone;
         }
-        if (params.hasOwnProperty("preferred_locales")) {
+        if (Object.prototype.hasOwnProperty.call(params, "preferred_locales")) {
             customer.preferred_locales = params.preferred_locales;
         }
-        if (params.hasOwnProperty("shipping")) {
+        if (Object.prototype.hasOwnProperty.call(params, "shipping")) {
             customer.shipping = params.shipping;
         }
-        if (params.hasOwnProperty("source")) {
+        if (Object.prototype.hasOwnProperty.call(params, "source")) {
             createCard(accountId, customer, {source: params.source});
         }
-        if (params.hasOwnProperty("tax_exempt")) {
+        if (Object.prototype.hasOwnProperty.call(params, "tax_exempt")) {
             customer.tax_exempt = params.tax_exempt;
         }
 

@@ -1,11 +1,6 @@
 import * as stripe from "stripe";
-import log = require("loglevel");
 import {StripeError} from "./StripeError";
-import {
-    applyListOptions,
-    generateId,
-    stringifyMetadata
-} from "./utils";
+import {applyListOptions, generateId, stringifyMetadata} from "./utils";
 import {getEffectiveSourceTokenFromChain, isSourceTokenChain} from "./sourceTokenChains";
 import {cards} from "./cards";
 import {AccountData} from "./AccountData";
@@ -13,6 +8,7 @@ import {customers} from "./customers";
 import {disputes} from "./disputes";
 import {refunds} from "./refunds";
 import {verify} from "./verify";
+import log = require("loglevel");
 
 export namespace charges {
 
@@ -35,7 +31,7 @@ export namespace charges {
         sgd: 50
     };
 
-    const bigBrandToSmallBrandMap: {[brand: string]: stripe.paymentMethods.CardBrand} = {
+    const bigBrandToSmallBrandMap: { [brand: string]: stripe.paymentMethods.CardBrand } = {
         "Visa": "visa",
         "American Express": "amex",
         "MasterCard": "mastercard",
@@ -168,19 +164,19 @@ export namespace charges {
 
         const charge = retrieve(accountId, chargeId, "id");
 
-        if (params.hasOwnProperty("description")) {
+        if (Object.prototype.hasOwnProperty.call(params, "description")) {
             charge.description = params.description;
         }
-        if (params.hasOwnProperty("fraud_details")) {
+        if (Object.prototype.hasOwnProperty.call(params, "fraud_details")) {
             charge.fraud_details = params.fraud_details;
         }
-        if (params.hasOwnProperty("metadata")) {
+        if (Object.prototype.hasOwnProperty.call(params, "metadata")) {
             charge.metadata = stringifyMetadata(params.metadata);
         }
-        if (params.hasOwnProperty("receipt_email")) {
+        if (Object.prototype.hasOwnProperty.call(params, "receipt_email")) {
             charge.receipt_email = params.receipt_email;
         }
-        if (params.hasOwnProperty("shipping")) {
+        if (Object.prototype.hasOwnProperty.call(params, "shipping")) {
             charge.shipping = params.shipping;
         }
 
@@ -210,7 +206,7 @@ export namespace charges {
             });
         }
 
-        let captureAmount = params.hasOwnProperty("amount") ? +params.amount : charge.amount;
+        const captureAmount = Object.prototype.hasOwnProperty.call(params, "amount") ? +params.amount : charge.amount;
         if (captureAmount < 1) {
             throw new StripeError(400, {
                 code: "parameter_invalid_integer",

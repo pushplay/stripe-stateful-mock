@@ -28,14 +28,18 @@ routes.get("/v1/accounts", (req, res) => {
 });
 
 routes.get("/v1/accounts/:id", (req, res) => {
+    // Verify that we have access to the connected account.
     accounts.retrieve("acct_default", req.params.id, auth.getCensoredAccessTokenFromRequest(req));
+
     const account = accounts.retrieve(getRequestAccountId(req), req.params.id, auth.getCensoredAccessTokenFromRequest(req));
     return res.status(200).json(account);
 });
 
 routes.delete("/v1/accounts/:id", (req, res) => {
+    // Verify that we have access to the connected account.
     accounts.retrieve("acct_default", req.params.id, auth.getCensoredAccessTokenFromRequest(req));
-    const account = accounts.del(getRequestAccountId(req), req.params.id);
+
+    const account = accounts.del(getRequestAccountId(req), req.params.id, auth.getCensoredAccessTokenFromRequest(req));
     return res.status(200).json(account);
 });
 
@@ -108,7 +112,7 @@ routes.get("/v1/subscriptions/:id", (req, res) => {
 // TODO: routes.post("/v1/subscriptions/:id")
 
 routes.get("/v1/subscription_items", (req, res) => {
-    const subscriptionItemList = subscriptions.listItem(getRequestAccountId(req), req.query);
+    const subscriptionItemList = subscriptions.listItems(getRequestAccountId(req), req.query);
     return res.status(200).json(subscriptionItemList);
 });
 

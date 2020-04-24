@@ -37,7 +37,7 @@ export namespace verify {
                 throw new Error("Unexpected paramName.  Must be \"foo\" or \"foo[bar]\".");
             }
 
-            if (!params.hasOwnProperty(paramNameParts[1]) || (paramNameParts[2] && !params[paramNameParts[1]].hasOwnProperty(paramNameParts[2]))) {
+            if (!Object.prototype.hasOwnProperty.call(params, paramNameParts[1]) || (paramNameParts[2] && !Object.prototype.hasOwnProperty.call(params[paramNameParts[1]], paramNameParts[2]))) {
                 throw new StripeError(400, {
                     code: "parameter_missing",
                     doc_url: "https://stripe.com/docs/error-codes/parameter-missing",
