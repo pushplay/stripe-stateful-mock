@@ -1,16 +1,16 @@
-import * as stripe from "stripe";
+import Stripe from "stripe";
 
 export function generateId(length: number = 20): string {
     const chars = "0123456789abcfedghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     return new Array(length).fill("5").map(() => chars[(Math.random() * chars.length) | 0]).join("");
 }
 
-export function stringifyMetadata(metadata?: {[key: string]: string | number}): {[key: string]: string} {
+export function stringifyMetadata(metadata?: { [key: string]: string | number }): { [key: string]: string } {
     if (!metadata) {
         return {};
     }
 
-    const resp: {[key: string]: string} = {};
+    const resp: { [key: string]: string } = {};
     for (const key in metadata) {
         resp[key] = metadata[key] + "";
     }
@@ -25,7 +25,7 @@ export function stringifyMetadata(metadata?: {[key: string]: string | number}): 
  *                  When an object with the given ID is not in the list a StripeError
  *                  should be thrown that matches the error when using the `retrieve` endpoint.
  */
-export function applyListOptions<T extends {id: string}>(data: T[], params: stripe.IListOptions, retriever: (id: string, paramName: string) => T): stripe.IList<T> {
+export function applyListOptions<T extends { id: string }>(data: T[], params: Stripe.PaginationParams, retriever: (id: string, paramName: string) => T): Stripe.ApiList<T> {
     let hasMore = false;
     if (params.starting_after) {
         const startingAfter = retriever(params.starting_after, "starting_after");

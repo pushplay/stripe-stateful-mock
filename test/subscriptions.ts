@@ -1,4 +1,5 @@
 import * as chai from "chai";
+import Stripe from "stripe";
 import {buildStripeParityTest} from "./buildStripeParityTest";
 
 describe("subscriptions", function () {
@@ -103,21 +104,11 @@ describe("subscriptions", function () {
                     quantity: 5
                 });
 
-            const subscriptionGet = await stripeClient.subscriptions
-                .retrieve(subscription.id);
+            const subscriptionGet = await stripeClient.subscriptions.retrieve(subscription.id);
+            chai.assert.equal(subscriptionGet.items.data[0].quantity, 5);
 
-            chai.assert.equal(
-                subscriptionGet.items.data[0].quantity,
-                5
-            );
-
-            const customerGet = await stripeClient.customers
-                .retrieve(customer.id);
-
-            chai.assert.equal(
-                customerGet.subscriptions.data[0].quantity,
-                5
-            );
+            const customerGet = await stripeClient.customers.retrieve(customer.id) as Stripe.Customer;
+            chai.assert.equal(customerGet.subscriptions.data[0].quantity, 5);
 
             return [updated, subscriptionGet, customerGet]
         }
@@ -145,18 +136,13 @@ describe("subscriptions", function () {
                     }]
                 });
 
-            const customerGet = await stripeClient.customers
-                .retrieve(customer.id);
-
-            chai.assert.equal(customerGet.subscriptions.total_count, 1);
+            const customerGet = await stripeClient.customers.retrieve(customer.id) as Stripe.Customer;
+            chai.assert.lengthOf(customerGet.subscriptions.data, 1);
             chai.assert.equal(
                 customerGet.subscriptions.data[0].id,
                 subscription.id
             );
-            chai.assert.equal(
-                customerGet.subscriptions.data[0].quantity,
-                2
-            );
+            chai.assert.equal(customerGet.subscriptions.data[0].quantity, 2);
 
             return [customerGet]
         }

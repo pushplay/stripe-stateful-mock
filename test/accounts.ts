@@ -54,7 +54,7 @@ describe("accounts", () => {
         let createError: any;
         try {
             const account2 = await localStripeClient.accounts.create({type: "custom"}, {
-                stripe_account: account.id
+                stripeAccount: account.id
             });
             chai.assert.fail(account2, undefined, "should not create the account");
         } catch (err) {
@@ -73,7 +73,7 @@ describe("accounts", () => {
         const getAccount = await localStripeClient.accounts.retrieve(account.id);
         chai.assert.deepEqual(getAccount, account);
 
-        const getAccountWithHeader = await localStripeClient.accounts.retrieve(account.id, {stripe_account: account.id});
+        const getAccountWithHeader = await localStripeClient.accounts.retrieve(account.id, {stripeAccount: account.id});
         chai.assert.deepEqual(getAccountWithHeader, account);
     });
 

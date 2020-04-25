@@ -1,6 +1,6 @@
-import * as stripe from "stripe";
-import log = require("loglevel");
+import Stripe from "stripe";
 import {generateId} from "./utils";
+import log = require("loglevel");
 
 export namespace cards {
 
@@ -8,15 +8,15 @@ export namespace cards {
         sourceToken: string;
     }
 
-    const cardExtras: {[cardId: string]: CardExtra} = {};
+    const cardExtras: { [cardId: string]: CardExtra } = {};
 
-    export function createFromSource(token: string): stripe.cards.ICard {
+    export function createFromSource(token: string): Stripe.Card {
         log.debug("cards.createFromSource", token);
 
         let saveCard = true;
         const cardId = `card_${generateId(24)}`;
         const now = new Date();
-        const card: stripe.cards.ICard = {
+        const card: Stripe.Card = {
             id: cardId,
             object: "card",
             address_city: null,
@@ -37,8 +37,7 @@ export namespace cards {
             fingerprint: generateId(16),
             funding: "credit",
             last4: "XXXX",
-            metadata: {
-            },
+            metadata: {},
             name: null,
             tokenization_method: null
         };

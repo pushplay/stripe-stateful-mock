@@ -1,20 +1,21 @@
-import * as stripe from "stripe";
-import {StripeError} from "./StripeError";
+import Stripe from "stripe";
+import {RestError} from "./RestError";
 import {applyListOptions, generateId, stringifyMetadata} from "./utils";
 import {cards} from "./cards";
 import {AccountData} from "./AccountData";
 import {verify} from "./verify";
+import {charges} from "./charges";
 import log = require("loglevel");
 
 export namespace customers {
 
-    const accountCustomers = new AccountData<stripe.customers.ICustomer>();
+    const accountCustomers = new AccountData<Stripe.Customer>();
 
-    export function create(accountId: string, params: stripe.customers.ICustomerCreationOptions): stripe.customers.ICustomer {
+    export function create(accountId: string, params: Stripe.CustomerCreateParams): Stripe.Customer {
         log.debug("customers.create", accountId, params);
 
         if ((params as any).id && accountCustomers.contains(accountId, (params as any).id)) {
-            throw new StripeError(400, {
+            throw new RestError(400, {
                 code: "resource_already_exists",
                 doc_url: "https://stripe.com/docs/error-codes/resource-already-exists",
                 message: "Customer already exists.",
@@ -23,12 +24,11 @@ export namespace customers {
         }
 
         const customerId = (params as any).id || `cus_${generateId(14)}`;
-        const customer: stripe.customers.ICustomer = {
+        const customer: Stripe.Customer = {
             id: customerId,
             object: "customer",
-            account_balance: +params.account_balance || +params.balance || 0,
-            address: params.address || null,
-            balance: +params.balance || +params.account_balance || 0,
+            address: charges.getAddressFromParams(params.address),
+            balance: +params.balance || 0,
             created: (Date.now() / 1000) | 0,
             currency: null,
             default_source: null,
@@ -45,21 +45,20 @@ export namespace customers {
             livemode: false,
             metadata: stringifyMetadata(params.metadata),
             name: null,
+            next_invoice_sequence: 1,
             phone: null,
             preferred_locales: params.preferred_locales || [],
-            shipping: params.shipping || null,
+            shipping: charges.getShippingFromParams(params.shipping),
             sources: {
                 object: "list",
                 data: [],
                 has_more: false,
-                total_count: 0,
                 url: `/v1/customers/${customerId}/sources`
             },
             subscriptions: {
                 object: "list",
                 data: [],
                 has_more: false,
-                total_count: 0,
                 url: `/v1/customers/${customerId}/subscriptions`
             } as any,
             tax_exempt: params.tax_exempt || "none",
@@ -67,11 +66,8 @@ export namespace customers {
                 object: "list",
                 data: [],
                 has_more: false,
-                total_count: 0,
                 url: "/v1/customers/cus_FhFu67G2pEu5wW/tax_ids"
-            },
-            tax_info: null,
-            tax_info_verification: null
+            }
         };
 
         if (params.source) {
@@ -85,12 +81,12 @@ export namespace customers {
         return customer;
     }
 
-    export function retrieve(accountId: string, customerId: string, paramName: string): stripe.customers.ICustomer {
+    export function retrieve(accountId: string, customerId: string, paramName: string): Stripe.Customer {
         log.debug("customers.retrieve", accountId, customerId);
 
         const customer = accountCustomers.get(accountId, customerId);
         if (!customer) {
-            throw new StripeError(404, {
+            throw new RestError(404, {
                 code: "resource_missing",
                 doc_url: "https://stripe.com/docs/error-codes/resource-missing",
                 message: `No such customer: ${customerId}`,
@@ -101,7 +97,9 @@ export namespace customers {
         return customer;
     }
 
-    export function list(accountId: string, params: stripe.customers.ICustomerListOptions): stripe.IList<stripe.customers.ICustomer> {
+    export function list(accountId: string, params: Stripe.CustomerListParams): Stripe.ApiList<Stripe.Customer> {
+        log.debug("customers.list", accountId, params);
+
         let data = accountCustomers.getAll(accountId);
         if (params.email) {
             data = data.filter(d => d.email === params.email);
@@ -109,7 +107,7 @@ export namespace customers {
         return applyListOptions(data, params, (id, paramName) => retrieve(accountId, id, paramName));
     }
 
-    export function update(accountId: string, customerId: string, params: stripe.customers.ICustomerUpdateOptions): stripe.customers.ICustomer {
+    export function update(accountId: string, customerId: string, params: Stripe.CustomerUpdateParams): Stripe.Customer {
         log.debug("customers.update", accountId, customerId, params);
 
         const customer = retrieve(accountId, customerId, "id");
@@ -117,7 +115,7 @@ export namespace customers {
         // All validation must happen above any setting or we can end up with partially
         // updated customers.
         if (params.default_source && !customer.sources.data.find(source => source.id === params.default_source)) {
-            throw new StripeError(400, {
+            throw new RestError(400, {
                 code: "resource_missing",
                 doc_url: "https://stripe.com/docs/error-codes/resource-missing",
                 message: `No such source: ${params.default_source}`,
@@ -126,60 +124,59 @@ export namespace customers {
             });
         }
 
-        if (Object.prototype.hasOwnProperty.call(params, "account_balance") || Object.prototype.hasOwnProperty.call(params, "balance")) {
-            customer.account_balance = +params.account_balance || +params.balance;
-            customer.balance = +params.account_balance || +params.balance;
+        if (params.address !== undefined) {
+            customer.address = charges.getAddressFromParams(params.address);
         }
-        if (Object.prototype.hasOwnProperty.call(params, "address")) {
-            customer.address = params.address;
-        }
-        if (Object.prototype.hasOwnProperty.call(params, "default_source")) {
+        if (params.default_source !== undefined) {
             customer.default_source = params.default_source;
         }
-        if (Object.prototype.hasOwnProperty.call(params, "description")) {
+        if (params.description !== undefined) {
             customer.description = params.description;
         }
-        if (Object.prototype.hasOwnProperty.call(params, "email")) {
+        if (params.email !== undefined) {
             customer.email = params.email;
         }
-        if (Object.prototype.hasOwnProperty.call(params, "invoice_prefix")) {
+        if (params.invoice_prefix !== undefined) {
             customer.invoice_prefix = params.invoice_prefix;
         }
-        if (Object.prototype.hasOwnProperty.call(params, "invoice_settings")) {
-            customer.invoice_settings = params.invoice_settings;
+        if (params.invoice_settings !== undefined) {
+            customer.invoice_settings = params.invoice_settings as Stripe.Customer.InvoiceSettings;
         }
-        if (Object.prototype.hasOwnProperty.call(params, "metadata")) {
+        if (params.metadata !== undefined) {
             customer.metadata = stringifyMetadata(params.metadata);
         }
-        if (Object.prototype.hasOwnProperty.call(params, "name")) {
+        if (params.name !== undefined) {
             customer.name = params.name;
         }
-        if (Object.prototype.hasOwnProperty.call(params, "phone")) {
+        if (params.phone !== undefined) {
             customer.phone = params.phone;
         }
-        if (Object.prototype.hasOwnProperty.call(params, "preferred_locales")) {
+        if (params.preferred_locales !== undefined) {
             customer.preferred_locales = params.preferred_locales;
         }
-        if (Object.prototype.hasOwnProperty.call(params, "shipping")) {
-            customer.shipping = params.shipping;
+        if (params.shipping !== undefined) {
+            customer.shipping = charges.getShippingFromParams(params.shipping);
         }
-        if (Object.prototype.hasOwnProperty.call(params, "source")) {
+        if (params.source !== undefined) {
             createCard(accountId, customer, {source: params.source});
         }
-        if (Object.prototype.hasOwnProperty.call(params, "tax_exempt")) {
+        if (params.tax_exempt !== undefined) {
             customer.tax_exempt = params.tax_exempt;
         }
 
         return customer;
     }
 
-    export function addSubscription(accountId: string, customerId: string, subscription: stripe.subscriptions.ISubscription): void {
+    export function addSubscription(accountId: string, customerId: string, subscription: Stripe.Subscription): void {
         const customer = retrieve(accountId, customerId, "customer");
         customer.subscriptions.data.push(subscription);
-        customer.subscriptions.total_count++;
+        customer.next_invoice_sequence++;
+        if (!customer.currency) {
+            customer.currency = "usd";
+        }
     }
 
-    export function createCard(accountId: string, customerOrId: string | stripe.customers.ICustomer, params: stripe.customers.ICustomerSourceCreationOptions): stripe.cards.ICard {
+    export function createCard(accountId: string, customerOrId: string | Stripe.Customer, params: Stripe.CustomerSourceCreateParams): Stripe.Card {
         log.debug("customers.createCard", accountId, customerOrId, params);
 
         verify.requiredParams(params, ["source"]);
@@ -192,12 +189,11 @@ export namespace customers {
                 customer.default_source = card.id;
             }
             customer.sources.data.push(card);
-            customer.sources.total_count++;
 
             // Special token handling.
             switch (params.source) {
                 case "tok_chargeDeclined":
-                    throw new StripeError(402, {
+                    throw new RestError(402, {
                         code: "card_declined",
                         decline_code: "generic_decline",
                         doc_url: "https://stripe.com/docs/error-codes/card-declined",
@@ -206,7 +202,7 @@ export namespace customers {
                         type: "card_error"
                     });
                 case "tok_chargeDeclinedInsufficientFunds":
-                    throw new StripeError(402, {
+                    throw new RestError(402, {
                         code: "card_declined",
                         decline_code: "insufficient_funds",
                         doc_url: "https://stripe.com/docs/error-codes/card-declined",
@@ -215,7 +211,7 @@ export namespace customers {
                         type: "card_error"
                     });
                 case "tok_chargeDeclinedIncorrectCvc":
-                    throw new StripeError(402, {
+                    throw new RestError(402, {
                         code: "incorrect_cvc",
                         doc_url: "https://stripe.com/docs/error-codes/incorrect-cvc",
                         message: "Your card's security code is incorrect.",
@@ -223,7 +219,7 @@ export namespace customers {
                         type: "card_error"
                     });
                 case "tok_chargeDeclinedExpiredCard":
-                    throw new StripeError(402, {
+                    throw new RestError(402, {
                         code: "expired_card",
                         doc_url: "https://stripe.com/docs/error-codes/expired-card",
                         message: "Your card has expired.",
@@ -238,13 +234,13 @@ export namespace customers {
         }
     }
 
-    export function retrieveCard(accountId: string, customerId: string, cardId: string, paramName: string): stripe.cards.ICard {
+    export function retrieveCard(accountId: string, customerId: string, cardId: string, paramName: string): Stripe.Card {
         log.debug("customers.retrieveCard", accountId, customerId, cardId);
 
         const customer = retrieve(accountId, customerId, "customer");
-        const card = customer.sources.data.find(card => card.id === cardId && card.object === "card") as stripe.cards.ICard;
+        const card = customer.sources.data.find(card => card.id === cardId && card.object === "card") as Stripe.Card;
         if (!card) {
-            throw new StripeError(404, {
+            throw new RestError(404, {
                 code: "resource_missing",
                 doc_url: "https://stripe.com/docs/error-codes/resource-missing",
                 message: `Customer ${customerId} does not have card with ID ${cardId}`,
@@ -265,7 +261,6 @@ export namespace customers {
             throw new Error("The world does not make sense.");
         }
         customer.sources.data.splice(cardIx, 1);
-        customer.sources.total_count--;
 
         if (customer.default_source === cardId) {
             customer.default_source = customer.sources.data.length ? customer.sources.data[0].id : null;

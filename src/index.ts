@@ -1,7 +1,7 @@
 import express from "express";
 import bodyParser from "body-parser";
 import {routes} from "./routes";
-import {StripeError} from "./api/StripeError";
+import {RestError} from "./api/RestError";
 import {idempotencyRoute} from "./api/idempotency";
 import {auth} from "./api/auth";
 import log = require("loglevel");
@@ -16,7 +16,7 @@ export function createExpressApp(): express.Application {
 
     // Error handling comes last.
     app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-        if (err instanceof StripeError) {
+        if (err instanceof RestError) {
             res.status(err.statusCode).send({error: err.error});
             return;
         }

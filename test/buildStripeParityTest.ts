@@ -1,8 +1,8 @@
 import * as chai from "chai";
-import Stripe = require("stripe");
-import log = require("loglevel");
+import Stripe from "stripe";
 import {getLiveStripeClient, getLocalStripeClient} from "./stripeUtils";
 import {assertObjectsAreBasicallyEqual, ComparableStripeObject} from "./stripeAssert";
+import log = require("loglevel");
 
 /**
  * Build a test that runs the same script twice: once with the local mock

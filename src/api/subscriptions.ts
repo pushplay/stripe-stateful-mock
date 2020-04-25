@@ -1,29 +1,20 @@
-import * as stripe from "stripe";
+import Stripe from "stripe";
 import {AccountData} from "./AccountData";
-import {StripeError} from "./StripeError";
+import {RestError} from "./RestError";
 import {applyListOptions, generateId, stringifyMetadata} from "./utils";
 import {customers} from "./customers";
 import {verify} from "./verify";
+import {taxRates} from "./taxRates";
 import log = require("loglevel");
 
 export namespace subscriptions {
 
-    const accountSubscriptions = new AccountData<stripe.subscriptions.ISubscription>();
-    const accountSubscriptionItems = new AccountData<stripe.subscriptionItems.ISubscriptionItem>();
-    const accountPlans = new AccountData<stripe.plans.IPlan>();
+    const accountSubscriptions = new AccountData<Stripe.Subscription>();
+    const accountSubscriptionItems = new AccountData<Stripe.SubscriptionItem>();
+    const accountPlans = new AccountData<Stripe.Plan>();
 
-    export function create(accountId: string, params: stripe.subscriptions.ISubscriptionCreationOptions): stripe.subscriptions.ISubscription {
+    export function create(accountId: string, params: Stripe.SubscriptionCreateParams): Stripe.Subscription {
         log.debug("subscriptions.create", accountId, params);
-
-        const paramId = (params as any).id;
-        if (paramId && accountSubscriptions.contains(accountId, paramId)) {
-            throw new StripeError(400, {
-                code: "resource_already_exists",
-                doc_url: "https://stripe.com/docs/error-codes/resource-already-exists",
-                message: "Subscription already exists.",
-                type: "invalid_request_error"
-            });
-        }
 
         let default_source: string;
         const paramsDefaultSource = params.default_source;
@@ -37,46 +28,44 @@ export namespace subscriptions {
             default_source = paramsDefaultSource;
         }
 
-        let plan = params.plan;
-        if (!plan) {
-            plan = params.items[0].plan;
+        const plan = (params as any).plan ?? params.items[0].plan;
+
+        const subscriptionId = (params as any).id || `sub_${generateId(14)}`;
+        if (accountSubscriptions.contains(accountId, subscriptionId)) {
+            throw new RestError(400, {
+                code: "resource_already_exists",
+                doc_url: "https://stripe.com/docs/error-codes/resource-already-exists",
+                message: "Subscription already exists.",
+                type: "invalid_request_error"
+            });
         }
 
-        const subscriptionId = paramId || `sub_${generateId(14)}`;
         const now = Math.floor((Date.now() / 1000));
         const nextMonth = new Date();
         nextMonth.setMonth(nextMonth.getMonth() + 1);
 
-        let paramQuantity = +params.quantity;
-        if (!params.quantity && params.items.length === 1) {
-            paramQuantity = +params.items[0].quantity;
-        }
-
-        const subscription: stripe.subscriptions.ISubscription = {
+        const subscription: Stripe.Subscription = {
             id: subscriptionId,
             object: "subscription",
             application_fee_percent: +params.application_fee_percent || null,
-            billing: params.billing || "charge_automatically",
-            collection_method: params.billing || "charge_automatically",
+            collection_method: params.collection_method || "charge_automatically",
             billing_cycle_anchor: +params.billing_cycle_anchor || now,
             billing_thresholds: null,
             cancel_at: null,
             cancel_at_period_end: false,
             canceled_at: null,
             created: now,
-            current_period_end: Math.floor(nextMonth.getTime() / 1000),
-            /** Hard coded to assume month long subscriptions */
+            current_period_end: Math.floor(nextMonth.getTime() / 1000), // Hard coded to assume month long subscriptions
             current_period_start: now,
             customer: params.customer,
             days_until_due: +params.days_until_due || null,
             default_payment_method: null,
             default_source: default_source || null,
-            /*default_tax_rates*/
+            default_tax_rates: params.default_tax_rates?.map(t => taxRates.retrieve(accountId, t, "default_tax_rate")),
             discount: null,
             ended_at: null,
             items: {
                 object: "list",
-                total_count: params.items ? params.items.length : 0,
                 data: [],
                 has_more: false,
                 url: `/v1/subscription_items?subscription=${subscriptionId}`
@@ -84,12 +73,18 @@ export namespace subscriptions {
             latest_invoice: `in_${generateId(14)}`,
             livemode: false,
             metadata: stringifyMetadata(params.metadata),
+            next_pending_invoice_item_invoice: null,
+            pause_collection: null,
+            pending_invoice_item_interval: null,
+            pending_setup_intent: null,
+            pending_update: null,
             plan: getOrCreatePlanObj(accountId, plan),
-            quantity: paramQuantity || 1,
-            start: Math.floor(Date.now() / 1000),
+            quantity: params.items?.length === 1 ? +params.items[0].quantity || 1 : undefined,
+            schedule: null,
             start_date: Math.floor(Date.now() / 1000),
             status: "active",
             tax_percent: +params.tax_percent || null,
+            transfer_data: params.transfer_data,
             trial_end: null,
             trial_start: null
         };
@@ -112,20 +107,22 @@ export namespace subscriptions {
         return subscription;
     }
 
-    function getOrCreatePlanObj(accountId: string, planName: string): stripe.plans.IPlan {
+    function getOrCreatePlanObj(accountId: string, planName: string): Stripe.Plan {
         if (accountPlans.contains(accountId, planName)) {
             return accountPlans.get(accountId, planName);
         }
 
-        const plan: stripe.plans.IPlan = {
+        const plan: Stripe.Plan = {
             id: planName,
             object: "plan",
             active: true,
             aggregate_usage: null,
             amount: 10 * 100,
+            amount_decimal: "10",
             billing_scheme: "per_unit",
             created: Math.floor(Date.now() / 1000),
             currency: "usd",
+            deleted: undefined,
             interval: "month",
             interval_count: 1,
             livemode: false,
@@ -143,19 +140,21 @@ export namespace subscriptions {
         return plan;
     }
 
-    function createItem(accountId: string, item: stripe.subscriptions.ISubscriptionCreationItem, subscriptionId: string): stripe.subscriptionItems.ISubscriptionItem {
+    function createItem(accountId: string, item: Stripe.SubscriptionCreateParams.Item, subscriptionId: string): Stripe.SubscriptionItem {
         const paramId = (item as any).id;
         const subItemId = paramId || `si_${generateId(14)}`;
 
-        const subscriptionItem: stripe.subscriptionItems.ISubscriptionItem = {
+        const subscriptionItem: Stripe.SubscriptionItem = {
             object: "subscription_item",
             id: subItemId,
             billing_thresholds: null,
             created: Math.floor(Date.now() / 1000),
+            deleted: undefined,
             metadata: stringifyMetadata(item.metadata),
             plan: getOrCreatePlanObj(accountId, item.plan),
             quantity: +item.quantity || 1,
-            subscription: subscriptionId
+            subscription: subscriptionId,
+            tax_rates: item.tax_rates?.map(r => taxRates.retrieve(accountId, r, "tax_rate"))
         };
         accountSubscriptionItems.put(accountId, subscriptionItem);
 
@@ -166,8 +165,8 @@ export namespace subscriptions {
      * TODO: export function update()
      */
 
-    export function updateItem(accountId: string, subscriptionItemId: string, params: stripe.subscriptionItems.ISubscriptionItemUpdateOptions): stripe.subscriptionItems.ISubscriptionItem {
-        log.debug("subscriptionITems.update", accountId, subscriptionItemId, params);
+    export function updateItem(accountId: string, subscriptionItemId: string, params: Stripe.SubscriptionItemUpdateParams): Stripe.SubscriptionItem {
+        log.debug("subscriptions.updateItem", accountId, subscriptionItemId, params);
 
         const subscriptionItem = retrieveItem(accountId, subscriptionItemId, "id");
 
@@ -183,14 +182,14 @@ export namespace subscriptions {
         return subscriptionItem;
     }
 
-    export function retrieve(accountId: string, subscriptionId: string, paramName: string): stripe.subscriptions.ISubscription {
-        log.debug("subscriptions.retrieve");
+    export function retrieve(accountId: string, subscriptionId: string, paramName: string): Stripe.Subscription {
+        log.debug("subscriptions.retrieve", subscriptionId);
 
         const subscription = accountSubscriptions.get(
             accountId, subscriptionId
         );
         if (!subscription) {
-            throw new StripeError(404, {
+            throw new RestError(404, {
                 code: "resource_missing",
                 doc_url: "https://stripe.com/docs/error-codes/resource-missing",
                 message: `No such subscription: ${subscriptionId}`,
@@ -201,14 +200,14 @@ export namespace subscriptions {
         return subscription;
     }
 
-    export function retrieveItem(accountId: string, subscriptionItemId: string, paramName: string): stripe.subscriptionItems.ISubscriptionItem {
-        log.debug("subscriptionItems.retrieve");
+    export function retrieveItem(accountId: string, subscriptionItemId: string, paramName: string): Stripe.SubscriptionItem {
+        log.debug("subscriptions.retrieveItem", subscriptionItemId);
 
         const subscriptionItem = accountSubscriptionItems.get(
             accountId, subscriptionItemId
         );
         if (!subscriptionItem) {
-            throw new StripeError(404, {
+            throw new RestError(404, {
                 code: "resource_missing",
                 doc_url: "https://stripe.com/docs/error-codes/resource-missing",
                 message: `No such subscription_item: ${subscriptionItemId}`,
@@ -219,8 +218,8 @@ export namespace subscriptions {
         return subscriptionItem;
     }
 
-    export function list(accountId: string, params: stripe.subscriptions.ISubscriptionListOptions): stripe.IList<stripe.subscriptions.ISubscription> {
-        log.debug("subscriptions.list");
+    export function list(accountId: string, params: Stripe.SubscriptionListParams): Stripe.ApiList<Stripe.Subscription> {
+        log.debug("subscriptions.list", params);
 
         let data = accountSubscriptions.getAll(accountId);
         if (params.customer) {
@@ -238,8 +237,8 @@ export namespace subscriptions {
         });
     }
 
-    export function listItems(accountId: string, params: Partial<stripe.subscriptionItems.ISubscriptionItemListOptions>): stripe.IList<stripe.subscriptionItems.ISubscriptionItem> {
-        log.debug("subscriptionItems.list");
+    export function listItems(accountId: string, params: Partial<Stripe.SubscriptionItemListParams>): Stripe.ApiList<Stripe.SubscriptionItem> {
+        log.debug("subscriptionItems.list", params);
 
         verify.requiredParams(params, ["subscription"]);
         const data = accountSubscriptionItems

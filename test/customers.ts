@@ -1,5 +1,5 @@
 import * as chai from "chai";
-import * as stripe from "stripe";
+import Stripe from "stripe";
 import {generateId} from "../src/api/utils";
 import {buildStripeParityTest} from "./buildStripeParityTest";
 import {getLocalStripeClient} from "./stripeUtils";
@@ -49,8 +49,8 @@ describe("customers", () => {
             });
             const additionalSource = await stripeClient.customers.createSource(customer.id, {
                 source: "tok_visa"
-            }) as stripe.cards.ICard;
-            const customerWithAdditionalSource = await stripeClient.customers.retrieve(customer.id);
+            }) as Stripe.Card;
+            const customerWithAdditionalSource = await stripeClient.customers.retrieve(customer.id) as Stripe.Customer;
             const charge = await stripeClient.charges.create({
                 amount: 1000,
                 currency: "usd",
@@ -185,7 +185,7 @@ describe("customers", () => {
                 connectedAccountId = account.id;
             }
 
-            const customer = await stripeClient.customers.create({source: "tok_visa"}, {stripe_account: connectedAccountId});
+            const customer = await stripeClient.customers.create({source: "tok_visa"}, {stripeAccount: connectedAccountId});
 
             let retrieveError: any;
             try {
@@ -195,10 +195,10 @@ describe("customers", () => {
             }
             chai.assert.isDefined(retrieveError, "customer should not be in the account, but should be in the connected account");
 
-            const connectRetrieveCustomer = await stripeClient.customers.retrieve(customer.id, {stripe_account: connectedAccountId});
+            const connectRetrieveCustomer = await stripeClient.customers.retrieve(customer.id, {stripeAccount: connectedAccountId});
             chai.assert.deepEqual(connectRetrieveCustomer, customer);
 
-            const connectRetrieveCard = await stripeClient.customers.retrieveSource(customer.id, customer.default_source as string, {stripe_account: connectedAccountId}) as stripe.cards.ICard;
+            const connectRetrieveCard = await stripeClient.customers.retrieveSource(customer.id, customer.default_source as string, {stripeAccount: connectedAccountId}) as Stripe.Card;
             chai.assert.equal(connectRetrieveCard.id, customer.default_source as string);
 
             return [customer, retrieveError, connectRetrieveCustomer, connectRetrieveCard];
@@ -209,26 +209,26 @@ describe("customers", () => {
         // Create a fresh account to get a clean slate.
         const account = await localStripeClient.accounts.create({type: "custom"});
 
-        const listEmpty = await localStripeClient.customers.list({stripe_account: account.id});
+        const listEmpty = await localStripeClient.customers.list({stripeAccount: account.id});
         chai.assert.lengthOf(listEmpty.data, 0);
 
-        const customer0 = await localStripeClient.customers.create({email: "luser0@example.com"}, {stripe_account: account.id});
-        const listOne = await localStripeClient.customers.list({stripe_account: account.id});
+        const customer0 = await localStripeClient.customers.create({email: "luser0@example.com"}, {stripeAccount: account.id});
+        const listOne = await localStripeClient.customers.list({stripeAccount: account.id});
         chai.assert.lengthOf(listOne.data, 1);
         chai.assert.sameDeepMembers(listOne.data, [customer0]);
 
-        const charge1 = await localStripeClient.customers.create({email: "luser1@example.com"}, {stripe_account: account.id});
-        const listTwo = await localStripeClient.customers.list({stripe_account: account.id});
+        const charge1 = await localStripeClient.customers.create({email: "luser1@example.com"}, {stripeAccount: account.id});
+        const listTwo = await localStripeClient.customers.list({stripeAccount: account.id});
         chai.assert.lengthOf(listTwo.data, 2);
         chai.assert.sameDeepMembers(listTwo.data, [charge1, customer0]);
 
-        const listLimit1 = await localStripeClient.customers.list({limit: 1}, {stripe_account: account.id});
+        const listLimit1 = await localStripeClient.customers.list({limit: 1}, {stripeAccount: account.id});
         chai.assert.lengthOf(listLimit1.data, 1);
 
         const listLimit2 = await localStripeClient.customers.list({
             limit: 1,
             starting_after: listLimit1.data[0].id
-        }, {stripe_account: account.id});
+        }, {stripeAccount: account.id});
         chai.assert.lengthOf(listLimit1.data, 1);
         chai.assert.sameDeepMembers([...listLimit2.data, ...listLimit1.data], listTwo.data);
     });
@@ -274,7 +274,7 @@ describe("customers", () => {
                 const secondSource = await stripeClient.customers.createSource(customerBeforeDelete.id, {source: "tok_visa"});
                 await stripeClient.customers.deleteSource(customerBeforeDelete.id, secondSource.id);
                 const customerAfterDelete = await stripeClient.customers.retrieve(customerBeforeDelete.id);
-                return [customerBeforeDelete, secondSource as stripe.cards.ICard, customerAfterDelete];
+                return [customerBeforeDelete, secondSource as Stripe.Card, customerAfterDelete];
             }
         ));
 
@@ -286,7 +286,7 @@ describe("customers", () => {
                 const secondSource = await stripeClient.customers.createSource(customerBeforeDelete.id, {source: "tok_visa"});
                 await stripeClient.customers.deleteSource(customerBeforeDelete.id, customerBeforeDelete.default_source as string);
                 const customerAfterDelete = await stripeClient.customers.retrieve(customerBeforeDelete.id);
-                return [customerBeforeDelete, secondSource as stripe.cards.ICard, customerAfterDelete];
+                return [customerBeforeDelete, secondSource as Stripe.Card, customerAfterDelete];
             }
         ));
     });
@@ -314,7 +314,7 @@ describe("customers", () => {
                 const secondSource = await stripeClient.customers.createSource(customer.id, {source: "tok_visa"});
                 const customerAfterUpdate = await stripeClient.customers.update(customer.id, {default_source: secondSource.id});
                 chai.assert.equal(customerAfterUpdate.default_source, secondSource.id);
-                return [customer, secondSource as stripe.cards.ICard, customerAfterUpdate];
+                return [customer, secondSource as Stripe.Card, customerAfterUpdate];
             }
         ));
 
@@ -338,9 +338,10 @@ describe("customers", () => {
             async (stripeClient) => {
                 const customer = await stripeClient.customers.create({});
                 const customerAfterUpdate = await stripeClient.customers.update(customer.id, {source: "tok_visa"});
+                const customerGet = await stripeClient.customers.retrieve(customer.id);
                 chai.assert.isString(customerAfterUpdate.default_source);
                 chai.assert.lengthOf(customerAfterUpdate.sources.data, 1);
-                return [customer, customerAfterUpdate];
+                return [customer, customerAfterUpdate, customerGet];
             }
         ));
     });

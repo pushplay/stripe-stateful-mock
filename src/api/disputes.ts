@@ -1,14 +1,14 @@
-import * as stripe from "stripe";
-import log = require("loglevel");
+import Stripe from "stripe";
 import {AccountData} from "./AccountData";
 import {generateId} from "./utils";
-import {StripeError} from "./StripeError";
+import {RestError} from "./RestError";
+import log = require("loglevel");
 
 export namespace disputes {
 
-    const accountDisputes = new AccountData<stripe.disputes.IDispute>();
+    const accountDisputes = new AccountData<Stripe.Dispute>();
 
-    export function createFromSource(accountId: string, token: string, charge: stripe.charges.ICharge): stripe.disputes.IDispute {
+    export function createFromSource(accountId: string, token: string, charge: Stripe.Charge, reverseBalanceTransacton: boolean): Stripe.Dispute {
         log.debug("disputes.createFromSource", accountId, token);
 
         // Something like 4 business days at 5pm.  May not be exactly right.
@@ -23,36 +23,41 @@ export namespace disputes {
 
         const disputeId = `dp_${generateId(24)}`;
         const disputeTxnId = `txn_${generateId(24)}`;
-        const dispute: stripe.disputes.IDispute = {
+
+        const balanceTransactions: Stripe.BalanceTransaction[] = [];
+        if (reverseBalanceTransacton) {
+            balanceTransactions.push({
+                id: disputeTxnId,
+                object: "balance_transaction",
+                amount: -charge.amount,
+                available_on: (transactionAvailableDate.getTime() / 1000) | 0,
+                created: (Date.now() / 1000) | 0,
+                currency: charge.currency,
+                description: `Chargeback withdrawal for ${charge.id}`,
+                exchange_rate: null,
+                fee: 1500,
+                fee_details: [
+                    {
+                        amount: 1500,
+                        application: null,
+                        currency: charge.currency,
+                        description: "Dispute fee",
+                        type: "stripe_fee"
+                    }
+                ],
+                net: -charge.amount - 1500,
+                reporting_category: "dispute",
+                source: `dp_${generateId(24)}`,
+                status: "pending",
+                type: "adjustment"
+            })
+        }
+
+        const dispute: Stripe.Dispute = {
             id: disputeId,
             object: "dispute",
             amount: +charge.amount,
-            balance_transactions: [
-                {
-                    id: disputeTxnId,
-                    object: "balance_transaction",
-                    amount: -charge.amount,
-                    available_on: (transactionAvailableDate.getTime() / 1000) | 0,
-                    created: (Date.now() / 1000) | 0,
-                    currency: charge.currency,
-                    description: `Chargeback withdrawal for ${charge.id}`,
-                    exchange_rate: null,
-                    fee: 1500,
-                    fee_details: [
-                        {
-                            amount: 1500,
-                            application: null,
-                            currency: charge.currency,
-                            description: "Dispute fee",
-                            type: "stripe_fee"
-                        }
-                    ],
-                    net: -charge.amount - 1500,
-                    source: `dp_${generateId(24)}`,
-                    status: "pending",
-                    type: "adjustment"
-                }
-            ],
+            balance_transactions: balanceTransactions,
             charge: charge.id,
             created: (Date.now() / 1000) | 0,
             currency: charge.currency,
@@ -93,8 +98,9 @@ export namespace disputes {
             },
             is_charge_refundable: false,
             livemode: false,
-            metadata: {
-            },
+            metadata: {},
+            network_reason_code: undefined,     // I don't see this in actual calls.
+            payment_intent: null,
             reason: "fraudulent",
             status: "needs_response"
         };
@@ -118,12 +124,12 @@ export namespace disputes {
         return dispute;
     }
 
-    export function retrieve(accountId: string, disputeId: string, paramName: string): stripe.disputes.IDispute {
+    export function retrieve(accountId: string, disputeId: string, paramName: string): Stripe.Dispute {
         log.debug("dispute.retrieve", accountId, disputeId, paramName);
 
         const dispute = accountDisputes.get(accountId, disputeId);
         if (!dispute) {
-            throw new StripeError(404, {
+            throw new RestError(404, {
                 code: "resource_missing",
                 doc_url: "https://stripe.com/docs/error-codes/resource-missing",
                 message: `No such dispute: ${disputeId}`,

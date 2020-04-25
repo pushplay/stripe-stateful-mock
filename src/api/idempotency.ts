@@ -1,10 +1,10 @@
 import express from "express";
-import deepEqual = require("deep-equal");
-import log = require("loglevel");
 import {generateId} from "./utils";
-import {StripeError} from "./StripeError";
+import {RestError} from "./RestError";
 import {AccountData} from "./AccountData";
 import {getRequestAccountId} from "../routes";
+import deepEqual = require("deep-equal");
+import log = require("loglevel");
 
 interface StoredRequest {
     id: string;
@@ -31,7 +31,7 @@ export function idempotencyRoute(req: express.Request, res: express.Response, ne
 
         if (!deepEqual(storedRequest.requestBody, req.body)) {
             log.error("request body", req.body, "does not match stored body", storedRequest.requestBody);
-            throw new StripeError(400, {
+            throw new RestError(400, {
                 message: `Keys for idempotent requests can only be used with the same parameters they were first used with. Try using a key other than '${idempotencyKey}' if you meant to execute a different request.`,
                 type: "idempotency_error"
             });

@@ -1,4 +1,4 @@
-import * as stripe from "stripe";
+import Stripe from "stripe";
 import chaiExclude from "chai-exclude";
 import {getLocalStripeClient} from "./stripeUtils";
 import {assertErrorsAreEqual} from "./stripeAssert";
@@ -12,7 +12,7 @@ describe("charges", () => {
 
     const localStripeClient = getLocalStripeClient();
 
-    const buildChargeParityTest = (params: stripe.charges.IChargeCreationOptions): () => Promise<void> =>
+    const buildChargeParityTest = (params: Stripe.ChargeCreateParams): () => Promise<void> =>
         buildStripeParityTest(
             async stripeClient => {
                 const charge = await stripeClient.charges.create(params);
@@ -20,7 +20,7 @@ describe("charges", () => {
             }
         );
 
-    const buildChargeFailureParityTest = (params: stripe.charges.IChargeCreationOptions): () => Promise<void> =>
+    const buildChargeFailureParityTest = (params: Stripe.ChargeCreateParams): () => Promise<void> =>
         buildStripeParityTest(
             async stripeClient => {
                 let chargeError: any;
@@ -279,7 +279,7 @@ describe("charges", () => {
                     source: "tok_visa"
                 },
                 {
-                    stripe_account: connectedAccountId
+                    stripeAccount: connectedAccountId
                 }
             );
 
@@ -291,7 +291,7 @@ describe("charges", () => {
             }
             chai.assert.isDefined(retrieveError, "charge should not be in the account, but should be in the connected account");
 
-            const connectRetrieveCharge = await stripeClient.charges.retrieve(charge.id, {stripe_account: connectedAccountId});
+            const connectRetrieveCharge = await stripeClient.charges.retrieve(charge.id, {stripeAccount: connectedAccountId});
             chai.assert.deepEqual(connectRetrieveCharge, charge);
 
             return [charge, retrieveError, connectRetrieveCharge];
@@ -302,15 +302,15 @@ describe("charges", () => {
         // Create a fresh account to get a clean slate.
         const account = await localStripeClient.accounts.create({type: "custom"});
 
-        const listEmpty = await localStripeClient.customers.list({stripe_account: account.id});
+        const listEmpty = await localStripeClient.customers.list({stripeAccount: account.id});
         chai.assert.lengthOf(listEmpty.data, 0);
 
         const charge0 = await localStripeClient.charges.create({
             amount: 1234,
             currency: "usd",
             source: "tok_visa"
-        }, {stripe_account: account.id});
-        const listOne = await localStripeClient.charges.list({stripe_account: account.id});
+        }, {stripeAccount: account.id});
+        const listOne = await localStripeClient.charges.list({stripeAccount: account.id});
         chai.assert.lengthOf(listOne.data, 1);
         chai.assert.sameDeepMembers(listOne.data, [charge0]);
 
@@ -318,18 +318,18 @@ describe("charges", () => {
             amount: 5678,
             currency: "usd",
             source: "tok_visa"
-        }, {stripe_account: account.id});
-        const listTwo = await localStripeClient.charges.list({stripe_account: account.id});
+        }, {stripeAccount: account.id});
+        const listTwo = await localStripeClient.charges.list({stripeAccount: account.id});
         chai.assert.lengthOf(listTwo.data, 2);
         chai.assert.sameDeepMembers(listTwo.data, [charge1, charge0]);
 
-        const listLimit1 = await localStripeClient.charges.list({limit: 1}, {stripe_account: account.id});
+        const listLimit1 = await localStripeClient.charges.list({limit: 1}, {stripeAccount: account.id});
         chai.assert.lengthOf(listLimit1.data, 1);
 
         const listLimit2 = await localStripeClient.charges.list({
             limit: 1,
             starting_after: listLimit1.data[0].id
-        }, {stripe_account: account.id});
+        }, {stripeAccount: account.id});
         chai.assert.lengthOf(listLimit1.data, 1);
         chai.assert.sameDeepMembers([...listLimit2.data, ...listLimit1.data], listTwo.data);
     });
@@ -400,7 +400,7 @@ describe("charges", () => {
 
         describe("source token chains", async () => {
             it("supports test case tok_chargeDeclinedInsufficientFunds|tok_visa", async () => {
-                const chargeParams: stripe.charges.IChargeCreationOptions = {
+                const chargeParams: Stripe.ChargeCreateParams = {
                     amount: 5000,
                     currency: "usd",
                     source: "tok_chargeDeclinedInsufficientFunds|tok_visa"
@@ -420,7 +420,7 @@ describe("charges", () => {
             });
 
             it("supports test case tok_500|tok_500|tok_visa", async () => {
-                const chargeParams: stripe.charges.IChargeCreationOptions = {
+                const chargeParams: Stripe.ChargeCreateParams = {
                     amount: 5000,
                     currency: "usd",
                     source: "tok_500|tok_500|tok_visa"
@@ -451,12 +451,12 @@ describe("charges", () => {
             });
 
             it("does not confuse 2 chains that are not identical", async () => {
-                const chargeParams1: stripe.charges.IChargeCreationOptions = {
+                const chargeParams1: Stripe.ChargeCreateParams = {
                     amount: 5000,
                     currency: "usd",
                     source: `tok_500|tok_visa|${generateId(8)}`
                 };
-                const chargeParams2: stripe.charges.IChargeCreationOptions = {
+                const chargeParams2: Stripe.ChargeCreateParams = {
                     amount: 5000,
                     currency: "usd",
                     source: `tok_500|tok_visa|${generateId(8)}`
@@ -494,20 +494,20 @@ describe("charges", () => {
     describe("idempotency", () => {
         it("replays idempotent successes", async () => {
             const idempotencyKey = generateId();
-            const params: stripe.charges.IChargeCreationOptions = {
+            const params: Stripe.ChargeCreateParams = {
                 amount: 50000,
                 currency: "usd",
                 source: "tok_visa"
             };
-            const originalCharge = await localStripeClient.charges.create(params, {idempotency_key: idempotencyKey});
-            const repeatCharge = await localStripeClient.charges.create(params, {idempotency_key: idempotencyKey});
+            const originalCharge = await localStripeClient.charges.create(params, {idempotencyKey: idempotencyKey});
+            const repeatCharge = await localStripeClient.charges.create(params, {idempotencyKey: idempotencyKey});
 
             chai.assert.deepEqual(repeatCharge, originalCharge);
         });
 
         it("replays idempotent errors", async () => {
             const idempotencyKey = generateId();
-            const params: stripe.charges.IChargeCreationOptions = {
+            const params: Stripe.ChargeCreateParams = {
                 amount: 5,
                 currency: "usd",
                 source: "tok_visa"
@@ -515,7 +515,7 @@ describe("charges", () => {
 
             let originalError: any;
             try {
-                await localStripeClient.charges.create(params, {idempotency_key: idempotencyKey});
+                await localStripeClient.charges.create(params, {idempotencyKey: idempotencyKey});
             } catch (err) {
                 originalError = err;
             }
@@ -523,7 +523,7 @@ describe("charges", () => {
 
             let repeatError: any;
             try {
-                await localStripeClient.charges.create(params, {idempotency_key: idempotencyKey});
+                await localStripeClient.charges.create(params, {idempotencyKey: idempotencyKey});
             } catch (err) {
                 repeatError = err;
             }
@@ -535,7 +535,7 @@ describe("charges", () => {
         });
 
         it("replays 500s (yes Stripe really does that)", async () => {
-            const params: stripe.charges.IChargeCreationOptions = {
+            const params: Stripe.ChargeCreateParams = {
                 amount: 5,          // This amount is too small but tok_500 takes precedence.
                 currency: "usd",
                 source: "tok_500"
@@ -545,7 +545,7 @@ describe("charges", () => {
             let originalError: any;
             try {
                 await localStripeClient.charges.create(params, {
-                    idempotency_key: idempotencyKey
+                    idempotencyKey: idempotencyKey
                 });
             } catch (err) {
                 originalError = err;
@@ -556,7 +556,7 @@ describe("charges", () => {
             let repeatError: any;
             try {
                 await localStripeClient.charges.create(params, {
-                    idempotency_key: idempotencyKey
+                    idempotencyKey: idempotencyKey
                 });
             } catch (err) {
                 repeatError = err;
@@ -574,7 +574,7 @@ describe("charges", () => {
                 currency: "usd",
                 source: "tok_visa"
             }, {
-                idempotency_key: idempotencyKey
+                idempotencyKey: idempotencyKey
             });
 
             let repeatError: any;
@@ -584,7 +584,7 @@ describe("charges", () => {
                     currency: "usd",
                     source: "tok_visa"
                 }, {
-                    idempotency_key: idempotencyKey
+                    idempotencyKey: idempotencyKey
                 });
             } catch (err) {
                 repeatError = err;
@@ -607,8 +607,8 @@ describe("charges", () => {
                 currency: "usd",
                 source: "tok_visa"
             }, {
-                idempotency_key: idempotencyKey,
-                stripe_account: account1.id
+                idempotencyKey: idempotencyKey,
+                stripeAccount: account1.id
             });
 
             await localStripeClient.charges.create({
@@ -616,8 +616,8 @@ describe("charges", () => {
                 currency: "usd",
                 source: "tok_visa"
             }, {
-                idempotency_key: idempotencyKey,
-                stripe_account: account2.id
+                idempotencyKey: idempotencyKey,
+                stripeAccount: account2.id
             });
         });
     });

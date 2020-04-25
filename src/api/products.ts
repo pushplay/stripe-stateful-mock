@@ -1,15 +1,15 @@
-import * as stripe from "stripe";
+import Stripe from "stripe";
 import {AccountData} from "./AccountData";
 import {applyListOptions, generateId, stringifyMetadata} from "./utils";
 import {verify} from "./verify";
-import {StripeError} from "./StripeError";
+import {RestError} from "./RestError";
 import log = require("loglevel");
 
 export namespace products {
 
-    const accountProducts = new AccountData<stripe.products.IProduct>();
+    const accountProducts = new AccountData<Stripe.Product>();
 
-    export function create(accountId: string, params: stripe.products.IProductCreationOptions): stripe.products.IProduct {
+    export function create(accountId: string, params: Stripe.ProductCreateParams): Stripe.Product {
         log.debug("products.create", accountId, params);
 
         verify.requiredParams(params, ["name", "type"]);
@@ -17,7 +17,7 @@ export namespace products {
 
         const productId = params.id || `prod_${generateId()}`;
         if (accountProducts.contains(accountId, productId)) {
-            throw new StripeError(400, {
+            throw new RestError(400, {
                 code: "resource_already_exists",
                 doc_url: "https://stripe.com/docs/error-codes/resource-already-exists",
                 message: `Product already exists.`,
@@ -25,14 +25,15 @@ export namespace products {
             });
         }
 
-        const product: stripe.products.IProduct = {
+        const product: Stripe.Product = {
             id: productId,
             object: "product",
             active: params.active ?? true,
             attributes: params.attributes || [],
             created: (Date.now() / 1000) | 0,
             caption: params.type === "good" ? params.caption || null : undefined,
-            deactivated_on: params.deactivate_on || undefined,
+            deactivate_on: params.type === "good" ? params.deactivate_on || [] : undefined,
+            deleted: undefined,
             description: params.description || null,
             images: params.images || [],
             livemode: false,
@@ -40,10 +41,10 @@ export namespace products {
             name: params.name,
             package_dimensions: params.type === "good" ? params.package_dimensions || null : undefined,
             shippable: params.type === "good" ? params.shippable || true : undefined,
-            statement_descriptor: undefined,
-            skus: undefined,
+            statement_descriptor: params.type === "good" ? undefined : null,
             type: params.type,
             updated: (Date.now() / 1000) | 0,
+            unit_label: params.unit_label || params.type === "good" ? undefined : null,
             url: params.type === "good" ? params.url || null : undefined
         };
 
@@ -51,12 +52,12 @@ export namespace products {
         return product;
     }
 
-    export function retrieve(accountId: string, productId: string, paramName: string): stripe.products.IProduct {
+    export function retrieve(accountId: string, productId: string, paramName: string): Stripe.Product {
         log.debug("products.retrieve", accountId, productId);
 
         const product = accountProducts.get(accountId, productId);
         if (!product) {
-            throw new StripeError(404, {
+            throw new RestError(404, {
                 code: "resource_missing",
                 doc_url: "https://stripe.com/docs/error-codes/resource-missing",
                 message: `No such product: ${productId}`,
@@ -67,17 +68,17 @@ export namespace products {
         return product;
     }
 
-    export function list(accountId: string, params: stripe.products.IProductListOptions): stripe.IList<stripe.products.IProduct> {
+    export function list(accountId: string, params: Stripe.ProductListParams): Stripe.ApiList<Stripe.Product> {
         log.debug("products.list", accountId, params);
 
         let data = accountProducts.getAll(accountId);
-        if (Object.prototype.hasOwnProperty.call(params, "active")) {
+        if (params.active !== undefined) {
             data = data.filter(d => d.active === params.active);
         }
         if (params.ids) {
             data = data.filter(d => params.ids.indexOf(d.id) !== -1);
         }
-        if (Object.prototype.hasOwnProperty.call(params, "shippable")) {
+        if (params.shippable !== undefined) {
             data = data.filter(d => d.shippable === params.shippable);
         }
         if (params.url) {

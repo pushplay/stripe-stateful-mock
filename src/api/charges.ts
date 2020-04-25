@@ -1,5 +1,5 @@
-import * as stripe from "stripe";
-import {StripeError} from "./StripeError";
+import Stripe from "stripe";
+import {RestError} from "./RestError";
 import {applyListOptions, generateId, stringifyMetadata} from "./utils";
 import {getEffectiveSourceTokenFromChain, isSourceTokenChain} from "./sourceTokenChains";
 import {cards} from "./cards";
@@ -12,7 +12,7 @@ import log = require("loglevel");
 
 export namespace charges {
 
-    const accountCharges = new AccountData<stripe.charges.ICharge>();
+    const accountCharges = new AccountData<Stripe.Charge>();
 
     const minChargeAmount: { [code: string]: number } = {
         usd: 50,
@@ -31,7 +31,7 @@ export namespace charges {
         sgd: 50
     };
 
-    const bigBrandToSmallBrandMap: { [brand: string]: stripe.paymentMethods.CardBrand } = {
+    const bigBrandToSmallBrandMap: { [brand: string]: string } = {
         "Visa": "visa",
         "American Express": "amex",
         "MasterCard": "mastercard",
@@ -41,13 +41,13 @@ export namespace charges {
         "Unknown": "unknown"
     };
 
-    export function create(accountId: string, params: stripe.charges.IChargeCreationOptions): stripe.charges.ICharge {
+    export function create(accountId: string, params: Stripe.ChargeCreateParams): Stripe.Charge {
         log.debug("charges.create", accountId, params);
 
         handlePrechargeSpecialTokens(params.source);
         verify.requiredParams(params, ["amount", "currency"]);
         if (params.amount < 1) {
-            throw new StripeError(400, {
+            throw new RestError(400, {
                 code: "parameter_invalid_integer",
                 doc_url: "https://stripe.com/docs/error-codes/parameter-invalid-integer",
                 message: "Invalid positive integer",
@@ -56,7 +56,7 @@ export namespace charges {
             });
         }
         if (params.amount > 99999999) {
-            throw new StripeError(400, {
+            throw new RestError(400, {
                 code: "amount_too_large",
                 doc_url: "https://stripe.com/docs/error-codes/amount-too-large",
                 message: "Amount must be no more than $999,999.99",
@@ -66,7 +66,7 @@ export namespace charges {
         }
         verify.currency(params.currency.toLowerCase(), "currency");
         if (minChargeAmount[params.currency.toLowerCase()] && +params.amount < minChargeAmount[params.currency.toLowerCase()]) {
-            throw new StripeError(400, {
+            throw new RestError(400, {
                 code: "amount_too_small",
                 doc_url: "https://stripe.com/docs/error-codes/amount-too-small",
                 message: "Amount must be at least 50 cents",
@@ -75,7 +75,7 @@ export namespace charges {
             });
         }
 
-        let charge: stripe.charges.ICharge;
+        let charge: Stripe.Charge;
         if (typeof params.customer === "string") {
             const customer = customers.retrieve(accountId, params.customer, "customer");
             let cardId: string;
@@ -83,7 +83,7 @@ export namespace charges {
             if (params.source) {
                 const source = customer.sources.data.find(s => s.id === params.source);
                 if (!source) {
-                    throw new StripeError(404, {
+                    throw new RestError(404, {
                         code: "missing",
                         doc_url: "https://stripe.com/docs/error-codes/missing",
                         message: `Customer ${customer.id} does not have a linked source with ID ${params.source}.`,
@@ -95,7 +95,7 @@ export namespace charges {
             } else if (customer.default_source) {
                 cardId = customer.default_source as string;
             } else {
-                throw new StripeError(404, {
+                throw new RestError(404, {
                     code: "missing",
                     doc_url: "https://stripe.com/docs/error-codes/missing",
                     message: "Cannot charge a customer that has no active card",
@@ -124,7 +124,7 @@ export namespace charges {
             }
             handleSpecialChargeTokens(accountId, charge, sourceToken);
         } else {
-            throw new StripeError(400, {
+            throw new RestError(400, {
                 code: "parameter_missing",
                 doc_url: "https://stripe.com/docs/error-codes/parameter-missing",
                 message: "Must provide source or customer.",
@@ -135,12 +135,12 @@ export namespace charges {
         return charge;
     }
 
-    export function retrieve(accountId: string, chargeId: string, paramName: string): stripe.charges.ICharge {
+    export function retrieve(accountId: string, chargeId: string, paramName: string): Stripe.Charge {
         log.debug("charges.retrieve", accountId, chargeId);
 
         const charge = accountCharges.get(accountId, chargeId);
         if (!charge) {
-            throw new StripeError(404, {
+            throw new RestError(404, {
                 code: "resource_missing",
                 doc_url: "https://stripe.com/docs/error-codes/resource-missing",
                 message: `No such charge: ${chargeId}`,
@@ -151,7 +151,9 @@ export namespace charges {
         return charge;
     }
 
-    export function list(accountId: string, params: stripe.charges.IChargeListOptions): stripe.IList<stripe.charges.ICharge> {
+    export function list(accountId: string, params: Stripe.ChargeListParams): Stripe.ApiList<Stripe.Charge> {
+        log.debug("charges.list", accountId, params);
+
         let data = accountCharges.getAll(accountId);
         if (params.customer) {
             data = data.filter(d => d.customer === params.customer);
@@ -159,36 +161,36 @@ export namespace charges {
         return applyListOptions(data, params, (id, paramName) => retrieve(accountId, id, paramName));
     }
 
-    export function update(accountId: string, chargeId: string, params: stripe.charges.IChargeUpdateOptions): stripe.charges.ICharge {
+    export function update(accountId: string, chargeId: string, params: Stripe.ChargeUpdateParams): Stripe.Charge {
         log.debug("charges.update", accountId, chargeId, params);
 
         const charge = retrieve(accountId, chargeId, "id");
 
-        if (Object.prototype.hasOwnProperty.call(params, "description")) {
+        if (params.description !== undefined) {
             charge.description = params.description;
         }
-        if (Object.prototype.hasOwnProperty.call(params, "fraud_details")) {
+        if (params.fraud_details !== undefined) {
             charge.fraud_details = params.fraud_details;
         }
-        if (Object.prototype.hasOwnProperty.call(params, "metadata")) {
+        if (params.metadata !== undefined) {
             charge.metadata = stringifyMetadata(params.metadata);
         }
-        if (Object.prototype.hasOwnProperty.call(params, "receipt_email")) {
+        if (params.receipt_email !== undefined) {
             charge.receipt_email = params.receipt_email;
         }
-        if (Object.prototype.hasOwnProperty.call(params, "shipping")) {
-            charge.shipping = params.shipping;
+        if (params.shipping !== undefined) {
+            charge.shipping = getShippingFromParams(params.shipping);
         }
 
         return charge;
     }
 
-    export function capture(accountId: string, chargeId: string, params: stripe.charges.IChargeCaptureOptions): stripe.charges.ICharge {
+    export function capture(accountId: string, chargeId: string, params: Stripe.ChargeCaptureParams): Stripe.Charge {
         log.debug("charges.capture", accountId, chargeId, params);
 
         const charge = accountCharges.get(accountId, chargeId);
         if (!charge) {
-            throw new StripeError(404, {
+            throw new RestError(404, {
                 code: "resource_missing",
                 doc_url: "https://stripe.com/docs/error-codes/resource-missing",
                 message: `No such charge: ${chargeId}`,
@@ -198,7 +200,7 @@ export namespace charges {
         }
 
         if (charge.captured) {
-            throw new StripeError(400, {
+            throw new RestError(400, {
                 code: "charge_already_captured",
                 doc_url: "https://stripe.com/docs/error-codes/charge-already-captured",
                 message: "Charge ch_1FAOQz2eZvKYlo2CVwG2N5Kl has already been captured.",
@@ -208,7 +210,7 @@ export namespace charges {
 
         const captureAmount = Object.prototype.hasOwnProperty.call(params, "amount") ? +params.amount : charge.amount;
         if (captureAmount < 1) {
-            throw new StripeError(400, {
+            throw new RestError(400, {
                 code: "parameter_invalid_integer",
                 doc_url: "https://stripe.com/docs/error-codes/parameter-invalid-integer",
                 message: "Invalid positive integer",
@@ -217,7 +219,7 @@ export namespace charges {
             });
         }
         if (minChargeAmount[charge.currency.toLowerCase()] && +params.amount < minChargeAmount[charge.currency.toLowerCase()]) {
-            throw new StripeError(400, {
+            throw new RestError(400, {
                 code: "amount_too_small",
                 doc_url: "https://stripe.com/docs/error-codes/amount-too-small",
                 message: "Amount must be at least 50 cents",
@@ -239,7 +241,7 @@ export namespace charges {
         return charge;
     }
 
-    function getChargeFromCard(params: stripe.charges.IChargeCreationOptions, source: stripe.cards.ICard): stripe.charges.ICharge {
+    function getChargeFromCard(params: Stripe.ChargeCreateParams, source: Stripe.Card): Stripe.Charge {
         const chargeId = "ch_" + generateId();
         return {
             id: chargeId,
@@ -263,6 +265,7 @@ export namespace charges {
                 name: null,
                 phone: null
             },
+            calculated_statement_descriptor: null,
             captured: params.capture as any !== "false",
             created: (Date.now() / 1000) | 0,
             currency: params.currency.toLowerCase(),
@@ -270,6 +273,7 @@ export namespace charges {
             description: params.description || null,
             destination: null,
             dispute: null,
+            disputed: false,
             failure_code: null,
             failure_message: null,
             fraud_details: {},
@@ -302,7 +306,9 @@ export namespace charges {
                     exp_year: source.exp_year,
                     fingerprint: generateId(16),
                     funding: source.funding,
+                    installments: null,
                     last4: source.last4,
+                    network: bigBrandToSmallBrandMap[source.brand],
                     three_d_secure: null,
                     wallet: null
                 },
@@ -316,15 +322,14 @@ export namespace charges {
                 object: "list",
                 data: [],
                 has_more: false,
-                total_count: 0,
                 url: `/v1/charges/${chargeId}/refunds`
             },
             review: null,
-            shipping: params.shipping || null,
+            shipping: getShippingFromParams(params.shipping),
             source: source,
             source_transfer: null,
             statement_descriptor: params.statement_descriptor || null,
-            statement_descriptor_suffix: params.statement_descriptor_suffix || null,
+            statement_descriptor_suffix: params.statement_descriptor_suffix || params.statement_descriptor || null,
             status: "succeeded",
             transfer_data: null,
             transfer_group: params.transfer_group || null
@@ -335,21 +340,21 @@ export namespace charges {
         switch (sourceToken) {
             case "tok_429":
                 // An educated guess as to what this looks like.
-                throw new StripeError(429, {
+                throw new RestError(429, {
                     message: "Too many requests in a period of time.",
                     type: "rate_limit_error",
                     code: "rate_limit"
                 });
             case "tok_500":
                 // Actual 500 as seen from the server.
-                throw new StripeError(500, {
+                throw new RestError(500, {
                     message: "An unknown error occurred",
                     type: "api_error"
                 });
         }
     }
 
-    function handleSpecialChargeTokens(accountId: string, charge: stripe.charges.ICharge, sourceToken: string): void {
+    function handleSpecialChargeTokens(accountId: string, charge: Stripe.Charge, sourceToken: string): void {
         switch (sourceToken) {
             case "tok_chargeCustomerFail":
                 charge.failure_code = "card_declined";
@@ -364,7 +369,7 @@ export namespace charges {
                 };
                 charge.paid = false;
                 charge.status = "failed";
-                throw new StripeError(402, {
+                throw new RestError(402, {
                     charge: charge.id,
                     code: "card_declined",
                     decline_code: "generic_decline",
@@ -396,7 +401,7 @@ export namespace charges {
                 };
                 charge.paid = false;
                 charge.status = "failed";
-                throw new StripeError(402, {
+                throw new RestError(402, {
                     charge: charge.id,
                     code: "card_declined",
                     decline_code: "generic_decline",
@@ -417,7 +422,7 @@ export namespace charges {
                 };
                 charge.paid = false;
                 charge.status = "failed";
-                throw new StripeError(402, {
+                throw new RestError(402, {
                     charge: charge.id,
                     code: "card_declined",
                     decline_code: "insufficient_funds",
@@ -438,7 +443,7 @@ export namespace charges {
                 };
                 charge.paid = false;
                 charge.status = "failed";
-                throw new StripeError(402, {
+                throw new RestError(402, {
                     charge: charge.id,
                     code: "card_declined",
                     decline_code: "fraudulent",
@@ -459,7 +464,7 @@ export namespace charges {
                 };
                 charge.paid = false;
                 charge.status = "failed";
-                throw new StripeError(402, {
+                throw new RestError(402, {
                     charge: charge.id,
                     code: "incorrect_cvc",
                     doc_url: "https://stripe.com/docs/error-codes/incorrect-cvc",
@@ -480,7 +485,7 @@ export namespace charges {
                 };
                 charge.paid = false;
                 charge.status = "failed";
-                throw new StripeError(402, {
+                throw new RestError(402, {
                     charge: charge.id,
                     code: "expired_card",
                     doc_url: "https://stripe.com/docs/error-codes/expired-card",
@@ -501,7 +506,7 @@ export namespace charges {
                 };
                 charge.paid = false;
                 charge.status = "failed";
-                throw new StripeError(402, {
+                throw new RestError(402, {
                     charge: charge.id,
                     code: "processing_error",
                     doc_url: "https://stripe.com/docs/error-codes/processing-error",
@@ -512,10 +517,40 @@ export namespace charges {
             case "tok_createDisputeProductNotReceived":
             case "tok_createDisputeInquiry":
                 setTimeout(() => {
-                    const dispute = disputes.createFromSource(accountId, sourceToken, charge);
+                    const dispute = disputes.createFromSource(accountId, sourceToken, charge, sourceToken !== "tok_createDisputeInquiry");
                     charge.dispute = dispute.id;
+                    charge.disputed = true;
                 });
                 break;
         }
+    }
+
+    export function getShippingFromParams(params: Stripe.ChargeUpdateParams.Shipping | null): Stripe.Charge.Shipping | null {
+        if (params == null) {
+            return null;
+        }
+
+        return {
+            address: getAddressFromParams(params.address),
+            carrier: params.carrier || null,
+            name: params.name || null,
+            phone: params.phone || null,
+            tracking_number: params.tracking_number || null
+        };
+    }
+
+    export function getAddressFromParams(params: Stripe.AddressParam | null): Stripe.Address | null {
+        if (params == null) {
+            return null;
+        }
+
+        return {
+            city: params.city || null,
+            country: params.country || null,
+            line1: params.line1,
+            line2: params.line2 || null,
+            postal_code: params.postal_code || null,
+            state: params.state || null
+        };
     }
 }

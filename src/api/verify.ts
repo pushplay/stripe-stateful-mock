@@ -1,4 +1,4 @@
-import {StripeError} from "./StripeError";
+import {RestError} from "./RestError";
 
 export namespace verify {
 
@@ -6,7 +6,7 @@ export namespace verify {
 
     export function currency(currency: string, paramName: string): void {
         if (validCurrencies.indexOf(currency) === -1) {
-            throw new StripeError(400, {
+            throw new RestError(400, {
                 message: `Invalid currency: ${currency}. Stripe currently supports these currencies: ${validCurrencies.join(", ")}`,
                 param: paramName,
                 type: "invalid_request_error"
@@ -18,7 +18,7 @@ export namespace verify {
         const value = params[paramName];
         if (validValues.indexOf(value) === -1) {
             const printableValidValues = validValues.filter(v => !!v);
-            throw new StripeError(400, {
+            throw new RestError(400, {
                 message: `Invalid ${paramName}: must be one of ${printableValidValues.slice(0, printableValidValues.length - 1).join(", ")} or ${printableValidValues[printableValidValues.length - 1]}`,
                 param: paramName as string,
                 type: "invalid_request_error"
@@ -38,7 +38,7 @@ export namespace verify {
             }
 
             if (!Object.prototype.hasOwnProperty.call(params, paramNameParts[1]) || (paramNameParts[2] && !Object.prototype.hasOwnProperty.call(params[paramNameParts[1]], paramNameParts[2]))) {
-                throw new StripeError(400, {
+                throw new RestError(400, {
                     code: "parameter_missing",
                     doc_url: "https://stripe.com/docs/error-codes/parameter-missing",
                     message: `Missing required param: ${paramName}.`,
