@@ -9,6 +9,7 @@ Supported features:
 - products: create, retrieve, list
 - plans: create, retrieve, list
 - subscriptions: create, retrieve, list
+- tax plans: create, retrieve, list, update
 - connect accounts: create and delete
 - idempotency
 
