@@ -8,6 +8,7 @@ Supported features:
 - customers: create, retrieve, list, update, create card, retrieve card, delete card
 - products: create, retrieve, list
 - plans: create, retrieve, list
+- prices: create, retrieve, update, list
 - subscriptions: create, retrieve, list
 - tax plans: create, retrieve, list, update
 - connect accounts: create and delete
