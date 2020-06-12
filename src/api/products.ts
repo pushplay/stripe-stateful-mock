@@ -12,8 +12,10 @@ export namespace products {
     export function create(accountId: string, params: Stripe.ProductCreateParams): Stripe.Product {
         log.debug("products.create", accountId, params);
 
-        verify.requiredParams(params, ["name", "type"]);
-        verify.requiredValue(params, "type", ["service", "good"]);
+        verify.requiredParams(params, ["name"]);
+        if (params.type) {
+            verify.requiredValue(params, "type", ["service", "good"]);
+        }
 
         const productId = params.id || `prod_${generateId()}`;
         if (accountProducts.contains(accountId, productId)) {
@@ -25,27 +27,28 @@ export namespace products {
             });
         }
 
+        const type = params.type ?? "service";
         const product: Stripe.Product = {
             id: productId,
             object: "product",
             active: params.active ?? true,
             attributes: params.attributes || [],
             created: (Date.now() / 1000) | 0,
-            caption: params.type === "good" ? params.caption || null : undefined,
-            deactivate_on: params.type === "good" ? params.deactivate_on || [] : undefined,
+            caption: type === "good" ? params.caption || null : undefined,
+            deactivate_on: type === "good" ? params.deactivate_on || [] : undefined,
             deleted: undefined,
             description: params.description || null,
             images: params.images || [],
             livemode: false,
             metadata: stringifyMetadata(params.metadata),
             name: params.name,
-            package_dimensions: params.type === "good" ? params.package_dimensions || null : undefined,
-            shippable: params.type === "good" ? params.shippable || true : undefined,
-            statement_descriptor: params.type === "good" ? undefined : null,
-            type: params.type,
+            package_dimensions: type === "good" ? params.package_dimensions || null : undefined,
+            shippable: type === "good" ? params.shippable || true : undefined,
+            statement_descriptor: type === "good" ? undefined : null,
+            type: type,
             updated: (Date.now() / 1000) | 0,
-            unit_label: params.unit_label || params.type === "good" ? undefined : null,
-            url: params.type === "good" ? params.url || null : undefined
+            unit_label: params.unit_label || type === "good" ? undefined : null,
+            url: type === "good" ? params.url || null : undefined
         };
 
         accountProducts.put(accountId, product);

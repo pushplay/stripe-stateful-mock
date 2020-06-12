@@ -3,8 +3,10 @@ import {AccountData} from "./AccountData";
 import {RestError} from "./RestError";
 import {applyListOptions, generateId, stringifyMetadata} from "./utils";
 import {customers} from "./customers";
+import {prices} from "./prices";
 import {verify} from "./verify";
 import {taxRates} from "./taxRates";
+import {accounts} from "./accounts";
 import log = require("loglevel");
 
 export namespace subscriptions {
@@ -84,7 +86,10 @@ export namespace subscriptions {
             start_date: Math.floor(Date.now() / 1000),
             status: "active",
             tax_percent: +params.tax_percent || null,
-            transfer_data: params.transfer_data,
+            transfer_data: params.transfer_data ? {
+                amount_percent: params.transfer_data.amount_percent ?? null,
+                destination: accounts.retrieve(accountId, params.transfer_data.destination, "")
+            } : null,
             trial_end: null,
             trial_start: null
         };
@@ -152,6 +157,7 @@ export namespace subscriptions {
             deleted: undefined,
             metadata: stringifyMetadata(item.metadata),
             plan: getOrCreatePlanObj(accountId, item.plan),
+            price: item.price ? prices.retrieve(accountId, item.price, "price") : null,
             quantity: +item.quantity || 1,
             subscription: subscriptionId,
             tax_rates: item.tax_rates?.map(r => taxRates.retrieve(accountId, r, "tax_rate"))
@@ -160,10 +166,6 @@ export namespace subscriptions {
 
         return subscriptionItem;
     }
-
-    /**
-     * TODO: export function update()
-     */
 
     export function updateItem(accountId: string, subscriptionItemId: string, params: Stripe.SubscriptionItemUpdateParams): Stripe.SubscriptionItem {
         log.debug("subscriptions.updateItem", accountId, subscriptionItemId, params);

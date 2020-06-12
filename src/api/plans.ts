@@ -46,8 +46,8 @@ export namespace plans {
             });
         }
 
-        const billingScheme = params.billing_scheme || "per_unit";
-        const usageType = params.usage_type || "licensed";
+        const billingScheme = params.billing_scheme ?? "per_unit";
+        const usageType = params.usage_type ?? "licensed";
         const plan: Stripe.Plan = {
             id: planId,
             object: "plan",

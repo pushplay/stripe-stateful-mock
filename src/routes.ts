@@ -5,6 +5,7 @@ import {charges} from "./api/charges";
 import {customers} from "./api/customers";
 import {disputes} from "./api/disputes";
 import {plans} from "./api/plans";
+import {prices} from "./api/prices";
 import {products} from "./api/products";
 import {refunds} from "./api/refunds";
 import {subscriptions} from "./api/subscriptions";
@@ -135,6 +136,26 @@ routes.get("/v1/plans", (req, res) => {
 routes.get("/v1/plans/:id", (req, res) => {
     const plan = plans.retrieve(getRequestAccountId(req), req.params.id, "id");
     return res.status(200).json(plan);
+});
+
+routes.post("/v1/prices", (req, res) => {
+    const price = prices.create(getRequestAccountId(req), req.body);
+    return res.status(200).json(price);
+});
+
+routes.get("/v1/prices", (req, res) => {
+    const priceList = prices.list(getRequestAccountId(req), req.query);
+    return res.status(200).json(priceList);
+});
+
+routes.get("/v1/prices/:id", (req, res) => {
+    const price = prices.retrieve(getRequestAccountId(req), req.params.id, "id");
+    return res.status(200).json(price);
+});
+
+routes.post("/v1/prices/:id", (req, res) => {
+    const price = prices.update(getRequestAccountId(req), req.params.id, req.body);
+    return res.status(200).json(price);
 });
 
 routes.post("/v1/products", (req, res) => {

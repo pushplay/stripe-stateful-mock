@@ -44,6 +44,7 @@ export type ComparableStripeObject = Error
     | Stripe.Dispute
     | Stripe.PaymentIntent
     | Stripe.Plan
+    | Stripe.Price
     | Stripe.Product
     | Stripe.Refund
     | Stripe.TaxRate;
@@ -97,6 +98,9 @@ export function assertObjectsAreBasicallyEqual(actual: ComparableStripeObject, e
             break;
         case "plan":
             assertPlansAreBasicallyEqual(actual as Stripe.Plan, expected as Stripe.Plan, message);
+            break;
+        case "price":
+            assertPricesAreBasicallyEqual(actual as Stripe.Price, expected as Stripe.Price, message);
             break;
         case "product":
             assertProductsAreBasicallyEqual(actual as Stripe.Product, expected as Stripe.Product, message);
@@ -401,6 +405,32 @@ export function assertPlansAreBasicallyEqual(actual: Stripe.Plan, expected: Stri
     assertSetOrUnsetOnKeys(actual, expected, ["id", "product"], message);
 }
 
+export function assertPricesAreBasicallyEqual(actual: Stripe.Price, expected: Stripe.Price, message?: string): void {
+    assertEqualOnKeys(actual, expected, [
+        "object",
+        "active",
+        "billing_scheme",
+        "currency",
+        "livemode",
+        "metadata",
+        "nickname",
+        "tiers_mode",
+        "type",
+        "unit_amount",
+        "unit_amount_decimal"
+    ], message);
+    assertSetOrUnsetOnKeys(actual, expected, ["id", "created", "lookup_key", "recurring"], message);
+    if (actual.recurring) {
+        assertEqualOnKeys(actual.recurring, expected.recurring, [
+            "aggregate_usage",
+            "interval",
+            "interval_count",
+            "trial_period_days",
+            "usage_type"
+        ], message);
+    }
+}
+
 export function assertProductsAreBasicallyEqual(actual: Stripe.Product, expected: Stripe.Product, message?: string): void {
     assertEqualOnKeys(actual, expected, [
         "object",
@@ -436,6 +466,9 @@ export function assertTaxRatesAreBasicallyEqual(actual: Stripe.TaxRate, expected
     ], message);
     assertSetOrUnsetOnKeys(actual, expected, ["id", "created"], message);
 }
+
+// The uses below are super legit.
+/* eslint-disable @typescript-eslint/ban-types */
 
 function assertEqualOnKeys<T extends object>(actual: T, expected: T, keys: (keyof T)[], message?: string): void {
     for (const key of keys) {

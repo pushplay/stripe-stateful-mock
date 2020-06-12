@@ -1,6 +1,6 @@
 import {buildStripeParityTest} from "./buildStripeParityTest";
 
-describe("plan", () => {
+describe("plans", () => {
 
     it("supports creating a plan with an existing product", buildStripeParityTest(
         async (stripeClient) => {

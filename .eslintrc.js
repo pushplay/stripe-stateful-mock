@@ -10,7 +10,11 @@ module.exports = {
         "plugin:@typescript-eslint/recommended",
     ],
     rules: {
+
         "@typescript-eslint/camelcase": "off",          // Stripe doesn't work that way.
+        "@typescript-eslint/explicit-module-boundary-types": ["error", {
+            allowArgumentsExplicitlyTypedAsAny: true    // That's dumb.
+        }],
         "@typescript-eslint/explicit-function-return-type": ["error", {
             allowExpressions: true,
             allowTypedFunctionExpressions: true
