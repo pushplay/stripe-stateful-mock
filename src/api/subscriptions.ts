@@ -30,8 +30,6 @@ export namespace subscriptions {
             default_source = paramsDefaultSource;
         }
 
-        const plan = (params as any).plan ?? params.items[0].plan;
-
         const subscriptionId = (params as any).id || `sub_${generateId(14)}`;
         if (accountSubscriptions.contains(accountId, subscriptionId)) {
             throw new RestError(400, {
@@ -80,12 +78,9 @@ export namespace subscriptions {
             pending_invoice_item_interval: null,
             pending_setup_intent: null,
             pending_update: null,
-            plan: getOrCreatePlanObj(accountId, plan),
-            quantity: params.items?.length === 1 ? +params.items[0].quantity || 1 : undefined,
             schedule: null,
             start_date: Math.floor(Date.now() / 1000),
             status: "active",
-            tax_percent: +params.tax_percent || null,
             transfer_data: params.transfer_data ? {
                 amount_percent: params.transfer_data.amount_percent ?? null,
                 destination: accounts.retrieve(accountId, params.transfer_data.destination, "")
@@ -174,11 +169,6 @@ export namespace subscriptions {
 
         if (params.quantity) {
             subscriptionItem.quantity = +params.quantity;
-
-            const sub = retrieve(accountId, subscriptionItem.subscription, "id");
-            if (sub.items.data.length === 1) {
-                sub.quantity = +params.quantity;
-            }
         }
 
         return subscriptionItem;

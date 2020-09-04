@@ -35,10 +35,6 @@ describe("subscriptions", function () {
 
             chai.assert.equal(subscriptionGet.customer, customer.id);
             chai.assert.equal(
-                subscriptionGet.plan.id,
-                subscriptionGet.items.data[0].plan.id
-            );
-            chai.assert.equal(
                 subscriptionGet.id,
                 subscriptionGet.items.data[0].subscription
             );
@@ -107,10 +103,7 @@ describe("subscriptions", function () {
             const subscriptionGet = await stripeClient.subscriptions.retrieve(subscription.id);
             chai.assert.equal(subscriptionGet.items.data[0].quantity, 5);
 
-            const customerGet = await stripeClient.customers.retrieve(customer.id) as Stripe.Customer;
-            chai.assert.equal(customerGet.subscriptions.data[0].quantity, 5);
-
-            return [updated, subscriptionGet, customerGet]
+            return [updated, subscriptionGet]
         }
     ));
 
@@ -142,7 +135,6 @@ describe("subscriptions", function () {
                 customerGet.subscriptions.data[0].id,
                 subscription.id
             );
-            chai.assert.equal(customerGet.subscriptions.data[0].quantity, 2);
 
             return [customerGet]
         }

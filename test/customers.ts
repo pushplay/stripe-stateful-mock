@@ -11,6 +11,7 @@ describe("customers", () => {
     it("supports basic creation with no params", buildStripeParityTest(
         async (stripeClient) => {
             const customer = await stripeClient.customers.create({});
+            console.log("created customer", customer);
             const customerGet = await stripeClient.customers.retrieve(customer.id);
             return [customer, customerGet];
         }
