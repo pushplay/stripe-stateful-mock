@@ -206,16 +206,18 @@ export function assertCustomersAreBasicallyEqual(actual: Stripe.Customer, expect
         "sources"
     ], message);
 
-    for (let sourceIx = 0; sourceIx < expected.sources.data.length; sourceIx++) {
-        chai.assert.equal(actual.sources.data[sourceIx].object, "card", "only card checking is supported");
-        chai.assert.equal(expected.sources.data[sourceIx].object, "card", "only card checking is supported");
-        chai.assert.equal((actual.sources.data[sourceIx] as Stripe.Card).customer, actual.id);
-        chai.assert.equal((expected.sources.data[sourceIx] as Stripe.Card).customer, expected.id);
-        assertCardsAreBasicallyEqual(
-            actual.sources.data[sourceIx] as Stripe.Card,
-            expected.sources.data[sourceIx] as Stripe.Card,
-            `of refund ${sourceIx} ${message || ""}`
-        );
+    if (expected.sources) {
+        for (let sourceIx = 0; sourceIx < expected.sources.data.length; sourceIx++) {
+            chai.assert.equal(actual.sources.data[sourceIx].object, "card", "only card checking is supported");
+            chai.assert.equal(expected.sources.data[sourceIx].object, "card", "only card checking is supported");
+            chai.assert.equal((actual.sources.data[sourceIx] as Stripe.Card).customer, actual.id);
+            chai.assert.equal((expected.sources.data[sourceIx] as Stripe.Card).customer, expected.id);
+            assertCardsAreBasicallyEqual(
+                actual.sources.data[sourceIx] as Stripe.Card,
+                expected.sources.data[sourceIx] as Stripe.Card,
+                `of refund ${sourceIx} ${message || ""}`
+            );
+        }
     }
 }
 
@@ -474,6 +476,6 @@ function assertEqualOnKeys<T extends object>(actual: T, expected: T, keys: (keyo
 
 function assertSetOrUnsetOnKeys<T extends object>(actual: T, expected: T, keys: (keyof T)[], message?: string): void {
     for (const key of keys) {
-        chai.assert.equal(!!actual[key], !!expected[key], `both have key '${key}' set or unset, ${message || ""}`);
+        chai.assert.equal(actual[key] !== undefined ? "set" : "unset", expected[key] !== undefined ? "set" : "unset", `both have key '${key}' set or unset, ${message || ""}`);
     }
 }

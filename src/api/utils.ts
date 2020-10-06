@@ -54,3 +54,33 @@ export function applyListOptions<T extends { id: string }>(data: T[], params: St
         url: "/v1/refunds"
     };
 }
+
+/**
+ * Hide some properties from the object that are not expanded.
+ * @param obj The object to expand.
+ * @param hideList The list of properties to hide.
+ * @param expandList The list of properties to expand (unhide).
+ */
+export function expandObject<T extends { id: string }>(obj: T, hideList: (keyof T)[], expandList?: (keyof T)[]): Partial<T> {
+    const filteredObj: Partial<T> = {};
+    for (const key in obj) {
+        if (!hideList.includes(key) || expandList?.includes(key)) {
+            filteredObj[key] = obj[key];
+        }
+    }
+
+    return filteredObj;
+}
+
+/**
+ * Hide some properties from the objects that are not expanded.
+ * @param list The list of objects to expand.
+ * @param hideList The list of properties to hide.
+ * @param expandList The list of properties to expand (unhide).
+ */
+export function expandList<T extends { id: string }>(list: Stripe.ApiList<T>, hideList: (keyof T)[], expandList?: (keyof T)[]): Stripe.ApiList<Partial<T>> {
+    return {
+        ...list,
+        data: list.data.map(d => expandObject(d, hideList, expandList))
+    };
+}
