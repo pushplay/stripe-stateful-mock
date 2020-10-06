@@ -10,7 +10,6 @@ import {products} from "./api/products";
 import {refunds} from "./api/refunds";
 import {subscriptions} from "./api/subscriptions";
 import {taxRates} from "./api/taxRates";
-import {expandList, expandObject} from "./api/utils";
 
 const routes = express.Router();
 
@@ -79,32 +78,17 @@ routes.get("/v1/charges/:id/refunds", (req, res) => {
 
 routes.post("/v1/customers", (req, res) => {
     const customer = customers.create(getRequestAccountId(req), req.body);
-    const expandedCustomer = expandObject(
-        customer,
-        ["sources", "subscriptions"],
-        req.body.expand
-    );
-    return res.status(200).json(expandedCustomer);
+    return res.status(200).json(customer);
 });
 
 routes.get("/v1/customers", (req, res) => {
     const customerList = customers.list(getRequestAccountId(req), req.query);
-    const expandedCustomerList = expandList(
-        customerList,
-        ["sources", "subscriptions"],
-        req.body.expand
-    );
-    return res.status(200).json(expandedCustomerList);
+    return res.status(200).json(customerList);
 });
 
 routes.get("/v1/customers/:id", (req, res) => {
-    const customer = customers.retrieve(getRequestAccountId(req), req.params.id, "id");
-    const expandedCustomer = expandObject(
-        customer,
-        ["sources", "subscriptions"],
-        req.body.expand
-    );
-    return res.status(200).json(expandedCustomer);
+    const customer = customers.retrieve(getRequestAccountId(req), req.params.id, "id", req.query);
+    return res.status(200).json(customer);
 });
 
 routes.post("/v1/customers/:id", (req, res) => {

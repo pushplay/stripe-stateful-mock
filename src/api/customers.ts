@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 import {RestError} from "./RestError";
-import {applyListOptions, generateId, stringifyMetadata} from "./utils";
+import {applyListOptions, expandObject, generateId, stringifyMetadata} from "./utils";
 import {cards} from "./cards";
 import {AccountData} from "./AccountData";
 import {verify} from "./verify";
@@ -78,10 +78,14 @@ export namespace customers {
             accountCustomers.put(accountId, customer);
         }
 
-        return customer;
+        return expandObject(
+            customer,
+            ["sources", "subscriptions"],
+            params.expand
+        );
     }
 
-    export function retrieve(accountId: string, customerId: string, paramName: string): Stripe.Customer {
+    export function retrieve(accountId: string, customerId: string, paramName: string, params?: Stripe.CustomerRetrieveParams): Stripe.Customer {
         log.debug("customers.retrieve", accountId, customerId);
 
         const customer = accountCustomers.get(accountId, customerId);
@@ -94,7 +98,12 @@ export namespace customers {
                 type: "invalid_request_error"
             });
         }
-        return customer;
+
+        return expandObject(
+            customer,
+            ["sources", "subscriptions"],
+            params?.expand
+        );
     }
 
     export function list(accountId: string, params: Stripe.CustomerListParams): Stripe.ApiList<Stripe.Customer> {
@@ -104,6 +113,8 @@ export namespace customers {
         if (params.email) {
             data = data.filter(d => d.email === params.email);
         }
+        data = data.map(d => expandObject(d, ["sources", "subscriptions"], params.expand));
+
         return applyListOptions(data, params, (id, paramName) => retrieve(accountId, id, paramName));
     }
 
@@ -164,7 +175,11 @@ export namespace customers {
             customer.tax_exempt = params.tax_exempt;
         }
 
-        return customer;
+        return expandObject(
+            customer,
+            ["sources", "subscriptions"],
+            params.expand
+        );
     }
 
     export function addSubscription(accountId: string, customerId: string, subscription: Stripe.Subscription): void {
@@ -237,7 +252,7 @@ export namespace customers {
     export function retrieveCard(accountId: string, customerId: string, cardId: string, paramName: string): Stripe.Card {
         log.debug("customers.retrieveCard", accountId, customerId, cardId);
 
-        const customer = retrieve(accountId, customerId, "customer");
+        const customer = retrieve(accountId, customerId, "customer", {expand: ["sources"]});
         const card = customer.sources.data.find(card => card.id === cardId && card.object === "card") as Stripe.Card;
         if (!card) {
             throw new RestError(404, {
@@ -254,7 +269,7 @@ export namespace customers {
     export function deleteCard(accountId: string, customerId: string, cardId: string): any {
         log.debug("customers.deleteCard", accountId, customerId, cardId);
 
-        const customer = retrieve(accountId, customerId, "customer");
+        const customer = retrieve(accountId, customerId, "customer", {expand: ["sources"]});
         const card = retrieveCard(accountId, customerId, cardId, "id");
         const cardIx = customer.sources.data.indexOf(card);
         if (cardIx === -1) {

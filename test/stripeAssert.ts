@@ -476,6 +476,6 @@ function assertEqualOnKeys<T extends object>(actual: T, expected: T, keys: (keyo
 
 function assertSetOrUnsetOnKeys<T extends object>(actual: T, expected: T, keys: (keyof T)[], message?: string): void {
     for (const key of keys) {
-        chai.assert.equal(actual[key] !== undefined ? "set" : "unset", expected[key] !== undefined ? "set" : "unset", `both have key '${key}' set or unset, ${message || ""}`);
+        chai.assert.equal(actual[key] !== undefined ? "set" : "unset", expected[key] !== undefined ? "set" : "unset", `expect both have key '${key}' set or unset, ${message || ""}`);
     }
 }

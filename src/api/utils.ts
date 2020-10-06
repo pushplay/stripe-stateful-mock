@@ -55,13 +55,15 @@ export function applyListOptions<T extends { id: string }>(data: T[], params: St
     };
 }
 
+export type Nullable<T> = T extends null | undefined ? T : never;
+
 /**
  * Hide some properties from the object that are not expanded.
  * @param obj The object to expand.
  * @param hideList The list of properties to hide.
  * @param expandList The list of properties to expand (unhide).
  */
-export function expandObject<T extends { id: string }>(obj: T, hideList: (keyof T)[], expandList?: (keyof T)[]): Partial<T> {
+export function expandObject<T extends { id: string }>(obj: T, hideList: (keyof Nullable<T>)[], expandList?: (keyof Nullable<T>)[]): T {
     const filteredObj: Partial<T> = {};
     for (const key in obj) {
         if (!hideList.includes(key) || expandList?.includes(key)) {
@@ -69,7 +71,7 @@ export function expandObject<T extends { id: string }>(obj: T, hideList: (keyof 
         }
     }
 
-    return filteredObj;
+    return filteredObj as T;
 }
 
 /**

@@ -12,7 +12,8 @@ describe("customers", () => {
         async (stripeClient) => {
             const customer = await stripeClient.customers.create({});
             const customerGet = await stripeClient.customers.retrieve(customer.id);
-            return [customer, customerGet];
+            const customerGetExpanded = await stripeClient.customers.retrieve(customer.id, {expand: ["sources", "subscriptions"]});
+            return [customer, customerGet, customerGetExpanded];
         }
     ));
 
@@ -25,6 +26,13 @@ describe("customers", () => {
             const customerGet = await stripeClient.customers.retrieve(customer.id);
             chai.assert.equal(customerGet.id, id);
             return [customer];
+        }
+    ));
+
+    it("supports creation with expand ", buildStripeParityTest(
+        async (stripeClient) => {
+            const customerExpanded = await stripeClient.customers.create({expand: ["sources", "subscriptions"]});
+            return [customerExpanded];
         }
     ));
 
@@ -42,15 +50,16 @@ describe("customers", () => {
         }
     ));
 
-    it("supports creating and charging an additional source", buildStripeParityTest(
+    it.only("supports creating and charging an additional source", buildStripeParityTest(
         async (stripeClient) => {
             const customer = await stripeClient.customers.create({
-                source: "tok_mastercard"
+                source: "tok_mastercard",
+                expand: ["sources"]
             });
             const additionalSource = await stripeClient.customers.createSource(customer.id, {
                 source: "tok_visa"
             }) as Stripe.Card;
-            const customerWithAdditionalSource = await stripeClient.customers.retrieve(customer.id) as Stripe.Customer;
+            const customerWithAdditionalSource = await stripeClient.customers.retrieve(customer.id, {expand: ["sources"]}) as Stripe.Customer;
             const charge = await stripeClient.charges.create({
                 amount: 1000,
                 currency: "usd",
@@ -224,6 +233,16 @@ describe("customers", () => {
 
         const listLimit1 = await localStripeClient.customers.list({limit: 1}, {stripeAccount: account.id});
         chai.assert.lengthOf(listLimit1.data, 1);
+        chai.assert.isUndefined(listLimit1.data[0].sources);
+        chai.assert.isUndefined(listLimit1.data[0].subscriptions);
+
+        const listLimit1Expanded = await localStripeClient.customers.list({
+            limit: 1,
+            expand: ["sources", "subscriptions"]
+        }, {stripeAccount: account.id});
+        chai.assert.lengthOf(listLimit1Expanded.data, 1);
+        chai.assert.isDefined(listLimit1Expanded.data[0].sources);
+        chai.assert.isDefined(listLimit1Expanded.data[0].subscriptions);
 
         const listLimit2 = await localStripeClient.customers.list({
             limit: 1,
@@ -269,11 +288,12 @@ describe("customers", () => {
         it("supports deleting the non-default_source", buildStripeParityTest(
             async (stripeClient) => {
                 const customerBeforeDelete = await stripeClient.customers.create({
-                    source: "tok_visa"
+                    source: "tok_visa",
+                    expand: ["sources"]
                 });
                 const secondSource = await stripeClient.customers.createSource(customerBeforeDelete.id, {source: "tok_visa"});
                 await stripeClient.customers.deleteSource(customerBeforeDelete.id, secondSource.id);
-                const customerAfterDelete = await stripeClient.customers.retrieve(customerBeforeDelete.id);
+                const customerAfterDelete = await stripeClient.customers.retrieve(customerBeforeDelete.id, {expand: ["sources"]});
                 return [customerBeforeDelete, secondSource as Stripe.Card, customerAfterDelete];
             }
         ));
@@ -281,11 +301,12 @@ describe("customers", () => {
         it("supports deleting the default_source with a second source", buildStripeParityTest(
             async (stripeClient) => {
                 const customerBeforeDelete = await stripeClient.customers.create({
-                    source: "tok_visa"
+                    source: "tok_visa",
+                    expand: ["sources"]
                 });
                 const secondSource = await stripeClient.customers.createSource(customerBeforeDelete.id, {source: "tok_visa"});
                 await stripeClient.customers.deleteSource(customerBeforeDelete.id, customerBeforeDelete.default_source as string);
-                const customerAfterDelete = await stripeClient.customers.retrieve(customerBeforeDelete.id);
+                const customerAfterDelete = await stripeClient.customers.retrieve(customerBeforeDelete.id, {expand: ["sources"]});
                 return [customerBeforeDelete, secondSource as Stripe.Card, customerAfterDelete];
             }
         ));

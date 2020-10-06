@@ -129,7 +129,7 @@ describe("subscriptions", function () {
                     }]
                 });
 
-            const customerGet = await stripeClient.customers.retrieve(customer.id) as Stripe.Customer;
+            const customerGet = await stripeClient.customers.retrieve(customer.id, {expand: ["subscriptions"]}) as Stripe.Customer;
             chai.assert.lengthOf(customerGet.subscriptions.data, 1);
             chai.assert.equal(
                 customerGet.subscriptions.data[0].id,
