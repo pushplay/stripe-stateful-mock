@@ -50,7 +50,10 @@ export namespace subscriptions {
             application_fee_percent: +params.application_fee_percent || null,
             collection_method: params.collection_method || "charge_automatically",
             billing_cycle_anchor: +params.billing_cycle_anchor || now,
-            billing_thresholds: null,
+            billing_thresholds: params.billing_thresholds ? {
+                amount_gte: params.billing_thresholds.amount_gte ?? null,
+                reset_billing_cycle_anchor: params.billing_thresholds.reset_billing_cycle_anchor ?? null
+            } : null,
             cancel_at: null,
             cancel_at_period_end: false,
             canceled_at: null,
@@ -129,7 +132,7 @@ export namespace subscriptions {
         const subscriptionItem: Stripe.SubscriptionItem = {
             object: "subscription_item",
             id: subItemId,
-            billing_thresholds: item.billing_thresholds,
+            billing_thresholds: item.billing_thresholds ?? null,
             created: Math.floor(Date.now() / 1000),
             deleted: undefined,
             metadata: stringifyMetadata(item.metadata),
