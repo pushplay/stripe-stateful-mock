@@ -148,7 +148,7 @@ routes.post("/v1/plans", (req, res) => {
     const plan = plans.create(getRequestAccountId(req), req.body);
     const planExpanded = expandObject(
         plan,
-        ["tires"],
+        ["tiers"],
         req.body.expand
     );
     return res.status(200).json(planExpanded);
@@ -168,7 +168,7 @@ routes.get("/v1/plans/:id", (req, res) => {
     const plan = plans.retrieve(getRequestAccountId(req), req.params.id, "id");
     const planExpanded = expandObject(
         plan,
-        ["tires"],
+        ["tiers"],
         req.query.expand as any
     );
     return res.status(200).json(planExpanded);

@@ -32,9 +32,45 @@ describe("plans", () => {
                 }
             });
             const planGet = await stripeClient.plans.retrieve(plan.id);
-            const productGet = await stripeClient.products.retrieve(plan.product as string);
             const planGetExpanded = await stripeClient.plans.retrieve(plan.id, {expand: ["tiers"]});
-            return [plan, planGet, productGet, planGetExpanded];
+            const productGet = await stripeClient.products.retrieve(plan.product as string);
+            return [plan, planGet, planGetExpanded, productGet];
+        }
+    ));
+
+    it("supports creating a plan with tiers", buildStripeParityTest(
+        async (stripeClient) => {
+            const plan = await stripeClient.plans.create({
+                currency: "cad",
+                billing_scheme: "tiered",
+                interval: "day",
+                product: {
+                    name: "brand new service"
+                },
+                tiers: [
+                    {
+                        unit_amount: 100,
+                        up_to: 1
+                    },
+                    {
+                        unit_amount_decimal: "90",
+                        up_to: 2
+                    },
+                    {
+                        flat_amount_decimal: "80",
+                        up_to: 3
+                    },
+                    {
+                        flat_amount: 70,
+                        up_to: "inf"
+                    }
+                ],
+                tiers_mode: "graduated",
+                expand: ["tiers"]
+            });
+            const planGet = await stripeClient.plans.retrieve(plan.id);
+            const planGetExpanded = await stripeClient.plans.retrieve(plan.id, {expand: ["tiers"]});
+            return [plan, planGet, planGetExpanded];
         }
     ));
 

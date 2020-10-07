@@ -3,6 +3,7 @@ import {AccountData} from "./AccountData";
 import {RestError} from "./RestError";
 import {applyListOptions, generateId, stringifyMetadata} from "./utils";
 import {customers} from "./customers";
+import {plans} from "./plans";
 import {prices} from "./prices";
 import {verify} from "./verify";
 import {taxRates} from "./taxRates";
@@ -13,7 +14,6 @@ export namespace subscriptions {
 
     const accountSubscriptions = new AccountData<Stripe.Subscription>();
     const accountSubscriptionItems = new AccountData<Stripe.SubscriptionItem>();
-    const accountPlans = new AccountData<Stripe.Plan>();
 
     export function create(accountId: string, params: Stripe.SubscriptionCreateParams): Stripe.Subscription {
         log.debug("subscriptions.create", accountId, params);
@@ -107,37 +107,19 @@ export namespace subscriptions {
         return subscription;
     }
 
-    function getOrCreatePlanObj(accountId: string, planName: string): Stripe.Plan {
-        if (accountPlans.contains(accountId, planName)) {
-            return accountPlans.get(accountId, planName);
+    function getOrCreatePlan(accountId: string, planId: string): Stripe.Plan {
+        try {
+            return plans.retrieve(accountId, planId, "plan");
+        } catch (error) {
+            if ((error as RestError).error?.code === "resource_missing") {
+                return plans.create(accountId, {
+                    id: planId,
+                    currency: "usd",
+                    interval: "month"
+                })
+            }
+            throw error;
         }
-
-        const plan: Stripe.Plan = {
-            id: planName,
-            object: "plan",
-            active: true,
-            aggregate_usage: null,
-            amount: 10 * 100,
-            amount_decimal: "10",
-            billing_scheme: "per_unit",
-            created: Math.floor(Date.now() / 1000),
-            currency: "usd",
-            deleted: undefined,
-            interval: "month",
-            interval_count: 1,
-            livemode: false,
-            metadata: {},
-            nickname: null,
-            product: `prod_${planName.substr(5)}`,
-            tiers: null,
-            tiers_mode: null,
-            transform_usage: null,
-            trial_period_days: null,
-            usage_type: "licensed"
-        };
-        accountPlans.put(accountId, plan);
-
-        return plan;
     }
 
     function createItem(accountId: string, item: Stripe.SubscriptionCreateParams.Item, subscriptionId: string): Stripe.SubscriptionItem {
@@ -147,11 +129,11 @@ export namespace subscriptions {
         const subscriptionItem: Stripe.SubscriptionItem = {
             object: "subscription_item",
             id: subItemId,
-            billing_thresholds: null,
+            billing_thresholds: item.billing_thresholds,
             created: Math.floor(Date.now() / 1000),
             deleted: undefined,
             metadata: stringifyMetadata(item.metadata),
-            plan: getOrCreatePlanObj(accountId, item.plan),
+            plan: getOrCreatePlan(accountId, item.plan),    // isn't in the documentation, deprecated?
             price: item.price ? prices.retrieve(accountId, item.price, "price") : null,
             quantity: +item.quantity || 1,
             subscription: subscriptionId,
