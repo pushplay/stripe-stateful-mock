@@ -119,7 +119,7 @@ export namespace subscriptions {
                     id: planId,
                     currency: "usd",
                     interval: "month"
-                })
+                });
             }
             throw error;
         }
