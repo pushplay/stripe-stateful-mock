@@ -202,19 +202,22 @@ export function assertCustomersAreBasicallyEqual(actual: Stripe.Customer, expect
     assertSetOrUnsetOnKeys(actual, expected, [
         "id",
         "default_source",
-        "invoice_prefix"
+        "invoice_prefix",
+        "sources"
     ], message);
 
-    for (let sourceIx = 0; sourceIx < expected.sources.data.length; sourceIx++) {
-        chai.assert.equal(actual.sources.data[sourceIx].object, "card", "only card checking is supported");
-        chai.assert.equal(expected.sources.data[sourceIx].object, "card", "only card checking is supported");
-        chai.assert.equal((actual.sources.data[sourceIx] as Stripe.Card).customer, actual.id);
-        chai.assert.equal((expected.sources.data[sourceIx] as Stripe.Card).customer, expected.id);
-        assertCardsAreBasicallyEqual(
-            actual.sources.data[sourceIx] as Stripe.Card,
-            expected.sources.data[sourceIx] as Stripe.Card,
-            `of refund ${sourceIx} ${message || ""}`
-        );
+    if (expected.sources) {
+        for (let sourceIx = 0; sourceIx < expected.sources.data.length; sourceIx++) {
+            chai.assert.equal(actual.sources.data[sourceIx].object, "card", "only card checking is supported");
+            chai.assert.equal(expected.sources.data[sourceIx].object, "card", "only card checking is supported");
+            chai.assert.equal((actual.sources.data[sourceIx] as Stripe.Card).customer, actual.id);
+            chai.assert.equal((expected.sources.data[sourceIx] as Stripe.Card).customer, expected.id);
+            assertCardsAreBasicallyEqual(
+                actual.sources.data[sourceIx] as Stripe.Card,
+                expected.sources.data[sourceIx] as Stripe.Card,
+                `of refund ${sourceIx} ${message || ""}`
+            );
+        }
     }
 }
 
@@ -236,16 +239,13 @@ export function assertSubscriptionsAreBasicallyEqual(
         "ended_at",
         "livemode",
         "metadata",
-        "quantity",
         "status",
-        "tax_percent",
         "trial_end",
         "trial_start"
     ], message);
     assertSetOrUnsetOnKeys(actual, expected, [
         "id",
         "items",
-        "plan",
         "billing_cycle_anchor",
         "cancel_at",
         "cancel_at_period_end",
@@ -282,10 +282,8 @@ export function assertSubscriptionsAreBasicallyEqual(
             actual.items.data[itemIx],
             expected.items.data[itemIx],
             message
-        )
+        );
     }
-    chai.assert.ok(actual.plan.id);
-    chai.assert.ok(expected.plan.id)
 }
 
 export function assertSubscriptionItemsAreBasicallyEqual(
@@ -306,7 +304,7 @@ export function assertSubscriptionItemsAreBasicallyEqual(
     ], message);
 
     chai.assert.ok(actual.plan.id);
-    chai.assert.ok(expected.plan.id)
+    chai.assert.ok(expected.plan.id);
 }
 
 export function assertCardsAreBasicallyEqual(actual: Stripe.Card, expected: Stripe.Card, message?: string): void {
@@ -472,12 +470,12 @@ export function assertTaxRatesAreBasicallyEqual(actual: Stripe.TaxRate, expected
 
 function assertEqualOnKeys<T extends object>(actual: T, expected: T, keys: (keyof T)[], message?: string): void {
     for (const key of keys) {
-        chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}' ${message || ""}`);
+        chai.assert.deepEqual(actual[key], expected[key], `comparing key '${key}', ${message || ""}`);
     }
 }
 
 function assertSetOrUnsetOnKeys<T extends object>(actual: T, expected: T, keys: (keyof T)[], message?: string): void {
     for (const key of keys) {
-        chai.assert.equal(!!actual[key], !!expected[key], `both have key '${key}' set or unset ${message || ""}`);
+        chai.assert.equal(actual[key] !== undefined ? "set" : "unset", expected[key] !== undefined ? "set" : "unset", `expect both have key '${key}' set or unset, ${message || ""}`);
     }
 }

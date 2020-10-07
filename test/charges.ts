@@ -804,7 +804,7 @@ describe("charges", () => {
 
                 let voidError: any;
                 try {
-                    await stripeClient.refunds.create({charge: charge.id, amount: 1200})
+                    await stripeClient.refunds.create({charge: charge.id, amount: 1200});
                 } catch (err) {
                     voidError = err;
                 }

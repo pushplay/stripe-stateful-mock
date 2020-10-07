@@ -2,6 +2,8 @@
 
 Simulates a stateful Stripe server for local unit testing.  Makes Stripe calls 50-100x faster than testing against the official server.
 
+**Stripe version mocked:** `2020-08-27`
+
 Supported features:
 - charges: create with the most common [test tokens](https://stripe.com/docs/testing) or customer card, retrieve, list, update, capture
 - refunds: create, retrieve, list

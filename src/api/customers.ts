@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 import {RestError} from "./RestError";
-import {applyListOptions, generateId, stringifyMetadata} from "./utils";
+import {applyListOptions, expandObject, generateId, stringifyMetadata} from "./utils";
 import {cards} from "./cards";
 import {AccountData} from "./AccountData";
 import {verify} from "./verify";
@@ -78,7 +78,11 @@ export namespace customers {
             accountCustomers.put(accountId, customer);
         }
 
-        return customer;
+        return expandObject(
+            customer,
+            ["sources", "subscriptions"],
+            params.expand
+        );
     }
 
     export function retrieve(accountId: string, customerId: string, paramName: string): Stripe.Customer {
@@ -104,6 +108,7 @@ export namespace customers {
         if (params.email) {
             data = data.filter(d => d.email === params.email);
         }
+
         return applyListOptions(data, params, (id, paramName) => retrieve(accountId, id, paramName));
     }
 
@@ -164,7 +169,11 @@ export namespace customers {
             customer.tax_exempt = params.tax_exempt;
         }
 
-        return customer;
+        return expandObject(
+            customer,
+            ["sources", "subscriptions"],
+            params.expand
+        );
     }
 
     export function addSubscription(accountId: string, customerId: string, subscription: Stripe.Subscription): void {

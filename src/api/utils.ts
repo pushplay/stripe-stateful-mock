@@ -54,3 +54,38 @@ export function applyListOptions<T extends { id: string }>(data: T[], params: St
         url: "/v1/refunds"
     };
 }
+
+export type Nullable<T> = T extends null | undefined ? T : never;
+
+/**
+ * Hide some properties from the object that are not expanded.
+ * This creates a copy of the object.
+ * @param obj The object to expand.
+ * @param hideList The list of properties to hide.
+ * @param expandList The list of properties to expand (overriding hideList).
+ */
+export function expandObject<T extends { id: string }>(obj: T, hideList: (keyof Nullable<T>)[], expandList?: (keyof Nullable<T>)[]): T {
+    const expandListValid = expandList != null && Array.isArray(expandList);
+    const filteredObj: Partial<T> = {};
+    for (const key in obj) {
+        if (!hideList.includes(key) || (expandListValid && expandList.includes(key))) {
+            filteredObj[key] = obj[key];
+        }
+    }
+
+    return filteredObj as T;
+}
+
+/**
+ * Hide some properties from the objects that are not expanded.
+ * This creates a copy of the object.
+ * @param list The list of objects to expand.
+ * @param hideList The list of properties to hide.
+ * @param expandList The list of properties to expand (overriding hideList).
+ */
+export function expandList<T extends { id: string }>(list: Stripe.ApiList<T>, hideList: (keyof T)[], expandList?: (keyof T)[]): Stripe.ApiList<Partial<T>> {
+    return {
+        ...list,
+        data: list.data.map(d => expandObject(d, hideList, expandList))
+    };
+}

@@ -92,7 +92,7 @@ export namespace prices {
 
         let data = accountPrices.getAll(accountId);
         if (params.active != undefined) {
-            data = data.filter(price => price.active === (params.active as any === "true"))
+            data = data.filter(price => price.active === (params.active as any === "true"));
         }
         if (params.currency != undefined) {
             data = data.filter(price => price.currency === params.currency);

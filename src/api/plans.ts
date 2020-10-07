@@ -62,16 +62,58 @@ export namespace plans {
             interval_count: params.interval_count || 1,
             livemode: false,
             metadata: stringifyMetadata(params.metadata),
-            nickname: params.nickname || null,
+            nickname: params.nickname ?? null,
             product: product.id,
-            tiers: params.tiers as any /* close enough */ || null,
-            tiers_mode: params.tiers_mode || null,
-            transform_usage: params.transform_usage || null,
-            trial_period_days: params.trial_period_days || null,
+            tiers: billingScheme === "tiered" ? params.tiers?.map(tierCreateToTier) : undefined,
+            tiers_mode: billingScheme === "tiered" ? params.tiers_mode : null,
+            transform_usage: params.transform_usage ?? null,
+            trial_period_days: params.trial_period_days ?? null,
             usage_type: usageType
         };
         accountPlans.put(accountId, plan);
         return plan;
+    }
+
+    /**
+     * Coalesce the number amount (which may be passed in as a string) and the
+     * string decimal amount into a number value.
+     *
+     * If this garbage needs to happen in more places refactor it into utils.
+     */
+    function coalesceToAmount(amount?: string | number, decimal?: string): number | null {
+        if (!isNaN(+amount)) {
+            return +amount;
+        }
+        if (!isNaN(+decimal)) {
+            return +decimal;
+        }
+        return null;
+    }
+
+    /**
+     * Coalesce the number amount (which may be passed in as a string) and the
+     * string decimal amount into a string decimal value.
+     *
+     * If this garbage needs to happen in more places refactor it into utils.
+     */
+    function coalesceToDecimal(amount?: string | number, decimal?: string): string | null {
+        if (!isNaN(+amount)) {
+            return +amount + "";
+        }
+        if (decimal) {
+            return decimal;
+        }
+        return null;
+    }
+
+    function tierCreateToTier(tier: Stripe.PlanCreateParams.Tier): Stripe.Plan.Tier {
+        return {
+            flat_amount: coalesceToAmount(tier.flat_amount, tier.flat_amount_decimal),
+            flat_amount_decimal: coalesceToDecimal(tier.flat_amount, tier.flat_amount_decimal),
+            unit_amount: coalesceToAmount(tier.unit_amount, tier.unit_amount_decimal),
+            unit_amount_decimal: coalesceToDecimal(tier.unit_amount, tier.unit_amount_decimal),
+            up_to: +tier.up_to || null
+        };
     }
 
     export function retrieve(accountId: string, planId: string, paramName: string): Stripe.Plan {

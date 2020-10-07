@@ -17,27 +17,20 @@ describe("subscriptions", function () {
                 }
             });
 
-            const customer = await stripeClient
-                .customers.create({
-                    source: "tok_visa"
-                });
+            const customer = await stripeClient.customers.create({
+                source: "tok_visa"
+            });
 
-            const subscription = await stripeClient
-                .subscriptions.create({
-                    customer: customer.id,
-                    items: [{
-                        plan: plan.id,
-                        quantity: 1
-                    }]
-                });
-            const subscriptionGet = await stripeClient
-                .subscriptions.retrieve(subscription.id);
+            const subscription = await stripeClient.subscriptions.create({
+                customer: customer.id,
+                items: [{
+                    plan: plan.id,
+                    quantity: 1
+                }]
+            });
+            const subscriptionGet = await stripeClient.subscriptions.retrieve(subscription.id);
 
             chai.assert.equal(subscriptionGet.customer, customer.id);
-            chai.assert.equal(
-                subscriptionGet.plan.id,
-                subscriptionGet.items.data[0].plan.id
-            );
             chai.assert.equal(
                 subscriptionGet.id,
                 subscriptionGet.items.data[0].subscription
@@ -60,19 +53,17 @@ describe("subscriptions", function () {
             const customer = await stripeClient.customers.create({
                 source: "tok_visa"
             });
-            const subscription = await stripeClient.subscriptions
-                .create({
-                    customer: customer.id,
-                    items: [{
-                        plan: plan.id,
-                        quantity: 1
-                    }]
-                });
+            const subscription = await stripeClient.subscriptions.create({
+                customer: customer.id,
+                items: [{
+                    plan: plan.id,
+                    quantity: 1
+                }]
+            });
 
-            const siGet = await stripeClient.subscriptionItems
-                .retrieve(subscription.items.data[0].id);
+            const siGet = await stripeClient.subscriptionItems.retrieve(subscription.items.data[0].id);
 
-            return [siGet]
+            return [siGet];
         }
     ));
 
@@ -89,28 +80,23 @@ describe("subscriptions", function () {
             const customer = await stripeClient.customers.create({
                 source: "tok_visa"
             });
-            const subscription = await stripeClient.subscriptions
-                .create({
-                    customer: customer.id,
-                    items: [{
-                        plan: plan.id,
-                        quantity: 1
-                    }]
-                });
+            const subscription = await stripeClient.subscriptions.create({
+                customer: customer.id,
+                items: [{
+                    plan: plan.id,
+                    quantity: 1
+                }]
+            });
 
             const si = subscription.items.data[0];
-            const updated = await stripeClient.subscriptionItems
-                .update(si.id, {
-                    quantity: 5
-                });
+            const updated = await stripeClient.subscriptionItems.update(si.id, {
+                quantity: 5
+            });
 
             const subscriptionGet = await stripeClient.subscriptions.retrieve(subscription.id);
             chai.assert.equal(subscriptionGet.items.data[0].quantity, 5);
 
-            const customerGet = await stripeClient.customers.retrieve(customer.id) as Stripe.Customer;
-            chai.assert.equal(customerGet.subscriptions.data[0].quantity, 5);
-
-            return [updated, subscriptionGet, customerGet]
+            return [updated, subscriptionGet];
         }
     ));
 
@@ -136,15 +122,14 @@ describe("subscriptions", function () {
                     }]
                 });
 
-            const customerGet = await stripeClient.customers.retrieve(customer.id) as Stripe.Customer;
+            const customerGet = await stripeClient.customers.retrieve(customer.id, {expand: ["subscriptions"]}) as Stripe.Customer;
             chai.assert.lengthOf(customerGet.subscriptions.data, 1);
             chai.assert.equal(
                 customerGet.subscriptions.data[0].id,
                 subscription.id
             );
-            chai.assert.equal(customerGet.subscriptions.data[0].quantity, 2);
 
-            return [customerGet]
+            return [customerGet];
         }
-    ))
+    ));
 });
