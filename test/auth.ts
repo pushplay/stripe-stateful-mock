@@ -13,14 +13,14 @@ describe("auth", () => {
 
     it("matches the server error when the API key does not start with sk_test_", async () => {
         const localClient = new Stripe("foobar", {
-            apiVersion: process.env["STRIPE_API_VERSION"] as any,
+            apiVersion: "2020-08-27",
             host: "localhost",
             port: port,
             protocol: "http"
         });
 
         const liveClient = new Stripe("foobar", {
-            apiVersion: process.env["STRIPE_API_VERSION"] as any
+            apiVersion: "2020-08-27"
         });
 
         await assertErrorThunksAreEqual(
