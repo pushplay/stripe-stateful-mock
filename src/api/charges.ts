@@ -77,7 +77,7 @@ export namespace charges {
 
         let charge: Stripe.Charge;
         if (typeof params.customer === "string") {
-            const customer = customers.retrieve(accountId, params.customer, "customer", {expand: ["sources"]});
+            const customer = customers.retrieve(accountId, params.customer, "customer");
             let cardId: string;
 
             if (params.source) {

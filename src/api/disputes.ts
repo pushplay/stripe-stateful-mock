@@ -50,7 +50,7 @@ export namespace disputes {
                 source: `dp_${generateId(24)}`,
                 status: "pending",
                 type: "adjustment"
-            })
+            });
         }
 
         const dispute: Stripe.Dispute = {

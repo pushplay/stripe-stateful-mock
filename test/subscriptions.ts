@@ -68,7 +68,7 @@ describe("subscriptions", function () {
             const siGet = await stripeClient.subscriptionItems
                 .retrieve(subscription.items.data[0].id);
 
-            return [siGet]
+            return [siGet];
         }
     ));
 
@@ -103,7 +103,7 @@ describe("subscriptions", function () {
             const subscriptionGet = await stripeClient.subscriptions.retrieve(subscription.id);
             chai.assert.equal(subscriptionGet.items.data[0].quantity, 5);
 
-            return [updated, subscriptionGet]
+            return [updated, subscriptionGet];
         }
     ));
 
@@ -136,7 +136,7 @@ describe("subscriptions", function () {
                 subscription.id
             );
 
-            return [customerGet]
+            return [customerGet];
         }
-    ))
+    ));
 });

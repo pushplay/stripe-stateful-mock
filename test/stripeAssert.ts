@@ -282,7 +282,7 @@ export function assertSubscriptionsAreBasicallyEqual(
             actual.items.data[itemIx],
             expected.items.data[itemIx],
             message
-        )
+        );
     }
 }
 
@@ -304,7 +304,7 @@ export function assertSubscriptionItemsAreBasicallyEqual(
     ], message);
 
     chai.assert.ok(actual.plan.id);
-    chai.assert.ok(expected.plan.id)
+    chai.assert.ok(expected.plan.id);
 }
 
 export function assertCardsAreBasicallyEqual(actual: Stripe.Card, expected: Stripe.Card, message?: string): void {

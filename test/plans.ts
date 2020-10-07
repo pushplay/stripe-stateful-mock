@@ -16,7 +16,8 @@ describe("plans", () => {
                 product: product.id
             });
             const planGet = await stripeClient.plans.retrieve(plan.id);
-            return [product, plan, planGet];
+            const planGetExpanded = await stripeClient.plans.retrieve(plan.id, {expand: ["tiers"]});
+            return [product, plan, planGet, planGetExpanded];
         }
     ));
 
@@ -32,7 +33,8 @@ describe("plans", () => {
             });
             const planGet = await stripeClient.plans.retrieve(plan.id);
             const productGet = await stripeClient.products.retrieve(plan.product as string);
-            return [plan, planGet, productGet];
+            const planGetExpanded = await stripeClient.plans.retrieve(plan.id, {expand: ["tiers"]});
+            return [plan, planGet, productGet, planGetExpanded];
         }
     ));
 

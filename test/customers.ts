@@ -50,7 +50,7 @@ describe("customers", () => {
         }
     ));
 
-    it.only("supports creating and charging an additional source", buildStripeParityTest(
+    it("supports creating and charging an additional source", buildStripeParityTest(
         async (stripeClient) => {
             const customer = await stripeClient.customers.create({
                 source: "tok_mastercard",
@@ -358,8 +358,11 @@ describe("customers", () => {
         it("supports updating the source", buildStripeParityTest(
             async (stripeClient) => {
                 const customer = await stripeClient.customers.create({});
-                const customerAfterUpdate = await stripeClient.customers.update(customer.id, {source: "tok_visa"});
-                const customerGet = await stripeClient.customers.retrieve(customer.id);
+                const customerAfterUpdate = await stripeClient.customers.update(customer.id, {
+                    source: "tok_visa",
+                    expand: ["sources"]
+                });
+                const customerGet = await stripeClient.customers.retrieve(customer.id, {expand: ["sources"]});
                 chai.assert.isString(customerAfterUpdate.default_source);
                 chai.assert.lengthOf(customerAfterUpdate.sources.data, 1);
                 return [customer, customerAfterUpdate, customerGet];

@@ -85,7 +85,7 @@ export namespace customers {
         );
     }
 
-    export function retrieve(accountId: string, customerId: string, paramName: string, params?: Stripe.CustomerRetrieveParams): Stripe.Customer {
+    export function retrieve(accountId: string, customerId: string, paramName: string): Stripe.Customer {
         log.debug("customers.retrieve", accountId, customerId);
 
         const customer = accountCustomers.get(accountId, customerId);
@@ -98,12 +98,7 @@ export namespace customers {
                 type: "invalid_request_error"
             });
         }
-
-        return expandObject(
-            customer,
-            ["sources", "subscriptions"],
-            params?.expand
-        );
+        return customer;
     }
 
     export function list(accountId: string, params: Stripe.CustomerListParams): Stripe.ApiList<Stripe.Customer> {
@@ -113,7 +108,6 @@ export namespace customers {
         if (params.email) {
             data = data.filter(d => d.email === params.email);
         }
-        data = data.map(d => expandObject(d, ["sources", "subscriptions"], params.expand));
 
         return applyListOptions(data, params, (id, paramName) => retrieve(accountId, id, paramName));
     }
@@ -252,7 +246,7 @@ export namespace customers {
     export function retrieveCard(accountId: string, customerId: string, cardId: string, paramName: string): Stripe.Card {
         log.debug("customers.retrieveCard", accountId, customerId, cardId);
 
-        const customer = retrieve(accountId, customerId, "customer", {expand: ["sources"]});
+        const customer = retrieve(accountId, customerId, "customer");
         const card = customer.sources.data.find(card => card.id === cardId && card.object === "card") as Stripe.Card;
         if (!card) {
             throw new RestError(404, {
@@ -269,7 +263,7 @@ export namespace customers {
     export function deleteCard(accountId: string, customerId: string, cardId: string): any {
         log.debug("customers.deleteCard", accountId, customerId, cardId);
 
-        const customer = retrieve(accountId, customerId, "customer", {expand: ["sources"]});
+        const customer = retrieve(accountId, customerId, "customer");
         const card = retrieveCard(accountId, customerId, cardId, "id");
         const cardIx = customer.sources.data.indexOf(card);
         if (cardIx === -1) {

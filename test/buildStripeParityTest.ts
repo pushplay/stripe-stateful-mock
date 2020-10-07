@@ -22,5 +22,5 @@ export function buildStripeParityTest<T extends (Error | ComparableStripeObject)
         }
 
         chai.assert.lengthOf(localResults, liveResults.length, "local results and live results agree to this point they should have the same length");
-    }
+    };
 }

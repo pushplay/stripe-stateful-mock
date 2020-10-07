@@ -45,6 +45,7 @@ module.exports = {
         "no-inner-declarations": "off",                 // Needed to allow functions exported from namespaces.
         "no-constant-condition": ["error", {
             checkLoops: false
-        }]
+        }],
+        "semi": "error"
     }
 };
