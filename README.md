@@ -24,8 +24,12 @@ The server can be started in multiple ways but in each case it starts an HTTP se
 
 ```javascript
 const Stripe = require("stripe");
-let client = new Stripe("sk_test_foobar");
-client.setHost("localhost", 8000, "http");
+const client = new Stripe("sk_test_foobar", {
+    apiVersion: "2020-08-27",
+    host: "localhost",
+    port: port,
+    protocol: "http"
+});
 ```
 
 The server supports the following settings through environment variables:

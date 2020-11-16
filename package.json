@@ -20,6 +20,7 @@
   },
   "keywords": [
     "mock",
+    "mock-server",
     "stripe",
     "test",
     "unittest"
