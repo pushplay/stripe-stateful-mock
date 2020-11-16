@@ -16,7 +16,7 @@
   "bin": "./dist/cli.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Giftbit/stripe-stateful-mock.git"
+    "url": "git+https://github.com/pushplay/stripe-stateful-mock.git"
   },
   "keywords": [
     "mock",
@@ -29,9 +29,9 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Giftbit/stripe-stateful-mock/issues"
+    "url": "https://github.com/pushplay/stripe-stateful-mock/issues"
   },
-  "homepage": "https://github.com/Giftbit/stripe-stateful-mock#readme",
+  "homepage": "https://github.com/pushplay/stripe-stateful-mock#readme",
   "dependencies": {
     "basic-auth": "^2.0.1",
     "body-parser": "^1.19.0",
