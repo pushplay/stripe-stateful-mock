@@ -132,6 +132,7 @@ export function assertChargesAreBasicallyEqual(actual: Stripe.Charge, expected: 
     assertEqualOnKeys(actual, expected, [
         "object",
         "amount",
+        "amount_captured",
         "amount_refunded",
         "application_fee",
         "application_fee_amount",

@@ -236,6 +236,7 @@ export namespace charges {
         } else {
             charge.captured = true;
         }
+        charge.amount_captured += captureAmount;
         charge.balance_transaction = "txn_" + generateId(24);
 
         return charge;
@@ -243,10 +244,12 @@ export namespace charges {
 
     function getChargeFromCard(params: Stripe.ChargeCreateParams, source: Stripe.Card): Stripe.Charge {
         const chargeId = "ch_" + generateId();
+        const captured = params.capture as any !== "false";
         return {
             id: chargeId,
             object: "charge",
             amount: +params.amount,
+            amount_captured: captured ? +params.amount : 0,
             amount_refunded: 0,
             application: null,
             application_fee: null,
@@ -266,7 +269,7 @@ export namespace charges {
                 phone: null
             },
             calculated_statement_descriptor: null,
-            captured: params.capture as any !== "false",
+            captured: captured,
             created: (Date.now() / 1000) | 0,
             currency: params.currency.toLowerCase(),
             customer: null,
@@ -525,8 +528,8 @@ export namespace charges {
         }
     }
 
-    export function getShippingFromParams(params: Stripe.ChargeUpdateParams.Shipping | null): Stripe.Charge.Shipping | null {
-        if (params == null) {
+    export function getShippingFromParams(params: Stripe.ChargeUpdateParams.Shipping | "" | null): Stripe.Charge.Shipping | null {
+        if (params == null || params === "") {
             return null;
         }
 
@@ -539,8 +542,8 @@ export namespace charges {
         };
     }
 
-    export function getAddressFromParams(params: Stripe.AddressParam | null): Stripe.Address | null {
-        if (params == null) {
+    export function getAddressFromParams(params: Stripe.AddressParam | "" | null): Stripe.Address | null {
+        if (params == null || params === "") {
             return null;
         }
 

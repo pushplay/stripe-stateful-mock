@@ -64,7 +64,7 @@ export namespace subscriptions {
             days_until_due: +params.days_until_due || null,
             default_payment_method: null,
             default_source: default_source || null,
-            default_tax_rates: params.default_tax_rates?.map(t => taxRates.retrieve(accountId, t, "default_tax_rate")),
+            default_tax_rates: (params.default_tax_rates || null)?.map(t => taxRates.retrieve(accountId, t, "default_tax_rate")),
             discount: null,
             ended_at: null,
             items: {
@@ -132,7 +132,7 @@ export namespace subscriptions {
         const subscriptionItem: Stripe.SubscriptionItem = {
             object: "subscription_item",
             id: subItemId,
-            billing_thresholds: item.billing_thresholds ?? null,
+            billing_thresholds: item.billing_thresholds || null,
             created: Math.floor(Date.now() / 1000),
             deleted: undefined,
             metadata: stringifyMetadata(item.metadata),
@@ -140,7 +140,7 @@ export namespace subscriptions {
             price: item.price ? prices.retrieve(accountId, item.price, "price") : null,
             quantity: +item.quantity || 1,
             subscription: subscriptionId,
-            tax_rates: item.tax_rates?.map(r => taxRates.retrieve(accountId, r, "tax_rate"))
+            tax_rates: (item.tax_rates || null)?.map(r => taxRates.retrieve(accountId, r, "tax_rate"))
         };
         accountSubscriptionItems.put(accountId, subscriptionItem);
 

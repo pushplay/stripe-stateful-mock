@@ -166,7 +166,7 @@ export namespace customers {
             createCard(accountId, customer, {source: params.source});
         }
         if (params.tax_exempt !== undefined) {
-            customer.tax_exempt = params.tax_exempt;
+            customer.tax_exempt = params.tax_exempt || null;
         }
 
         return expandObject(

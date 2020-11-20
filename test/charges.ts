@@ -195,11 +195,18 @@ describe("charges", () => {
         }
     ));
 
+    it("supports on_behalf_of", buildChargeParityTest({
+        amount: 3500,
+        currency: "usd",
+        on_behalf_of: process.env["STRIPE_CONNECTED_ACCOUNT_ID"],
+        source: "tok_visa",
+        transfer_group: "xfer"
+    }));
+
     it("supports misc additional params", buildChargeParityTest({
         amount: 3500,
         description: "this is a description",
         currency: "usd",
-        on_behalf_of: process.env["STRIPE_CONNECTED_ACCOUNT_ID"],
         receipt_email: "foobar@example.com",
         shipping: {
             address: {
@@ -217,8 +224,7 @@ describe("charges", () => {
             tracking_number: "abc123"
         },
         source: "tok_visa",
-        statement_descriptor: "ccc",
-        transfer_group: "ddd"
+        statement_descriptor: "hello world",
     }));
 
     it("supports upper case currency", buildStripeParityTest(

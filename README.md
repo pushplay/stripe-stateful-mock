@@ -7,13 +7,13 @@ Simulates a stateful Stripe server for local unit testing.  Makes Stripe calls 5
 Supported features:
 - charges: create with the most common [test tokens](https://stripe.com/docs/testing) or customer card, retrieve, list, update, capture
 - refunds: create, retrieve, list
-- customers: create, retrieve, list, update, create card, retrieve card, delete card
+- customers: create, retrieve, update, list, create card, retrieve card, delete card
 - products: create, retrieve, list
 - plans: create, retrieve, list
 - prices: create, retrieve, update, list
 - subscriptions: create, retrieve, list
-- tax plans: create, retrieve, list, update
-- connect accounts: create and delete
+- tax plans: create, retrieve, update, list
+- connect accounts: create, delete
 - idempotency
 
 Correctness of this test server is not guaranteed!  Set up unit testing to work against either the Stripe server with a test account or this mock server with a flag to switch between them.  Test against the official Stripe server occasionally to ensure correctness on the fine details.

@@ -5,7 +5,7 @@ export function generateId(length: number = 20): string {
     return new Array(length).fill("5").map(() => chars[(Math.random() * chars.length) | 0]).join("");
 }
 
-export function stringifyMetadata(metadata?: { [key: string]: string | number }): { [key: string]: string } {
+export function stringifyMetadata(metadata?: { [key: string]: string | number } | ""): { [key: string]: string } {
     if (!metadata) {
         return {};
     }
