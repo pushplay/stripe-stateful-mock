@@ -158,6 +158,9 @@ export namespace charges {
         if (params.customer) {
             data = data.filter(d => d.customer === params.customer);
         }
+        if (params.payment_intent) {
+            data = data.filter(d => d.payment_intent === params.payment_intent);
+        }
         return applyListOptions(data, params, (id, paramName) => retrieve(accountId, id, paramName));
     }
 

@@ -4,6 +4,7 @@ import {accounts} from "./api/accounts";
 import {charges} from "./api/charges";
 import {customers} from "./api/customers";
 import {disputes} from "./api/disputes";
+import {paymentIntents} from "./api/paymentIntents";
 import {plans} from "./api/plans";
 import {prices} from "./api/prices";
 import {products} from "./api/products";
@@ -142,6 +143,41 @@ routes.post("/v1/customers/:customerId/sources", (req, res) => {
 routes.get("/v1/disputes/:id", (req, res) => {
     const dispute = disputes.retrieve(getRequestAccountId(req), req.params.id, "dispute");
     return res.status(200).json(dispute);
+});
+
+routes.get("/v1/paymentIntents", (req, res) => {
+    const paymentIntentsList = paymentIntents.list(getRequestAccountId(req), req.query);
+    return res.status(200).json(paymentIntentsList);
+});
+
+routes.post("/v1/paymentIntents", (req, res) => {
+    const paymentIntent = paymentIntents.create(getRequestAccountId(req), req.body);
+    return res.status(200).json(paymentIntent);
+});
+
+routes.get("/v1/paymentIntents/:id", (req, res) => {
+    const paymentIntent = paymentIntents.retrieve(getRequestAccountId(req), req.params.id, "id");
+    return res.status(200).json(paymentIntent);
+});
+
+routes.post("/v1/paymentIntents/:id", (req, res) => {
+    const paymentIntent = paymentIntents.update(getRequestAccountId(req), req.params.id, req.body);
+    return res.status(200).json(paymentIntent);
+});
+
+routes.post("/v1/paymentIntents/:id/confirm", (req, res) => {
+    const paymentIntent = paymentIntents.confirm(getRequestAccountId(req), req.params.id, req.body);
+    return res.status(200).json(paymentIntent);
+});
+
+routes.post("/v1/paymentIntents/:id/capture", (req, res) => {
+    const paymentIntent = paymentIntents.capture(getRequestAccountId(req), req.params.id, req.body);
+    return res.status(200).json(paymentIntent);
+});
+
+routes.post("/v1/paymentIntents/:id/cancel", (req, res) => {
+    const paymentIntent = paymentIntents.cancel(getRequestAccountId(req), req.params.id, req.body);
+    return res.status(200).json(paymentIntent);
 });
 
 routes.post("/v1/plans", (req, res) => {
