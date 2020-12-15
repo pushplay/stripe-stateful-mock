@@ -1,4 +1,4 @@
-export class AccountData<T extends {id: string, created: number}> {
+export class AccountData<T extends {id: string, created?: number}> {
 
     private data: {[accountId: string]: {[id: string]: T}} = {};
 

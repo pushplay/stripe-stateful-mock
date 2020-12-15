@@ -11,6 +11,8 @@ import {refunds} from "./api/refunds";
 import {subscriptions} from "./api/subscriptions";
 import {taxRates} from "./api/taxRates";
 import {expandList, expandObject} from "./api/utils";
+import {skus} from "./api/skus";
+import {checkout} from "./api/checkout.sessions";
 
 const routes = express.Router();
 
@@ -75,6 +77,16 @@ routes.post("/v1/charges/:id/capture", (req, res) => {
 routes.get("/v1/charges/:id/refunds", (req, res) => {
     const refundList = refunds.list(getRequestAccountId(req), {...req.query, charge: req.params.id});
     return res.status(200).json(refundList);
+});
+
+routes.get("/v1/checkout/sessions/:id", (req, res) => {
+    const session = checkout.sessions.retrieve(getRequestAccountId(req), req.params.id, "id");
+    return res.status(200).json(session);
+});
+
+routes.post("/v1/checkout/sessions", (req, res) => {
+    const session = checkout.sessions.create(getRequestAccountId(req), req.body);
+    return res.status(200).json(session);
 });
 
 routes.post("/v1/customers", (req, res) => {
@@ -222,6 +234,21 @@ routes.get("/v1/refunds", (req, res) => {
 routes.get("/v1/refunds/:id", (req, res) => {
     const refund = refunds.retrieve(getRequestAccountId(req), req.params.id, "id");
     return res.status(200).json(refund);
+});
+
+routes.post("/v1/skus", (req, res) => {
+    const sku = skus.create(getRequestAccountId(req), req.body);
+    return res.status(200).json(sku);
+});
+
+routes.get("/v1/skus", (req, res) => {
+    const skuList = skus.list(getRequestAccountId(req), req.query);
+    return res.status(200).json(skuList);
+});
+
+routes.get("/v1/skus/:id", (req, res) => {
+    const sku = skus.retrieve(getRequestAccountId(req), req.params.id, "id");
+    return res.status(200).json(sku);
 });
 
 routes.post("/v1/subscriptions", (req, res) => {
