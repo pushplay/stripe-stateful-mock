@@ -4,6 +4,7 @@ import {routes} from "./routes";
 import {RestError} from "./api/RestError";
 import {idempotencyRoute} from "./api/idempotency";
 import {auth} from "./api/auth";
+import {accountStore} from './api/AccountData';
 import log = require("loglevel");
 
 export function createExpressApp(): express.Application {
@@ -29,4 +30,10 @@ export function createExpressApp(): express.Application {
     });
 
     return app;
+}
+
+export function resetData(accountId: string = "acct_default"): void {
+  for(const accountData of accountStore) {
+    accountData.removeAll(accountId)
+  }
 }
