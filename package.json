@@ -56,7 +56,7 @@
     "chai-exclude": "^2.0.2",
     "dotenv-safe": "^8.2.0",
     "eslint": "^7.13.0",
-    "mocha": "^8.2.1",
+    "mocha": "^10.2.0",
     "rimraf": "^3.0.2",
     "stripe": "^8.125.0",
     "ts-node": "^9.0.0",
