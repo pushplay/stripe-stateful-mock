@@ -1,8 +1,12 @@
-export class AccountData<T extends {id: string, created: number}> {
+export const accountStore: AccountData<any>[] = [];
+
+export class AccountData<T extends {id: string, created?: number}> {
 
     private data: {[accountId: string]: {[id: string]: T}} = {};
 
-    constructor() {}
+    constructor() {
+        accountStore.push(this);
+    }
 
     get(accountId: string, objectId: string): T {
         return (this.data[accountId] && this.data[accountId][objectId]) || null;
@@ -33,6 +37,13 @@ export class AccountData<T extends {id: string, created: number}> {
 
     remove(accountId: string, objectId: string): void {
         if (this.data[accountId]) {
+            delete this.data[accountId][objectId];
+        }
+    }
+
+    removeAll(accountId: string): void {
+        const records = this.data[accountId];
+        for (const objectId in records) {
             delete this.data[accountId][objectId];
         }
     }
